@@ -13,7 +13,10 @@ import {
   Trash2,
   Link as LinkIcon,
   UserCheck,
+  UserX,
+  Unlink,
   Camera,
+  Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +25,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { formatDate, formatLifespan } from "@/lib/utils/date";
 import { deleteMember } from "@/lib/actions/member";
-import { selfAssignToNode, type TreePermissions } from "@/lib/actions/permissions";
+import {
+  selfAssignToNode,
+  selfUnassignFromNode,
+  unlinkNodeProfile,
+  type TreePermissions,
+  type NodeProfileLink,
+} from "@/lib/actions/permissions";
 import { EditMemberDialog } from "./edit-member-dialog";
 import { PhotoUpload } from "@/components/photos/photo-upload";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
@@ -37,6 +46,8 @@ interface MemberProfileProps {
   canEdit: boolean;
   photos?: Media[];
   permissions?: TreePermissions;
+  linkedProfile?: NodeProfileLink | null;
+  currentUserId?: string;
 }
 
 export function MemberProfile({
@@ -47,6 +58,8 @@ export function MemberProfile({
   canEdit,
   photos = [],
   permissions,
+  linkedProfile = null,
+  currentUserId,
 }: MemberProfileProps) {
   const router = useRouter();
   const [showEdit, setShowEdit] = useState(false);
@@ -55,7 +68,9 @@ export function MemberProfile({
   const [assigning, setAssigning] = useState(false);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
 
-  const canSelfAssign = permissions && !permissions.linkedNodeId && !permissions.isOwner;
+  const canSelfAssign = permissions && !permissions.linkedNodeId && !linkedProfile;
+  const isSelfLinked = linkedProfile?.userId === currentUserId;
+  const canOwnerUnlink = permissions?.isOwner && linkedProfile && !isSelfLinked;
 
   async function handleSelfAssign() {
     setAssigning(true);
@@ -65,6 +80,33 @@ export function MemberProfile({
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to assign");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleUnclaim() {
+    setAssigning(true);
+    try {
+      await selfUnassignFromNode(treeId);
+      toast.success("You have been unlinked from this node");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  async function handleOwnerUnlink() {
+    if (!linkedProfile) return;
+    setAssigning(true);
+    try {
+      await unlinkNodeProfile(treeId, linkedProfile.membershipId);
+      toast.success(`Unlinked ${linkedProfile.displayName} from this node`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink");
     } finally {
       setAssigning(false);
     }
@@ -142,15 +184,22 @@ export function MemberProfile({
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         {/* Profile header */}
         <div className="flex items-start gap-5">
-          <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            {member.avatar_url ? (
-              <img
-                src={member.avatar_url}
-                alt={member.first_name}
-                className="h-20 w-20 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-10 w-10 text-primary" />
+          <div className="relative">
+            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              {(linkedProfile?.avatarUrl ?? member.avatar_url) ? (
+                <img
+                  src={(linkedProfile?.avatarUrl ?? member.avatar_url)!}
+                  alt={member.first_name}
+                  className="h-20 w-20 rounded-full object-cover"
+                />
+              ) : (
+                <User className="h-10 w-10 text-primary" />
+              )}
+            </div>
+            {linkedProfile && (
+              <div className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-background" title={`Linked to ${linkedProfile.displayName}`}>
+                <UserCheck className="h-3.5 w-3.5 text-white" />
+              </div>
             )}
           </div>
           <div className="flex-1">
@@ -188,14 +237,73 @@ export function MemberProfile({
                 </Button>
               </>
             )}
-            {canSelfAssign && (
-              <Button variant="outline" size="sm" onClick={handleSelfAssign} disabled={assigning}>
-                <UserCheck className="h-3.5 w-3.5 mr-1.5" />
-                {assigning ? "Assigning..." : "This is me"}
-              </Button>
-            )}
           </div>
         </div>
+
+        {/* Profile link card */}
+        {linkedProfile ? (
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                <Fingerprint className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Linked to {linkedProfile.displayName}
+                </p>
+                <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
+                  {isSelfLinked
+                    ? "Your account is connected to this person in the tree"
+                    : "This person has linked their account to this node"}
+                </p>
+              </div>
+              {isSelfLinked && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                  onClick={handleUnclaim}
+                  disabled={assigning}
+                >
+                  <UserX className="h-3.5 w-3.5 mr-1.5" />
+                  {assigning ? "..." : "Unlink me"}
+                </Button>
+              )}
+              {canOwnerUnlink && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-red-200 dark:border-red-800 text-destructive hover:bg-red-50 dark:hover:bg-red-950/30"
+                  onClick={handleOwnerUnlink}
+                  disabled={assigning}
+                >
+                  <Unlink className="h-3.5 w-3.5 mr-1.5" />
+                  {assigning ? "..." : "Remove link"}
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : canSelfAssign ? (
+          <button
+            onClick={handleSelfAssign}
+            disabled={assigning}
+            className="w-full group relative rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all p-4 text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Fingerprint className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  {assigning ? "Linking your account..." : "This is me!"}
+                </p>
+                <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
+                  Link your account to this person. Your profile picture will appear on their tree node.
+                </p>
+              </div>
+            </div>
+          </button>
+        ) : null}
 
         {/* Quick info */}
         <div className="space-y-2">

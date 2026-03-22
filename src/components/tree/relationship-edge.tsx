@@ -10,9 +10,11 @@ import type { RelationshipType } from "@/types";
 export interface RelationshipEdgeData {
   relationship_type: RelationshipType;
   relationship_id: string;
-  isHighlighted?: boolean;
+  highlightMode?: EdgeHighlightMode;
   [key: string]: unknown;
 }
+
+export type EdgeHighlightMode = "none" | "descendant" | "path" | "hover";
 
 function RelationshipEdgeComponent({
   id,
@@ -33,7 +35,7 @@ function RelationshipEdgeComponent({
     targetPosition,
   });
 
-  const isHighlighted = data?.isHighlighted ?? false;
+  const highlightMode = data?.highlightMode ?? "none";
   const relType = data?.relationship_type ?? "parent_child";
 
   const strokeDasharray =
@@ -45,9 +47,12 @@ function RelationshipEdgeComponent({
           ? "2 4"
           : undefined;
 
-  const color = isHighlighted
-    ? "oklch(0.45 0.18 155)"
-    : "oklch(0.75 0 0)";
+  const color =
+    highlightMode === "hover" || highlightMode === "path"
+      ? "oklch(0.45 0.18 155)"
+      : highlightMode === "descendant"
+        ? "oklch(0.62 0.12 210)"
+        : "oklch(0.75 0 0)";
 
   const markerId = `arrow-${id}`;
 
@@ -63,26 +68,17 @@ function RelationshipEdgeComponent({
           markerHeight="7"
           orient="auto"
         >
-          <path
-            d="M 1 1 L 7 4 L 1 7"
-            fill="none"
-            stroke={color}
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <path d="M 0 0 L 8 4 L 0 8 Z" fill={color} stroke={color} strokeWidth="1" />
         </marker>
       </defs>
       <path
         id={id}
         d={edgePath}
         fill="none"
-        stroke={color}
-        strokeWidth={1.5}
         strokeDasharray={strokeDasharray}
         strokeLinecap="round"
         markerEnd={`url(#${markerId})`}
-        className="react-flow__edge-path"
+        style={{ stroke: color, strokeWidth: 1.5 }}
       />
     </g>
   );

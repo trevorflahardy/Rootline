@@ -28,7 +28,7 @@ import { deleteMember, saveMemberPositions } from "@/lib/actions/member";
 import { createRelationship } from "@/lib/actions/relationship";
 import { useRealtimeTree } from "@/lib/hooks/use-realtime-tree";
 import { MemberNode, type MemberNodeData } from "./member-node";
-import { RelationshipEdge, type RelationshipEdgeData } from "./relationship-edge";
+import { RelationshipEdge, type EdgeHighlightMode, type RelationshipEdgeData } from "./relationship-edge";
 import { TreeToolbar } from "./tree-toolbar";
 import { MemberDetailPanel } from "./member-detail-panel";
 import { AddMemberDialog } from "./add-member-dialog";
@@ -49,6 +49,7 @@ interface TreeCanvasProps {
   tree: FamilyTree;
   members: TreeMember[];
   relationships: Relationship[];
+  descendantHighlightDepth?: number;
   canEdit: boolean;
   currentUserId: string;
   nodeProfileMap?: Record<string, NodeProfileLink>;
@@ -59,6 +60,7 @@ function TreeCanvasInner({
   tree,
   members: initialMembers,
   relationships: initialRelationships,
+  descendantHighlightDepth = 1,
   canEdit,
   currentUserId,
   nodeProfileMap = {},
@@ -87,6 +89,11 @@ function TreeCanvasInner({
   const [editingMember, setEditingMember] = useState<TreeMember | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TreeMember | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const normalizedDescendantHighlightDepth =
+    Number.isFinite(descendantHighlightDepth)
+      ? Math.min(10, Math.max(0, Math.trunc(descendantHighlightDepth)))
+      : 1;
 
   // Track whether we've done the initial layout
   const hasInitialized = useRef(false);
@@ -120,22 +127,65 @@ function TreeCanvasInner({
         data: {
           ...n.data,
           isSelected: false,
-          isPathHighlighted: false,
+          highlightVariant: "none",
           linkedProfile: nodeProfileMap[n.id] ?? null,
         } as MemberNodeData,
       };
     });
-  }, [layout.nodes]);
+  }, [layout.nodes, nodeProfileMap]);
 
   const initialEdges: Edge[] = useMemo(() => {
     return layout.edges.map((e) => ({
       ...e,
       data: {
         ...e.data,
-        isHighlighted: false,
+        highlightMode: "none",
       } as RelationshipEdgeData,
     }));
   }, [layout.edges]);
+
+  const { selectedDescendantNodeIds, selectedDescendantEdgeIds } = useMemo(() => {
+    const nodeIds = new Set<string>();
+    const edgeIds = new Set<string>();
+
+    if (!selectedMemberId || normalizedDescendantHighlightDepth === 0) {
+      return {
+        selectedDescendantNodeIds: nodeIds,
+        selectedDescendantEdgeIds: edgeIds,
+      };
+    }
+
+    const queue: Array<{ id: string; depth: number }> = [{ id: selectedMemberId, depth: 0 }];
+    const visited = new Set<string>([selectedMemberId]);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+
+      if (current.depth >= normalizedDescendantHighlightDepth) {
+        continue;
+      }
+
+      for (const rel of relationships) {
+        if (
+          rel.from_member_id === current.id
+          && (rel.relationship_type === "parent_child" || rel.relationship_type === "adopted")
+        ) {
+          edgeIds.add(rel.id);
+          nodeIds.add(rel.to_member_id);
+
+          if (!visited.has(rel.to_member_id)) {
+            visited.add(rel.to_member_id);
+            queue.push({ id: rel.to_member_id, depth: current.depth + 1 });
+          }
+        }
+      }
+    }
+
+    return {
+      selectedDescendantNodeIds: nodeIds,
+      selectedDescendantEdgeIds: edgeIds,
+    };
+  }, [normalizedDescendantHighlightDepth, relationships, selectedMemberId]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
@@ -186,11 +236,15 @@ function TreeCanvasInner({
         data: {
           ...n.data,
           isSelected: n.id === selectedMemberId,
-          isPathHighlighted: highlightedPath.includes(n.id),
+          highlightVariant: highlightedPath.includes(n.id)
+            ? "path"
+            : selectedDescendantNodeIds.has(n.id)
+              ? "descendant"
+              : "none",
         },
       }))
     );
-  }, [selectedMemberId, highlightedPath, setNodes]);
+  }, [selectedMemberId, highlightedPath, selectedDescendantNodeIds, setNodes]);
 
   // Update edge highlighting WITHOUT resetting positions
   useEffect(() => {
@@ -211,11 +265,19 @@ function TreeCanvasInner({
         ...e,
         data: {
           ...e.data,
-          isHighlighted: highlightedEdges.includes(e.id) || hoverEdgeIds.has(e.id),
+          highlightMode: (
+            hoverEdgeIds.has(e.id)
+              ? "hover"
+              : highlightedEdges.includes(e.id)
+                ? "path"
+                : selectedDescendantEdgeIds.has(e.id)
+                  ? "descendant"
+                  : "none"
+          ) as EdgeHighlightMode,
         },
       }))
     );
-  }, [highlightedEdges, hoveredRelMemberId, selectedMemberId, relationships, setEdges]);
+  }, [highlightedEdges, hoveredRelMemberId, selectedDescendantEdgeIds, selectedMemberId, relationships, setEdges]);
 
   // Path highlighting logic
   useEffect(() => {
@@ -250,7 +312,7 @@ function TreeCanvasInner({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [clearSelection]);
 
   const clearSelection = useCallback(() => {
     setSelectedMemberId(null);

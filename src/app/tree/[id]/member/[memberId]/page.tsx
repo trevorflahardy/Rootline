@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { getTreeById } from "@/lib/actions/tree";
 import { getMemberById, getMembersByTreeId } from "@/lib/actions/member";
 import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
-import { getTreePermissions, canEditMember } from "@/lib/actions/permissions";
+import { auth } from "@clerk/nextjs/server";
+import { getTreePermissions, canEditMember, getNodeProfileMap } from "@/lib/actions/permissions";
 import { getPhotosByMemberId } from "@/lib/actions/photo";
 import { MemberProfile } from "@/components/tree/member-profile";
 
@@ -30,12 +31,14 @@ export default async function MemberDetailPage({
 
   if (!tree) notFound();
 
-  const [member, allMembers, relationships, permissions, photos] = await Promise.all([
+  const { userId } = await auth();
+  const [member, allMembers, relationships, permissions, photos, nodeProfileMap] = await Promise.all([
     getMemberById(memberId, id),
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
     getTreePermissions(id),
     getPhotosByMemberId(memberId, id),
+    getNodeProfileMap(id),
   ]);
 
   if (!member) notFound();
@@ -52,6 +55,8 @@ export default async function MemberDetailPage({
         canEdit={canEdit}
         photos={photos}
         permissions={permissions}
+        linkedProfile={nodeProfileMap[memberId] ?? null}
+        currentUserId={userId ?? ""}
       />
     </div>
   );

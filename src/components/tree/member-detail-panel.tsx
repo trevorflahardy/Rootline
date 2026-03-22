@@ -16,6 +16,7 @@ import {
   UserCheck,
   UserX,
   Unlink,
+  Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -338,31 +339,55 @@ export function MemberDetailPanel({
           </div>
         </div>
 
-        {/* Profile link actions */}
+        {/* Profile link */}
         {linkedProfile ? (
-          <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2">
-            <UserCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
-            <span className="text-sm text-blue-700 dark:text-blue-300 flex-1 truncate">
-              Linked to {linkedProfile.displayName}
-            </span>
-            {isSelfLinked && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={handleUnclaim} disabled={claimLoading}>
-                <UserX className="h-3.5 w-3.5 mr-1" />
-                {claimLoading ? "..." : "Unassign"}
-              </Button>
-            )}
-            {canOwnerUnlink && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={handleOwnerUnlink} disabled={claimLoading}>
-                <Unlink className="h-3.5 w-3.5 mr-1" />
-                {claimLoading ? "..." : "Remove"}
-              </Button>
-            )}
+          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-3 py-2.5">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
+                <Fingerprint className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-100 truncate">
+                  Linked to {linkedProfile.displayName}
+                </p>
+                <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
+                  {isSelfLinked ? "Your account" : "Account linked"}
+                </p>
+              </div>
+              {isSelfLinked && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300" onClick={handleUnclaim} disabled={claimLoading}>
+                  <UserX className="h-3 w-3 mr-1" />
+                  {claimLoading ? "..." : "Unlink"}
+                </Button>
+              )}
+              {canOwnerUnlink && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs border border-red-200 dark:border-red-800 text-destructive" onClick={handleOwnerUnlink} disabled={claimLoading}>
+                  <Unlink className="h-3 w-3 mr-1" />
+                  {claimLoading ? "..." : "Remove"}
+                </Button>
+              )}
+            </div>
           </div>
         ) : canClaim ? (
-          <Button variant="outline" size="sm" className="w-full" onClick={handleClaim} disabled={claimLoading}>
-            <UserCheck className="h-3.5 w-3.5 mr-1.5" />
-            {claimLoading ? "Linking..." : "This is me!"}
-          </Button>
+          <button
+            onClick={handleClaim}
+            disabled={claimLoading}
+            className="w-full group rounded-lg border-2 border-dashed border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all px-3 py-2.5 text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Fingerprint className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                  {claimLoading ? "Linking..." : "This is me! Link my account"}
+                </p>
+                <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
+                  Click here to link your account to show your profile picture here and let your relatives know it's you when you interact with the tree!
+                </p>
+              </div>
+            </div>
+          </button>
         ) : null}
 
         <Separator />

@@ -2,12 +2,17 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  updateProfilePreferencesSchema,
+  type UpdateProfilePreferencesInput,
+} from "@/lib/validators/profile";
 
 export interface Profile {
   clerk_id: string;
   display_name: string;
   avatar_url: string | null;
   email: string | null;
+  descendant_highlight_depth: number;
   created_at: string;
   updated_at: string;
 }
@@ -40,4 +45,21 @@ export async function ensureProfile(clerkId: string, displayName: string, email?
   );
 
   if (error) throw new Error(`Failed to ensure profile: ${error.message}`);
+}
+
+export async function updateProfilePreferences(input: UpdateProfilePreferencesInput) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  const validated = updateProfilePreferencesSchema.parse(input);
+  const supabase = createAdminClient();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ descendant_highlight_depth: validated.descendant_highlight_depth })
+    .eq("clerk_id", userId);
+
+  if (error) throw new Error(`Failed to update profile preferences: ${error.message}`);
+
+  return validated;
 }

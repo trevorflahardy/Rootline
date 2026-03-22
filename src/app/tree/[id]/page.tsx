@@ -4,6 +4,7 @@ import { getTreeById } from "@/lib/actions/tree";
 import { getMembersByTreeId } from "@/lib/actions/member";
 import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
 import { getTreePermissions, getNodeProfileMap } from "@/lib/actions/permissions";
+import { getProfile } from "@/lib/actions/profile";
 import Link from "next/link";
 import { TreeCanvas } from "@/components/tree/tree-canvas";
 import { EmptyTreeState } from "@/components/tree/empty-tree-state";
@@ -21,11 +22,12 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
 
   if (!tree) notFound();
 
-  const [members, relationships, permissions, nodeProfileMap] = await Promise.all([
+  const [members, relationships, permissions, nodeProfileMap, profile] = await Promise.all([
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
     getTreePermissions(id),
     getNodeProfileMap(id),
+    getProfile(),
   ]);
 
   const canEdit = permissions.canEdit;
@@ -62,6 +64,7 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
               tree={tree}
               members={members}
               relationships={relationships}
+              descendantHighlightDepth={profile?.descendant_highlight_depth ?? 1}
               canEdit={canEdit}
               currentUserId={userId ?? ""}
               nodeProfileMap={nodeProfileMap}
