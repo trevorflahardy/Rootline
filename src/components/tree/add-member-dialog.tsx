@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -43,7 +44,6 @@ export function AddMemberDialog({
   onMemberAdded,
 }: AddMemberDialogProps) {
   const [relatedMemberId, setRelatedMemberId] = useState<string>("");
-  const [relationshipType, setRelationshipType] = useState<RelationshipType>("parent_child");
   const [relationshipDirection, setRelationshipDirection] = useState<"parent" | "child" | "spouse">("child");
   const [memberSearchOpen, setMemberSearchOpen] = useState(false);
 
@@ -266,11 +266,14 @@ function MemberAvatar({ member, size = "sm" }: { member: TreeMember; size?: "sm"
   const iconPx = size === "sm" ? "h-3 w-3" : "h-4 w-4";
 
   if (member.avatar_url) {
+    const dim = size === "sm" ? 20 : 32;
     return (
-      <img
+      <Image
         src={member.avatar_url}
         alt={member.first_name}
         className={`${px} rounded-full object-cover flex-shrink-0`}
+        width={dim}
+        height={dim}
       />
     );
   }

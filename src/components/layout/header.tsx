@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+
+const subscribe = () => () => {};
+const getSnapshot = () => true;
+const getServerSnapshot = () => false;
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { useAuth } from "@clerk/nextjs";
 import { Menu, TreePine } from "lucide-react";
@@ -20,8 +24,7 @@ const navLinks = [
 export function Header() {
   const { isSignedIn, isLoaded } = useAuth();
   const pathname = usePathname();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

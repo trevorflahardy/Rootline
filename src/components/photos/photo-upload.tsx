@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,11 +96,14 @@ export function PhotoUpload({
 
         {preview ? (
           <div className="relative">
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-full max-h-64 object-contain rounded-lg border"
-            />
+            <div className="relative w-full" style={{ minHeight: "200px", maxHeight: "256px" }}>
+              <Image
+                src={preview}
+                alt="Preview"
+                className="object-contain rounded-lg border"
+                fill
+              />
+            </div>
             <Button
               variant="destructive"
               size="icon"

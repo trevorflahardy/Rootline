@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -20,7 +21,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { formatDate, formatLifespan } from "@/lib/utils/date";
@@ -187,10 +187,12 @@ export function MemberProfile({
           <div className="relative">
             <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               {(linkedProfile?.avatarUrl ?? member.avatar_url) ? (
-                <img
+                <Image
                   src={(linkedProfile?.avatarUrl ?? member.avatar_url)!}
                   alt={member.first_name}
                   className="h-20 w-20 rounded-full object-cover"
+                  width={80}
+                  height={80}
                 />
               ) : (
                 <User className="h-10 w-10 text-primary" />

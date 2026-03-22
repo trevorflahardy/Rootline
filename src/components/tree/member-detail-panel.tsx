@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   X,
   User,
-  Calendar,
-  MapPin,
   Edit,
   Trash2,
   Check,
@@ -23,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { formatDate, formatLifespan } from "@/lib/utils/date";
+import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
 import {
   selfAssignToNode,
@@ -161,7 +160,7 @@ function RelatedMemberCard({
     >
       <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
         {member.avatar_url ? (
-          <img src={member.avatar_url} alt={member.first_name} className="h-8 w-8 rounded-full object-cover" />
+          <Image src={member.avatar_url} alt={member.first_name} className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
         ) : (
           <User className="h-4 w-4" />
         )}
@@ -274,8 +273,6 @@ export function MemberDetailPanel({
     })
     .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
 
-  const lifespan = formatLifespan(member.date_of_birth, member.date_of_death, member.is_deceased);
-
   const handleInlineSave = useCallback(
     async (field: string, value: string) => {
       await updateMember(member.id, member.tree_id, { [field]: value });
@@ -312,7 +309,7 @@ export function MemberDetailPanel({
           <div className="relative">
             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               {(linkedProfile?.avatarUrl ?? member.avatar_url) ? (
-                <img src={(linkedProfile?.avatarUrl ?? member.avatar_url)!} alt={member.first_name} className="h-16 w-16 rounded-full object-cover" />
+                <Image src={(linkedProfile?.avatarUrl ?? member.avatar_url)!} alt={member.first_name} className="h-16 w-16 rounded-full object-cover" width={64} height={64} />
               ) : (
                 <User className="h-8 w-8 text-primary" />
               )}
@@ -383,7 +380,7 @@ export function MemberDetailPanel({
                   {claimLoading ? "Linking..." : "This is me! Link my account"}
                 </p>
                 <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70">
-                  Click here to link your account to show your profile picture here and let your relatives know it's you when you interact with the tree!
+                  Link your account to show your profile picture and let relatives know it&apos;s you
                 </p>
               </div>
             </div>

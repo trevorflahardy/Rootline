@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -53,12 +54,13 @@ export function PhotoGallery({ photos, treeId, canEdit }: PhotoGalleryProps) {
           <button
             key={photo.id}
             onClick={() => setLightboxPhoto(photo)}
-            className="aspect-square rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary transition-all"
+            className="relative aspect-square rounded-lg overflow-hidden border hover:ring-2 hover:ring-primary transition-all"
           >
-            <img
+            <Image
               src={getPhotoUrl(photo.storage_path)}
               alt={photo.caption ?? photo.file_name}
-              className="w-full h-full object-cover"
+              className="object-cover"
+              fill
             />
           </button>
         ))}
@@ -69,11 +71,14 @@ export function PhotoGallery({ photos, treeId, canEdit }: PhotoGalleryProps) {
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
           {lightboxPhoto && (
             <div className="relative">
-              <img
-                src={getPhotoUrl(lightboxPhoto.storage_path)}
-                alt={lightboxPhoto.caption ?? lightboxPhoto.file_name}
-                className="w-full max-h-[80vh] object-contain"
-              />
+              <div className="relative w-full max-h-[80vh]" style={{ minHeight: "300px" }}>
+                <Image
+                  src={getPhotoUrl(lightboxPhoto.storage_path)}
+                  alt={lightboxPhoto.caption ?? lightboxPhoto.file_name}
+                  className="object-contain"
+                  fill
+                />
+              </div>
               <div className="absolute top-2 right-2 flex gap-1">
                 {canEdit && (
                   <Button

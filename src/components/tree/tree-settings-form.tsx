@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +13,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -71,7 +71,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
     try {
       await updateTree(tree.id, { is_public: checked });
       toast.success(checked ? "Tree is now public" : "Tree is now private");
-    } catch (error) {
+    } catch {
       setIsPublic(!checked);
       toast.error("Failed to update visibility");
     }
@@ -190,7 +190,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
                 <div key={m.id} className="flex items-center gap-3 py-2">
                   <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     {m.profile?.avatar_url ? (
-                      <img src={m.profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+                      <Image src={m.profile.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" width={36} height={36} />
                     ) : (
                       <User className="h-4 w-4 text-primary" />
                     )}

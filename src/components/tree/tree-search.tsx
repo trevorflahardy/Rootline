@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import {
   CommandDialog,
   CommandEmpty,
@@ -63,10 +64,12 @@ export function TreeSearch({ open, onOpenChange, members, onSelect }: TreeSearch
                 <div className="flex items-center gap-3 w-full">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     {member.avatar_url ? (
-                      <img
+                      <Image
                         src={member.avatar_url}
                         alt={member.first_name}
                         className="h-8 w-8 rounded-full object-cover"
+                        width={32}
+                        height={32}
                       />
                     ) : (
                       <User className="h-4 w-4 text-primary" />

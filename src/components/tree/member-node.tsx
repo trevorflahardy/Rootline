@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import Image from "next/image";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { User, Crown, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
@@ -72,10 +73,12 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
               )}
             >
               {displayAvatar ? (
-                <img
+                <Image
                   src={displayAvatar}
                   alt={data.first_name}
                   className="h-10 w-10 rounded-full object-cover"
+                  width={40}
+                  height={40}
                 />
               ) : (
                 <User className="h-5 w-5" />

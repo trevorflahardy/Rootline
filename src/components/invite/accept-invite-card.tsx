@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
 import { toast } from "sonner";
-import { TreePine, AlertCircle, UserPlus, Crown, Eye, Edit } from "lucide-react";
+import { TreePine, AlertCircle, UserPlus, Eye, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
