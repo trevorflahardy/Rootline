@@ -14,37 +14,42 @@ export type MemberNodeData = TreeMember & {
   [key: string]: unknown;
 };
 
-function MemberNodeComponent({ data, selected }: NodeProps & { data: MemberNodeData }) {
+function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
   const lifespan = formatLifespan(data.date_of_birth, data.date_of_death, data.is_deceased);
+  const active = data.isSelected || data.isPathHighlighted;
 
-  const genderAccent =
-    data.gender === "male"
-      ? "border-chart-3/50"
-      : data.gender === "female"
-        ? "border-chart-4/50"
-        : "border-border";
+  const handleColor = active ? "oklch(0.45 0.18 155)" : "oklch(0.75 0 0)";
 
   return (
     <>
-      <Handle type="target" position={Position.Top} className="!bg-primary !w-2 !h-2 !border-0" />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-1.5 !h-1.5 !border-0 !rounded-full !min-w-0 !min-h-0"
+        style={{ background: handleColor }}
+      />
 
       <div
         className={cn(
-          "rounded-xl border-2 bg-card shadow-sm px-4 py-3 min-w-[160px] max-w-[200px] transition-all duration-200 cursor-pointer",
-          genderAccent,
+          "rounded-xl border-[1.5px] bg-card shadow-sm px-4 py-3 min-w-[160px] max-w-[200px] transition-all duration-200 cursor-pointer",
           data.is_deceased && "opacity-70",
-          selected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-          data.isPathHighlighted && "ring-2 ring-success ring-offset-2 ring-offset-background border-success/50",
+          // Default: gray border. Selected/highlighted: green border. No ring.
+          active
+            ? "border-[oklch(0.45_0.18_155)]"
+            : "border-border",
+          // Subtle shadow on path highlight
+          data.isPathHighlighted && "shadow-md shadow-[oklch(0.5_0.18_155_/_0.12)]",
         )}
       >
         <div className="flex items-center gap-3">
-          {/* Avatar */}
           <div
             className={cn(
               "h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold",
               data.is_deceased
                 ? "bg-muted text-muted-foreground grayscale"
-                : "bg-primary/10 text-primary"
+                : active
+                  ? "bg-[oklch(0.45_0.18_155_/_0.12)] text-[oklch(0.4_0.15_155)]"
+                  : "bg-muted text-muted-foreground"
             )}
           >
             {data.avatar_url ? (
@@ -58,7 +63,6 @@ function MemberNodeComponent({ data, selected }: NodeProps & { data: MemberNodeD
             )}
           </div>
 
-          {/* Info */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
               <p className="text-sm font-semibold truncate">
@@ -81,7 +85,12 @@ function MemberNodeComponent({ data, selected }: NodeProps & { data: MemberNodeD
         </div>
       </div>
 
-      <Handle type="source" position={Position.Bottom} className="!bg-primary !w-2 !h-2 !border-0" />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-1.5 !h-1.5 !border-0 !rounded-full !min-w-0 !min-h-0"
+        style={{ background: handleColor }}
+      />
     </>
   );
 }

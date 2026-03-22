@@ -2,8 +2,7 @@
 
 import { memo } from "react";
 import {
-  BaseEdge,
-  getSmoothStepPath,
+  getBezierPath,
   type EdgeProps,
 } from "@xyflow/react";
 import type { RelationshipType } from "@/types";
@@ -24,16 +23,14 @@ function RelationshipEdgeComponent({
   sourcePosition,
   targetPosition,
   data,
-  style,
 }: EdgeProps & { data?: RelationshipEdgeData }) {
-  const [edgePath] = getSmoothStepPath({
+  const [edgePath] = getBezierPath({
     sourceX,
     sourceY,
     targetX,
     targetY,
     sourcePosition,
     targetPosition,
-    borderRadius: 16,
   });
 
   const isHighlighted = data?.isHighlighted ?? false;
@@ -48,20 +45,46 @@ function RelationshipEdgeComponent({
           ? "2 4"
           : undefined;
 
+  const color = isHighlighted
+    ? "oklch(0.45 0.18 155)"
+    : "oklch(0.75 0 0)";
+
+  const markerId = `arrow-${id}`;
+
   return (
-    <BaseEdge
-      id={id}
-      path={edgePath}
-      style={{
-        ...style,
-        stroke: isHighlighted
-          ? "oklch(0.6 0.15 155)"
-          : "oklch(0.7 0.02 75)",
-        strokeWidth: isHighlighted ? 3 : 1.5,
-        strokeDasharray,
-        transition: "stroke 0.3s, stroke-width 0.3s",
-      }}
-    />
+    <g>
+      <defs>
+        <marker
+          id={markerId}
+          viewBox="0 0 8 8"
+          refX="7"
+          refY="4"
+          markerWidth="7"
+          markerHeight="7"
+          orient="auto"
+        >
+          <path
+            d="M 1 1 L 7 4 L 1 7"
+            fill="none"
+            stroke={color}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </marker>
+      </defs>
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeDasharray={strokeDasharray}
+        strokeLinecap="round"
+        markerEnd={`url(#${markerId})`}
+        className="react-flow__edge-path"
+      />
+    </g>
   );
 }
 

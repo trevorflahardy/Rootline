@@ -133,6 +133,26 @@ export async function getMembersByTreeId(treeId: string): Promise<TreeMember[]> 
   return (data ?? []) as TreeMember[];
 }
 
+export async function saveMemberPositions(
+  treeId: string,
+  positions: Array<{ id: string; position_x: number; position_y: number }>
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const membership = await checkTreeAccess(supabase, treeId, userId);
+  if (membership.role === "viewer") return;
+
+  // Batch update positions
+  for (const pos of positions) {
+    await supabase
+      .from("tree_members")
+      .update({ position_x: pos.position_x, position_y: pos.position_y })
+      .eq("id", pos.id)
+      .eq("tree_id", treeId);
+  }
+}
+
 export async function getMemberById(memberId: string, treeId: string): Promise<TreeMember | null> {
   const userId = await getAuthUser();
   const supabase = createAdminClient();

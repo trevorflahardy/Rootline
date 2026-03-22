@@ -1,10 +1,26 @@
 "use client";
 
-import { X, User, Calendar, MapPin, Edit, Trash2, Link as LinkIcon } from "lucide-react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  X,
+  User,
+  Calendar,
+  MapPin,
+  Edit,
+  Trash2,
+  Check,
+  XIcon,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatLifespan } from "@/lib/utils/date";
+import { updateMember } from "@/lib/actions/member";
 import type { TreeMember, Relationship } from "@/types";
 
 interface MemberDetailPanelProps {
@@ -16,6 +32,142 @@ interface MemberDetailPanelProps {
   onEdit: () => void;
   onDelete: () => void;
   onSelectMember: (id: string) => void;
+  onHoverMember?: (id: string | null) => void;
+}
+
+// Inline editable field component
+function InlineField({
+  label,
+  value,
+  field,
+  type = "text",
+  canEdit,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  field: string;
+  type?: "text" | "date" | "textarea";
+  canEdit: boolean;
+  onSave: (field: string, value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(field, editValue);
+      setEditing(false);
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(value ?? "");
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="space-y-1">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <div className="flex items-center gap-1">
+          {type === "textarea" ? (
+            <Textarea
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="text-sm min-h-[60px]"
+              autoFocus
+            />
+          ) : (
+            <Input
+              type={type}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              className="h-7 text-sm"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSave();
+                if (e.key === "Escape") handleCancel();
+              }}
+            />
+          )}
+          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={handleSave} disabled={saving}>
+            <Check className="h-3.5 w-3.5 text-green-600" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={handleCancel}>
+            <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const displayValue = value || "—";
+  const isEmpty = !value;
+
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p
+        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
+        onClick={canEdit ? () => { setEditValue(value ?? ""); setEditing(true); } : undefined}
+        title={canEdit ? "Click to edit" : undefined}
+      >
+        {displayValue}
+      </p>
+    </div>
+  );
+}
+
+// Mini profile card for related members
+function RelatedMemberCard({
+  member,
+  badge,
+  onSelect,
+  onHover,
+}: {
+  member: TreeMember;
+  badge?: string;
+  onSelect: () => void;
+  onHover?: (hovering: boolean) => void;
+}) {
+  return (
+    <button
+      onClick={onSelect}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
+      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm hover:bg-accent transition-colors text-left group"
+    >
+      <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
+        {member.avatar_url ? (
+          <img src={member.avatar_url} alt={member.first_name} className="h-8 w-8 rounded-full object-cover" />
+        ) : (
+          <User className="h-4 w-4" />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">
+          {member.first_name} {member.last_name}
+        </p>
+        {member.date_of_birth && (
+          <p className="text-[10px] text-muted-foreground">
+            {member.date_of_birth.substring(0, 4)}
+            {member.is_deceased && member.date_of_death ? ` – ${member.date_of_death.substring(0, 4)}` : ""}
+          </p>
+        )}
+      </div>
+      {badge && (
+        <Badge variant="outline" className="text-[10px] ml-auto flex-shrink-0">{badge}</Badge>
+      )}
+      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+    </button>
+  );
 }
 
 export function MemberDetailPanel({
@@ -27,19 +179,21 @@ export function MemberDetailPanel({
   onEdit,
   onDelete,
   onSelectMember,
+  onHoverMember,
 }: MemberDetailPanelProps) {
+  const router = useRouter();
   const memberMap = new Map(allMembers.map((m) => [m.id, m]));
 
   // Find parents, children, spouses
   const parents = relationships
     .filter((r) => r.to_member_id === member.id && (r.relationship_type === "parent_child" || r.relationship_type === "adopted"))
-    .map((r) => memberMap.get(r.from_member_id))
-    .filter(Boolean) as TreeMember[];
+    .map((r) => ({ member: memberMap.get(r.from_member_id), type: r.relationship_type }))
+    .filter((p) => p.member) as Array<{ member: TreeMember; type: string }>;
 
   const children = relationships
     .filter((r) => r.from_member_id === member.id && (r.relationship_type === "parent_child" || r.relationship_type === "adopted"))
-    .map((r) => memberMap.get(r.to_member_id))
-    .filter(Boolean) as TreeMember[];
+    .map((r) => ({ member: memberMap.get(r.to_member_id), type: r.relationship_type }))
+    .filter((c) => c.member) as Array<{ member: TreeMember; type: string }>;
 
   const spouses = relationships
     .filter(
@@ -55,17 +209,37 @@ export function MemberDetailPanel({
 
   const lifespan = formatLifespan(member.date_of_birth, member.date_of_death, member.is_deceased);
 
+  const handleInlineSave = useCallback(
+    async (field: string, value: string) => {
+      await updateMember(member.id, member.tree_id, { [field]: value });
+      router.refresh();
+    },
+    [member.id, member.tree_id, router]
+  );
+
   return (
     <div className="absolute top-0 right-0 z-20 h-full w-full max-w-sm border-l bg-background shadow-xl overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between">
+      <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between z-10">
         <h3 className="font-semibold">Member Details</h3>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {canEdit && (
+            <>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="Full edit">
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete} title="Delete">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-5">
         {/* Profile */}
         <div className="flex items-start gap-4">
           <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -75,14 +249,14 @@ export function MemberDetailPanel({
               <User className="h-8 w-8 text-primary" />
             )}
           </div>
-          <div>
-            <h2 className="text-xl font-bold">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold truncate">
               {member.first_name} {member.last_name}
             </h2>
             {member.maiden_name && (
               <p className="text-sm text-muted-foreground">n&eacute;e {member.maiden_name}</p>
             )}
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               {member.is_deceased && <Badge variant="secondary">Deceased</Badge>}
               {member.gender && member.gender !== "unknown" && (
                 <Badge variant="outline" className="capitalize">{member.gender}</Badge>
@@ -91,50 +265,40 @@ export function MemberDetailPanel({
           </div>
         </div>
 
-        {/* Quick info */}
-        <div className="space-y-2">
-          {lifespan && (
-            <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{lifespan}</span>
-            </div>
-          )}
-          {member.birth_place && (
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>{member.birth_place}</span>
-            </div>
-          )}
-        </div>
+        <Separator />
 
-        {/* Bio */}
-        {member.bio && (
-          <>
-            <Separator />
-            <div>
-              <p className="text-sm font-medium mb-1">About</p>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{member.bio}</p>
-            </div>
-          </>
-        )}
+        {/* All fields — click to edit for admins */}
+        <div className="space-y-3">
+          <InlineField label="First name" value={member.first_name} field="first_name" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Last name" value={member.last_name} field="last_name" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Maiden name" value={member.maiden_name} field="maiden_name" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Date of birth" value={member.date_of_birth} field="date_of_birth" type="date" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Birth place" value={member.birth_place} field="birth_place" canEdit={canEdit} onSave={handleInlineSave} />
+          {(member.is_deceased || member.date_of_death) && (
+            <>
+              <InlineField label="Date of death" value={member.date_of_death} field="date_of_death" type="date" canEdit={canEdit} onSave={handleInlineSave} />
+              <InlineField label="Death place" value={member.death_place} field="death_place" canEdit={canEdit} onSave={handleInlineSave} />
+            </>
+          )}
+          <InlineField label="Bio" value={member.bio} field="bio" type="textarea" canEdit={canEdit} onSave={handleInlineSave} />
+        </div>
 
         <Separator />
 
-        {/* Relationships */}
+        {/* Relationships with rich mini profile cards */}
         <div className="space-y-4">
           {parents.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Parents</p>
-              <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Parents</p>
+              <div className="space-y-0.5">
                 {parents.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectMember(p.id)}
-                    className="flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
-                  >
-                    <LinkIcon className="h-3 w-3 text-muted-foreground" />
-                    {p.first_name} {p.last_name}
-                  </button>
+                  <RelatedMemberCard
+                    key={p.member.id}
+                    member={p.member}
+                    badge={p.type === "adopted" ? "Adopted" : undefined}
+                    onSelect={() => onSelectMember(p.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? p.member.id : null)}
+                  />
                 ))}
               </div>
             </div>
@@ -142,18 +306,16 @@ export function MemberDetailPanel({
 
           {spouses.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Spouse</p>
-              <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Spouse</p>
+              <div className="space-y-0.5">
                 {spouses.map((s) => (
-                  <button
+                  <RelatedMemberCard
                     key={s.member.id}
-                    onClick={() => onSelectMember(s.member.id)}
-                    className="flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
-                  >
-                    <LinkIcon className="h-3 w-3 text-muted-foreground" />
-                    {s.member.first_name} {s.member.last_name}
-                    {s.type === "divorced" && <Badge variant="outline" className="text-[10px] ml-auto">Divorced</Badge>}
-                  </button>
+                    member={s.member}
+                    badge={s.type === "divorced" ? "Divorced" : undefined}
+                    onSelect={() => onSelectMember(s.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
+                  />
                 ))}
               </div>
             </div>
@@ -161,20 +323,23 @@ export function MemberDetailPanel({
 
           {children.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Children</p>
-              <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Children</p>
+              <div className="space-y-0.5">
                 {children.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => onSelectMember(c.id)}
-                    className="flex items-center gap-2 w-full rounded-lg px-2 py-1.5 text-sm hover:bg-accent transition-colors text-left"
-                  >
-                    <LinkIcon className="h-3 w-3 text-muted-foreground" />
-                    {c.first_name} {c.last_name}
-                  </button>
+                  <RelatedMemberCard
+                    key={c.member.id}
+                    member={c.member}
+                    badge={c.type === "adopted" ? "Adopted" : undefined}
+                    onSelect={() => onSelectMember(c.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? c.member.id : null)}
+                  />
                 ))}
               </div>
             </div>
+          )}
+
+          {parents.length === 0 && spouses.length === 0 && children.length === 0 && (
+            <p className="text-sm text-muted-foreground">No family relationships recorded yet.</p>
           )}
         </div>
 
@@ -185,19 +350,6 @@ export function MemberDetailPanel({
           <p>Added {formatDate(member.created_at)}</p>
           <p>Last updated {formatDate(member.updated_at)}</p>
         </div>
-
-        {/* Actions */}
-        {canEdit && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={onEdit}>
-              <Edit className="h-3.5 w-3.5 mr-1.5" />
-              Edit
-            </Button>
-            <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={onDelete}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
