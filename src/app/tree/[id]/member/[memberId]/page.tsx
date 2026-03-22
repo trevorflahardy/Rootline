@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { getTreeById } from "@/lib/actions/tree";
 import { getMemberById, getMembersByTreeId } from "@/lib/actions/member";
 import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
+import { getTreePermissions, canEditMember } from "@/lib/actions/permissions";
+import { getPhotosByMemberId } from "@/lib/actions/photo";
 import { MemberProfile } from "@/components/tree/member-profile";
 
 export async function generateMetadata({
@@ -25,20 +26,21 @@ export default async function MemberDetailPage({
   params: Promise<{ id: string; memberId: string }>;
 }) {
   const { id, memberId } = await params;
-  const { userId } = await auth();
   const tree = await getTreeById(id);
 
   if (!tree) notFound();
 
-  const [member, allMembers, relationships] = await Promise.all([
+  const [member, allMembers, relationships, permissions, photos] = await Promise.all([
     getMemberById(memberId, id),
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
+    getTreePermissions(id),
+    getPhotosByMemberId(memberId, id),
   ]);
 
   if (!member) notFound();
 
-  const canEdit = tree.owner_id === userId;
+  const canEdit = permissions.isOwner || (permissions.canEdit && await canEditMember(id, memberId));
 
   return (
     <div className="flex-1">
@@ -48,6 +50,8 @@ export default async function MemberDetailPage({
         relationships={relationships}
         treeId={id}
         canEdit={canEdit}
+        photos={photos}
+        permissions={permissions}
       />
     </div>
   );

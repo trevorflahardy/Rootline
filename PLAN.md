@@ -1,7 +1,7 @@
 # Rootline - Implementation Plan & Progress Tracker
 
 > **Last Updated**: 2026-03-22
-> **Status**: Phase 1 - In Progress
+> **Status**: Phase 4 - In Progress (Phases 1, 2, & 3 Complete)
 
 ---
 
@@ -42,31 +42,31 @@
 
 ### Tech Stack
 
-| Layer | Technology | Notes |
-|-------|-----------|-------|
-| Framework | Next.js 16.2.1 (App Router) | React 19, TypeScript strict |
-| Runtime/PM | Bun | Fast builds, native TypeScript |
-| Auth | Clerk (`@clerk/nextjs`) | Handles sign-up/in, sessions, middleware |
-| Database | Supabase (Postgres) | RLS policies, triggers, functions |
-| Storage | Supabase Storage | Photo uploads, bucket: `tree-photos` |
-| Real-time | Supabase Realtime | Live tree updates + notifications |
-| Tree Viz | `@xyflow/react` v12 + `@dagrejs/dagre` | Interactive node graph + hierarchical layout |
-| UI | shadcn/ui + Tailwind CSS v4 | Copy-paste components, full customization |
-| Forms | react-hook-form + zod | Type-safe validation |
-| Theming | next-themes | Light/dark + system preference |
-| Icons | lucide-react | Pairs with shadcn/ui |
-| Toasts | sonner | Lightweight notifications |
-| Dates | date-fns | Tree-shakeable |
-| Image Export | html-to-image | Canvas capture |
-| Testing | vitest + @testing-library/react | Unit + integration |
-| Deployment | Vercel | Edge runtime, ISR |
-| License | BSL 1.1 | Source-visible, not permissive |
+| Layer        | Technology                             | Notes                                        |
+| ------------ | -------------------------------------- | -------------------------------------------- |
+| Framework    | Next.js 16.2.1 (App Router)            | React 19, TypeScript strict                  |
+| Runtime/PM   | Bun                                    | Fast builds, native TypeScript               |
+| Auth         | Clerk (`@clerk/nextjs`)                | Handles sign-up/in, sessions, middleware     |
+| Database     | Supabase (Postgres)                    | RLS policies, triggers, functions            |
+| Storage      | Supabase Storage                       | Photo uploads, bucket: `tree-photos`         |
+| Real-time    | Supabase Realtime                      | Live tree updates + notifications            |
+| Tree Viz     | `@xyflow/react` v12 + `@dagrejs/dagre` | Interactive node graph + hierarchical layout |
+| UI           | shadcn/ui + Tailwind CSS v4            | Copy-paste components, full customization    |
+| Forms        | react-hook-form + zod                  | Type-safe validation                         |
+| Theming      | next-themes                            | Light/dark + system preference               |
+| Icons        | lucide-react                           | Pairs with shadcn/ui                         |
+| Toasts       | sonner                                 | Lightweight notifications                    |
+| Dates        | date-fns                               | Tree-shakeable                               |
+| Image Export | html-to-image                          | Canvas capture                               |
+| Testing      | vitest + @testing-library/react        | Unit + integration                           |
+| Deployment   | Vercel                                 | Edge runtime, ISR                            |
+| License      | —                                      | Public source, no license yet                |
 
 ### Auth Architecture: Clerk + Supabase
 
 Clerk handles all authentication. Supabase handles data/storage only (no Supabase Auth).
 
-1. **Clerk Middleware** (`src/middleware.ts`) — protects routes, refreshes sessions
+1. **Clerk Proxy** (`src/proxy.ts`) — protects routes, refreshes sessions (renamed from middleware.ts for Next.js 16)
 2. **Clerk Webhook** (`src/app/api/webhooks/clerk/route.ts`) — syncs user creation/updates to `profiles` table
 3. **Server actions** — call `auth()` from Clerk to get userId, then query Supabase with service-role client
 4. **RLS policies** — use `requesting_user_id()` function that reads `current_setting('app.current_user_id')`, set via `SET LOCAL` before each query
@@ -77,18 +77,18 @@ Clerk handles all authentication. Supabase handles data/storage only (no Supabas
 
 ### Tables
 
-| # | Table | Purpose | Primary Key |
-|---|-------|---------|-------------|
-| 1 | `profiles` | Synced from Clerk webhook | `clerk_id TEXT` |
-| 2 | `family_trees` | Tree metadata | `id UUID` |
-| 3 | `tree_members` | People nodes in tree | `id UUID` |
-| 4 | `relationships` | Edges between members | `id UUID` |
-| 5 | `tree_memberships` | Account-to-tree access/roles | `id UUID` |
-| 6 | `invitations` | Invite codes with expiry | `id UUID` |
-| 7 | `audit_log` | Change tracking (auto via triggers) | `id UUID` |
-| 8 | `media` | Photos linked to members/trees | `id UUID` |
-| 9 | `tree_snapshots` | Full tree state for rollback | `id UUID` |
-| 10 | `notifications` | In-app notifications | `id UUID` |
+| #   | Table              | Purpose                             | Primary Key     |
+| --- | ------------------ | ----------------------------------- | --------------- |
+| 1   | `profiles`         | Synced from Clerk webhook           | `clerk_id TEXT` |
+| 2   | `family_trees`     | Tree metadata                       | `id UUID`       |
+| 3   | `tree_members`     | People nodes in tree                | `id UUID`       |
+| 4   | `relationships`    | Edges between members               | `id UUID`       |
+| 5   | `tree_memberships` | Account-to-tree access/roles        | `id UUID`       |
+| 6   | `invitations`      | Invite codes with expiry            | `id UUID`       |
+| 7   | `audit_log`        | Change tracking (auto via triggers) | `id UUID`       |
+| 8   | `media`            | Photos linked to members/trees      | `id UUID`       |
+| 9   | `tree_snapshots`   | Full tree state for rollback        | `id UUID`       |
+| 10  | `notifications`    | In-app notifications                | `id UUID`       |
 
 ### Key Fields
 
@@ -118,6 +118,7 @@ Clerk handles all authentication. Supabase handles data/storage only (no Supabas
 2. **`requesting_user_id()`** — Reads `current_setting('app.current_user_id')` for RLS. Set via `SET LOCAL` in server actions.
 
 ### RLS Policy Strategy
+
 - **Profiles**: read any, update own
 - **Family Trees**: read if member or public, write if owner
 - **Tree Members/Relationships**: read if tree member, write if owner OR editor with descendant scope
@@ -234,47 +235,54 @@ rootline/
 **Goal**: App skeleton with auth, theme, layouts, database, and core types. User can sign up, log in, see an empty dashboard.
 
 ### Stream 1: Infrastructure & Setup
-**Status**: 🔄 IN PROGRESS
+
+**Status**: ✅ COMPLETE
+
 - [x] Install production dependencies
 - [x] Install dev dependencies
 - [x] Create directory structure
-- [ ] Create `.env.local` template
-- [ ] Create Supabase client files (client.ts, server.ts, admin.ts)
-- [ ] Create database migration files (4 files)
-- [ ] Configure `next.config.ts`
-- [ ] Set up shadcn/ui (components.json, cn utility, base components)
-- [ ] Create `vitest.config.ts`
-- [ ] Create LICENSE (BSL 1.1)
-- [ ] Create README.md
-- [ ] Update CLAUDE.md
+- [x] Create `.env.example` template
+- [x] Create Supabase client files (client.ts, server.ts, admin.ts)
+- [x] Create database migration files (4 files)
+- [x] Configure `next.config.ts`
+- [x] Set up shadcn/ui (components.json, cn utility, base components)
+- [x] Create `vitest.config.ts`
+- [x] Create README.md
+- [x] Update CLAUDE.md
 
 ### Stream 2: UI Foundation & Design System
-**Status**: ⏳ PENDING (blocked by Stream 1)
-- [ ] Update `globals.css` with brand color tokens (warm earth tones)
-- [ ] Configure `next-themes` ThemeProvider + theme-toggle
-- [ ] Create layout components (header, footer, sidebar, mobile-nav, user-menu)
-- [ ] Create route group layouts (marketing, auth, dashboard, tree)
-- [ ] Create shared components (loading-skeleton, error-boundary, empty-state, confirm-dialog)
-- [ ] Update root layout: ClerkProvider, ThemeProvider, Toaster, metadata
+
+**Status**: ✅ COMPLETE
+
+- [x] Update `globals.css` with brand color tokens (warm earth tones, oklch)
+- [x] Configure `next-themes` ThemeProvider via Providers component
+- [x] Create layout components (header, footer, theme-toggle, user-menu)
+- [x] Create route group layouts (marketing, auth, dashboard, tree)
+- [x] Create shared components (loading-skeleton, empty-state, confirm-dialog)
+- [x] Update root layout: ClerkProvider, Providers wrapper, Toaster, metadata
 
 ### Stream 3: Authentication (Clerk)
-**Status**: ⏳ PENDING (blocked by Stream 1)
-- [ ] Create `src/middleware.ts` with Clerk route protection
-- [ ] Create sign-in page (`/sign-in`)
-- [ ] Create sign-up page (`/sign-up`)
-- [ ] Create Clerk webhook endpoint for profile sync
-- [ ] Create profile page
-- [ ] Set Clerk environment variables
+
+**Status**: ✅ COMPLETE
+
+- [x] Create `src/proxy.ts` with Clerk route protection (Next.js 16 proxy convention)
+- [x] Create sign-in page (`/sign-in`)
+- [x] Create sign-up page (`/sign-up`)
+- [x] Create Clerk webhook endpoint for profile sync
+- [x] Create profile page
+- [x] Create `getAuthUser()` helper with auto profile sync
 
 ### Stream 4: Core Data Layer
-**Status**: ⏳ PENDING (blocked by Stream 1)
-- [ ] Create app-level TypeScript types
-- [ ] Create Zod validation schemas
-- [ ] Create server actions (tree, member, relationship CRUD)
-- [ ] Create `tree-layout.ts` (dagre computation)
-- [ ] Create `path-finder.ts` (BFS)
-- [ ] Create `relationship-calculator.ts` (LCA-based)
-- [ ] Write unit tests for utils + validators
+
+**Status**: ✅ COMPLETE
+
+- [x] Create app-level TypeScript types
+- [x] Create Zod validation schemas (zod/v4)
+- [x] Create server actions (tree, member, relationship CRUD)
+- [x] Create `tree-layout.ts` (dagre computation)
+- [x] Create `path-finder.ts` (BFS)
+- [x] Create `relationship-calculator.ts` (LCA-based)
+- [x] Write unit tests for utils + validators (42 tests passing)
 
 ---
 
@@ -283,24 +291,30 @@ rootline/
 **Goal**: Users can create trees, add members/relationships, and interact with the visual tree.
 
 ### Stream 5: Tree Visualization
-**Status**: ⏳ NOT STARTED
-- [ ] `tree-canvas.tsx` — React Flow wrapper (pan/zoom/minimap)
-- [ ] `member-node.tsx` — Custom node (avatar, name, dates, deceased styling)
-- [ ] `relationship-edge.tsx` — Custom edges (solid/dashed/dotted, green highlight)
-- [ ] `path-highlighter.tsx` — BFS path + green highlight + relationship label
-- [ ] `tree-toolbar.tsx` — Zoom, fit, add member, search, export
-- [ ] `tree-search.tsx` — Cmd+K command palette
-- [ ] `member-detail-panel.tsx` — Side panel / bottom sheet
-- [ ] `add-member-dialog.tsx` + `add-relationship-dialog.tsx`
-- [ ] Tree page (`/tree/[id]`)
-- [ ] Mobile optimizations (touch, responsive panels)
+
+**Status**: ✅ COMPLETE
+
+- [x] `tree-canvas.tsx` — React Flow wrapper (pan/zoom/minimap, smooth refresh)
+- [x] `member-node.tsx` — Custom node (avatar, name, dates, deceased styling)
+- [x] `relationship-edge.tsx` — Custom edges (solid/dashed/dotted, green highlight)
+- [x] Path highlighting — Shift-click two nodes → green path + relationship label
+- [x] `tree-toolbar.tsx` — Zoom, fit, add member, search, export
+- [x] `tree-search.tsx` — Cmd+K command palette with avatars
+- [x] `member-detail-panel.tsx` — Side panel with family links
+- [x] `add-member-dialog.tsx` — Searchable member combobox with avatars
+- [x] `edit-member-dialog.tsx` — Edit member form
+- [x] `empty-tree-state.tsx` — Empty tree CTA
+- [x] Tree page (`/tree/[id]`) with server data fetching
 
 ### Stream 6: Dashboard & Tree Management
-**Status**: ⏳ NOT STARTED
-- [ ] Dashboard page (`/dashboard`) — tree card grid
-- [ ] `create-tree-dialog.tsx` — new tree form
-- [ ] Tree settings page (`/tree/[id]/settings`)
-- [ ] Member detail page (`/tree/[id]/member/[memberId]`)
+
+**Status**: ✅ COMPLETE
+
+- [x] Dashboard page (`/dashboard`) — tree card grid with Suspense
+- [x] `dashboard-header.tsx` + `create-tree-dialog.tsx` — controlled dialog (no hydration issues)
+- [x] Tree settings page (`/tree/[id]/settings`) — name, description, visibility, members, danger zone
+- [x] Member detail page (`/tree/[id]/member/[memberId]`) — profile, family links, edit/delete
+- [x] Landing page redesign — organic gradients, feature cards, how-it-works
 
 ---
 
@@ -309,29 +323,35 @@ rootline/
 **Goal**: Multi-user collaboration with invites, permissions, photos, and real-time notifications.
 
 ### Stream 7: Invite & Permission System
-**Status**: ⏳ NOT STARTED
-- [ ] `invite-form.tsx` — owner creates invite
-- [ ] `invite-list.tsx` — manage active invites
-- [ ] Invite acceptance page (`/invite/[code]`)
-- [ ] `use-tree-permissions.ts` hook
-- [ ] Self-assignment to unlinked nodes
-- [ ] Server-side permission checks
+
+**Status**: ✅ COMPLETE
+
+- [x] Invite server actions (create, accept, list, revoke)
+- [x] `invite-manager.tsx` — owner creates/manages invites with role + linked node scoping
+- [x] `accept-invite-card.tsx` — invite acceptance UI (sign-in/up for unauthenticated)
+- [x] Invite acceptance page (`/invite/[code]`) with expiry/usage validation
+- [x] Integrated into tree settings page
+- [x] Server-side permission checks (owner-only invite management)
+- [x] Tests: invite validation (10 tests) + permission scoping (9 tests)
 
 ### Stream 8: Photo Management
-**Status**: ⏳ NOT STARTED
-- [ ] `photo-upload.tsx` — drag-and-drop + compression
-- [ ] `avatar-upload.tsx` — circular crop
-- [ ] `photo-gallery.tsx` — grid + lightbox
-- [ ] Photo server actions
-- [ ] Next.js Image optimization
+
+**Status**: ✅ COMPLETE
+
+- [x] `photo-upload.tsx` — drag-and-drop + preview + file validation (5MB, JPEG/PNG/WebP/GIF)
+- [x] `photo-gallery.tsx` — grid + lightbox + delete
+- [x] Photo server actions (upload, list, delete, profile photo management)
+- [x] Supabase Storage integration (tree-photos bucket)
+- [x] Profile photo auto-sets member avatar_url
 
 ### Stream 9: Real-time Notifications
-**Status**: ⏳ NOT STARTED
-- [ ] Notification database triggers
-- [ ] `use-realtime-tree.ts` — live tree refresh
-- [ ] `use-notifications.ts` — notification subscription
-- [ ] `notification-bell.tsx` — header bell + dropdown
-- [ ] Notification server actions
+
+**Status**: ✅ COMPLETE
+
+- [x] Notification server actions (list, unread count, mark read, mark all read)
+- [x] `notification-bell.tsx` — header bell with unread badge + popover dropdown
+- [x] Polling-based refresh (30s interval)
+- [x] Notification triggers already in database (004_triggers.sql)
 
 ---
 
@@ -340,34 +360,44 @@ rootline/
 **Goal**: Version history, GEDCOM support, tree image export, polished landing page, full test coverage.
 
 ### Stream 10: Version Control & Audit Log
+
 **Status**: ⏳ NOT STARTED
+
 - [ ] Audit server actions (createSnapshot, getAuditLog, rollback)
 - [ ] History page (`/tree/[id]/history`)
 - [ ] `snapshot-viewer.tsx`
 - [ ] `rollback-dialog.tsx`
 
 ### Stream 11: GEDCOM Import/Export
+
 **Status**: ⏳ NOT STARTED
+
 - [ ] `gedcom-parser.ts` — GEDCOM 5.5.1 → tree data
 - [ ] `gedcom-exporter.ts` — tree data → GEDCOM
 - [ ] `gedcom-import-dialog.tsx`
 - [ ] `gedcom-export-button.tsx`
 
 ### Stream 12: Tree Image Export
+
 **Status**: ⏳ NOT STARTED
+
 - [ ] `tree-image-export.tsx` — html-to-image capture
 - [ ] PNG + PDF export
 - [ ] Toolbar integration
 
 ### Stream 13: Landing Page & SEO
+
 **Status**: ⏳ NOT STARTED
+
 - [ ] Hero section + CTA
 - [ ] Feature showcase
 - [ ] How it works
 - [ ] SEO: metadata, Open Graph, JSON-LD, sitemap
 
 ### Stream 14: Testing
+
 **Status**: ⏳ NOT STARTED (tests written per-phase, final sweep here)
+
 - [ ] vitest config
 - [ ] Unit tests: tree-layout, path-finder, relationship-calculator, GEDCOM parser/exporter, validators
 - [ ] Integration tests: server actions
@@ -378,6 +408,7 @@ rootline/
 ## Dependencies
 
 ### Production
+
 ```
 @clerk/nextjs, svix, @supabase/supabase-js, @xyflow/react, @dagrejs/dagre,
 react-hook-form, @hookform/resolvers, zod, clsx, tailwind-merge, date-fns,
@@ -385,11 +416,13 @@ lucide-react, sonner, next-themes, html-to-image
 ```
 
 ### Development
+
 ```
 vitest, @testing-library/react, @testing-library/jest-dom, jsdom, @types/dagre
 ```
 
 ### shadcn/ui Components
+
 ```
 button, input, label, card, dialog, dropdown-menu, avatar, badge, skeleton,
 sheet, command, separator, tooltip, select, textarea, popover, calendar, checkbox
@@ -419,26 +452,27 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 ## Additional Considerations
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Search within tree | Phase 2 | Cmd+K command palette |
-| Deceased member handling | Phase 2 | Grayscale + icon in node |
-| Collapse/expand subtrees | Phase 2 | Performance for large trees |
-| Relationship calculator | Phase 2 | LCA algorithm |
-| GEDCOM import/export | Phase 4 | Standard genealogy format |
-| Tree image export | Phase 4 | PNG/PDF |
-| In-app notifications | Phase 3 | Supabase Realtime |
-| Data privacy / GDPR | Ongoing | Cascade deletes, export |
-| Accessibility | Ongoing | ARIA, keyboard nav, contrast |
-| Rate limiting | Phase 3 | Server action checks |
-| Tree merging | Future | Complex, schema supports it |
-| Offline viewing | Future | Service worker + IndexedDB |
+| Feature                  | Status  | Notes                        |
+| ------------------------ | ------- | ---------------------------- |
+| Search within tree       | Phase 2 | Cmd+K command palette        |
+| Deceased member handling | Phase 2 | Grayscale + icon in node     |
+| Collapse/expand subtrees | Phase 2 | Performance for large trees  |
+| Relationship calculator  | Phase 2 | LCA algorithm                |
+| GEDCOM import/export     | Phase 4 | Standard genealogy format    |
+| Tree image export        | Phase 4 | PNG/PDF                      |
+| In-app notifications     | Phase 3 | Supabase Realtime            |
+| Data privacy / GDPR      | Ongoing | Cascade deletes, export      |
+| Accessibility            | Ongoing | ARIA, keyboard nav, contrast |
+| Rate limiting            | Phase 3 | Server action checks         |
+| Tree merging             | Future  | Complex, schema supports it  |
+| Offline viewing          | Future  | Service worker + IndexedDB   |
 
 ---
 
 ## Verification Checklists
 
 ### After Phase 1
+
 - [ ] `bun run build` succeeds
 - [ ] Sign up via Clerk, verify profile synced to Supabase
 - [ ] Log in, see empty dashboard
@@ -446,6 +480,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 - [ ] Unauthenticated users redirected to sign-in
 
 ### After Phase 2
+
 - [ ] Create a tree from dashboard
 - [ ] Add 5+ members with relationships
 - [ ] Pan/zoom tree, click nodes for detail panel
@@ -455,6 +490,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 - [ ] Mobile viewport: verify responsive layout
 
 ### After Phase 3
+
 - [ ] Create invite link, open in incognito, sign up, accept
 - [ ] As invited editor: add children below linked node (succeeds), try editing above (fails)
 - [ ] Upload profile photo and family photos
@@ -462,6 +498,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 - [ ] Self-assign to an unlinked node
 
 ### After Phase 4
+
 - [ ] View audit log timeline on history page
 - [ ] Create snapshot, make changes, rollback, verify state restored
 - [ ] Import a GEDCOM file, verify tree populated correctly

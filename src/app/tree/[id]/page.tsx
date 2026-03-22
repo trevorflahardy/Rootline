@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getTreeById } from "@/lib/actions/tree";
 import { getMembersByTreeId } from "@/lib/actions/member";
 import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
+import { getTreePermissions } from "@/lib/actions/permissions";
 import Link from "next/link";
 import { TreeCanvas } from "@/components/tree/tree-canvas";
 import { EmptyTreeState } from "@/components/tree/empty-tree-state";
@@ -20,13 +21,13 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
 
   if (!tree) notFound();
 
-  const [members, relationships] = await Promise.all([
+  const [members, relationships, permissions] = await Promise.all([
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
+    getTreePermissions(id),
   ]);
 
-  // TODO: Check actual membership role for canEdit
-  const canEdit = tree.owner_id === userId;
+  const canEdit = permissions.canEdit;
 
   return (
     <div className="flex-1 flex flex-col">
@@ -41,7 +42,7 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
           <span className="text-sm text-muted-foreground">
             {members.length} member{members.length !== 1 ? "s" : ""}
           </span>
-          {canEdit && (
+          {permissions.isOwner && (
             <Link
               href={`/tree/${id}/settings`}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"

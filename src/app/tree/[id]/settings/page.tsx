@@ -2,7 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getTreeById, getTreeMemberships } from "@/lib/actions/tree";
 import { getMembersByTreeId } from "@/lib/actions/member";
+import { getInvitesByTreeId } from "@/lib/actions/invite";
 import { TreeSettingsForm } from "@/components/tree/tree-settings-form";
+import { InviteManager } from "@/components/invite/invite-manager";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,9 +20,10 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
   if (!tree) notFound();
   if (tree.owner_id !== userId) redirect(`/tree/${id}`);
 
-  const [memberships, members] = await Promise.all([
+  const [memberships, members, invites] = await Promise.all([
     getTreeMemberships(id),
     getMembersByTreeId(id),
+    getInvitesByTreeId(id),
   ]);
 
   return (
@@ -36,6 +39,7 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
           members={members}
           currentUserId={userId ?? ""}
         />
+        <InviteManager treeId={id} invites={invites} members={members} />
       </div>
     </div>
   );

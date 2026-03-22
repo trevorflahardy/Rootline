@@ -18,14 +18,18 @@ import {
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { computeTreeLayout } from "@/lib/utils/tree-layout";
 import { findPath, getPathRelationshipIds } from "@/lib/utils/path-finder";
 import { calculateRelationship } from "@/lib/utils/relationship-calculator";
+import { deleteMember } from "@/lib/actions/member";
+import { useRealtimeTree } from "@/lib/hooks/use-realtime-tree";
 import { MemberNode, type MemberNodeData } from "./member-node";
 import { RelationshipEdge, type RelationshipEdgeData } from "./relationship-edge";
 import { TreeToolbar } from "./tree-toolbar";
 import { MemberDetailPanel } from "./member-detail-panel";
 import { AddMemberDialog } from "./add-member-dialog";
+import { EditMemberDialog } from "./edit-member-dialog";
 import { TreeSearch } from "./tree-search";
 import type { TreeMember, Relationship, FamilyTree } from "@/types";
 
@@ -71,6 +75,12 @@ function TreeCanvasInner({
 
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [editingMember, setEditingMember] = useState<TreeMember | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<TreeMember | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Realtime subscription for live updates
+  useRealtimeTree(tree.id);
 
   // Compute layout
   const layout = useMemo(
@@ -282,12 +292,8 @@ function TreeCanvasInner({
             allMembers={members}
             canEdit={canEdit}
             onClose={() => setSelectedMemberId(null)}
-            onEdit={() => {
-              toast.info("Edit functionality coming in Phase 3");
-            }}
-            onDelete={() => {
-              toast.info("Delete functionality coming in Phase 3");
-            }}
+            onEdit={() => setEditingMember(selectedMember)}
+            onDelete={() => setDeleteTarget(selectedMember)}
             onSelectMember={handleSelectMemberFromPanel}
           />
         )}
@@ -307,6 +313,46 @@ function TreeCanvasInner({
           onOpenChange={setShowSearch}
           members={members}
           onSelect={handleSearchSelect}
+        />
+
+        {/* Edit member dialog */}
+        {editingMember && (
+          <EditMemberDialog
+            open={!!editingMember}
+            onOpenChange={(open) => { if (!open) setEditingMember(null); }}
+            member={editingMember}
+            treeId={tree.id}
+            onUpdated={() => {
+              setEditingMember(null);
+              router.refresh();
+            }}
+          />
+        )}
+
+        {/* Delete confirm */}
+        <ConfirmDialog
+          open={!!deleteTarget}
+          onOpenChange={() => setDeleteTarget(null)}
+          title="Delete member?"
+          description={`This will permanently remove ${deleteTarget?.first_name ?? ""} ${deleteTarget?.last_name ?? ""} and all their relationships from the tree.`}
+          confirmLabel="Delete"
+          destructive
+          loading={deleting}
+          onConfirm={async () => {
+            if (!deleteTarget) return;
+            setDeleting(true);
+            try {
+              await deleteMember(deleteTarget.id, tree.id);
+              toast.success(`${deleteTarget.first_name} removed`);
+              setDeleteTarget(null);
+              setSelectedMemberId(null);
+              router.refresh();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Failed to delete");
+            } finally {
+              setDeleting(false);
+            }
+          }}
         />
       </TooltipProvider>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SignInButton, SignUpButton } from "@clerk/nextjs";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { cn } from "@/lib/utils/cn";
 
 const navLinks = [
@@ -16,8 +18,10 @@ const navLinks = [
 ];
 
 export function Header() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -50,17 +54,22 @@ export function Header() {
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
 
-          {isSignedIn ? (
-            <UserMenu />
-          ) : (
-            <div className="hidden md:flex items-center gap-2">
-              <SignInButton mode="modal">
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <Button size="sm">Get Started</Button>
-              </SignUpButton>
-            </div>
+          {mounted && isLoaded && (
+            isSignedIn ? (
+              <>
+                <NotificationBell />
+                <UserMenu />
+              </>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <SignInButton mode="modal">
+                  <Button variant="ghost" size="sm">Sign In</Button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <Button size="sm">Get Started</Button>
+                </SignUpButton>
+              </div>
+            )
           )}
 
           {/* Mobile menu */}
@@ -76,30 +85,32 @@ export function Header() {
                 <span className="font-semibold">Rootline</span>
               </SheetTitle>
               <nav className="flex flex-col gap-2">
-                {isSignedIn ? (
-                  navLinks.map((link) => (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                        pathname === link.href
-                          ? "bg-accent text-accent-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  ))
-                ) : (
-                  <>
-                    <SignInButton mode="modal">
-                      <Button variant="ghost" className="justify-start">Sign In</Button>
-                    </SignInButton>
-                    <SignUpButton mode="modal">
-                      <Button className="justify-start">Get Started</Button>
-                    </SignUpButton>
-                  </>
+                {mounted && isLoaded && (
+                  isSignedIn ? (
+                    navLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={cn(
+                          "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                          pathname === link.href
+                            ? "bg-accent text-accent-foreground"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {link.label}
+                      </Link>
+                    ))
+                  ) : (
+                    <>
+                      <SignInButton mode="modal">
+                        <Button variant="ghost" className="justify-start">Sign In</Button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <Button className="justify-start">Get Started</Button>
+                      </SignUpButton>
+                    </>
+                  )
                 )}
               </nav>
             </SheetContent>

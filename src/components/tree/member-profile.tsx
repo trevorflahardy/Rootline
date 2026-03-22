@@ -12,6 +12,8 @@ import {
   Edit,
   Trash2,
   Link as LinkIcon,
+  UserCheck,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +22,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { formatDate, formatLifespan } from "@/lib/utils/date";
 import { deleteMember } from "@/lib/actions/member";
+import { selfAssignToNode, type TreePermissions } from "@/lib/actions/permissions";
 import { EditMemberDialog } from "./edit-member-dialog";
+import { PhotoUpload } from "@/components/photos/photo-upload";
+import { PhotoGallery } from "@/components/photos/photo-gallery";
+import type { Media } from "@/lib/actions/photo";
 import type { TreeMember, Relationship } from "@/types";
 
 interface MemberProfileProps {
@@ -29,6 +35,8 @@ interface MemberProfileProps {
   relationships: Relationship[];
   treeId: string;
   canEdit: boolean;
+  photos?: Media[];
+  permissions?: TreePermissions;
 }
 
 export function MemberProfile({
@@ -37,11 +45,30 @@ export function MemberProfile({
   relationships,
   treeId,
   canEdit,
+  photos = [],
+  permissions,
 }: MemberProfileProps) {
   const router = useRouter();
   const [showEdit, setShowEdit] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+
+  const canSelfAssign = permissions && !permissions.linkedNodeId && !permissions.isOwner;
+
+  async function handleSelfAssign() {
+    setAssigning(true);
+    try {
+      await selfAssignToNode(treeId, member.id);
+      toast.success(`You are now linked to ${member.first_name}`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to assign");
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   const memberMap = new Map(allMembers.map((m) => [m.id, m]));
   const lifespan = formatLifespan(member.date_of_birth, member.date_of_death, member.is_deceased);
@@ -144,22 +171,30 @@ export function MemberProfile({
               )}
             </div>
           </div>
-          {canEdit && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
-                <Edit className="h-3.5 w-3.5 mr-1.5" />
-                Edit
+          <div className="flex gap-2">
+            {canEdit && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+                  <Edit className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setShowDelete(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            )}
+            {canSelfAssign && (
+              <Button variant="outline" size="sm" onClick={handleSelfAssign} disabled={assigning}>
+                <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+                {assigning ? "Assigning..." : "This is me"}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setShowDelete(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Quick info */}
@@ -248,6 +283,31 @@ export function MemberProfile({
             )}
           </CardContent>
         </Card>
+
+        {/* Photos */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Photos</CardTitle>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setShowPhotoUpload(true)}>
+                <Camera className="h-3.5 w-3.5 mr-1.5" />
+                Upload
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <PhotoGallery photos={photos} treeId={treeId} canEdit={canEdit} />
+          </CardContent>
+        </Card>
+
+        {/* Photo upload dialog */}
+        <PhotoUpload
+          open={showPhotoUpload}
+          onOpenChange={setShowPhotoUpload}
+          treeId={treeId}
+          memberId={member.id}
+          onUploaded={() => router.refresh()}
+        />
 
         {/* Metadata */}
         <div className="text-xs text-muted-foreground space-y-1">
