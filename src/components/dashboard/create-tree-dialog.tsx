@@ -12,7 +12,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +21,11 @@ import { createTree } from "@/lib/actions/tree";
 import { createTreeSchema, type CreateTreeInput } from "@/lib/validators/tree";
 
 interface CreateTreeDialogProps {
-  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function CreateTreeDialog({ children }: CreateTreeDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CreateTreeDialog({ open, onOpenChange }: CreateTreeDialogProps) {
   const router = useRouter();
 
   const {
@@ -42,18 +41,16 @@ export function CreateTreeDialog({ children }: CreateTreeDialogProps) {
     try {
       const tree = await createTree(data);
       toast.success("Family tree created!");
-      setOpen(false);
+      onOpenChange(false);
       reset();
       router.push(`/tree/${tree.id}`);
-      router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create tree");
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create Family Tree</DialogTitle>
@@ -85,7 +82,7 @@ export function CreateTreeDialog({ children }: CreateTreeDialogProps) {
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

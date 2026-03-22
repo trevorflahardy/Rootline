@@ -1,19 +1,13 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthUser } from "@/lib/actions/auth";
 import { createRelationshipSchema } from "@/lib/validators/relationship";
 import type { CreateRelationshipInput } from "@/lib/validators/relationship";
 import type { Relationship } from "@/types";
 
-async function getAuthUserId(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-  return userId;
-}
-
 export async function createRelationship(input: CreateRelationshipInput): Promise<Relationship> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const validated = createRelationshipSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -48,7 +42,7 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
 }
 
 export async function deleteRelationship(relationshipId: string, treeId: string) {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -74,7 +68,7 @@ export async function deleteRelationship(relationshipId: string, treeId: string)
 }
 
 export async function getRelationshipsByTreeId(treeId: string): Promise<Relationship[]> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase

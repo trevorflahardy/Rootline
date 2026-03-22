@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Providers } from "@/components/layout/providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -51,18 +49,10 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full flex flex-col">
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <TooltipProvider>
-              {children}
-              <Toaster richColors position="bottom-right" />
-            </TooltipProvider>
-          </ThemeProvider>
+        <body className="min-h-full flex flex-col" suppressHydrationWarning>
+          <Providers>
+            {children}
+          </Providers>
         </body>
       </html>
     </ClerkProvider>

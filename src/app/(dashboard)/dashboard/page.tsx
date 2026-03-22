@@ -1,10 +1,9 @@
 import { Suspense } from "react";
-import { Plus, TreePine } from "lucide-react";
+import { TreePine } from "lucide-react";
 import { getTreesForUser } from "@/lib/actions/tree";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreeCard } from "@/components/dashboard/tree-card";
-import { CreateTreeDialog } from "@/components/dashboard/create-tree-dialog";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 
 export const metadata = {
   title: "Dashboard",
@@ -21,12 +20,7 @@ async function TreeGrid() {
         <p className="text-muted-foreground mb-6 max-w-md">
           Create your first family tree to start mapping your lineage.
         </p>
-        <CreateTreeDialog>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Your First Tree
-          </Button>
-        </CreateTreeDialog>
+        <DashboardHeader emptyState />
       </div>
     );
   }
@@ -53,21 +47,7 @@ function TreeGridSkeleton() {
 export default function DashboardPage() {
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">My Family Trees</h1>
-          <p className="text-muted-foreground">
-            Manage and explore your family lineages
-          </p>
-        </div>
-        <CreateTreeDialog>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            New Tree
-          </Button>
-        </CreateTreeDialog>
-      </div>
-
+      <DashboardHeader />
       <Suspense fallback={<TreeGridSkeleton />}>
         <TreeGrid />
       </Suspense>

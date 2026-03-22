@@ -1,19 +1,14 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthUser } from "@/lib/actions/auth";
 import { createTreeSchema, updateTreeSchema } from "@/lib/validators/tree";
 import type { CreateTreeInput, UpdateTreeInput } from "@/lib/validators/tree";
-import type { FamilyTree, TreeSummary } from "@/types";
-
-async function getAuthUserId(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-  return userId;
-}
+import type { FamilyTree, TreeSummary, TreeMembership } from "@/types";
 
 export async function createTree(input: CreateTreeInput) {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const validated = createTreeSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -41,11 +36,12 @@ export async function createTree(input: CreateTreeInput) {
 
   if (membershipError) throw new Error(`Failed to create membership: ${membershipError.message}`);
 
+  revalidatePath("/dashboard");
   return tree as FamilyTree;
 }
 
 export async function getTreesForUser(): Promise<TreeSummary[]> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   // Get all tree memberships for this user
@@ -94,7 +90,7 @@ export async function getTreesForUser(): Promise<TreeSummary[]> {
 }
 
 export async function getTreeById(treeId: string): Promise<FamilyTree | null> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   // Check membership
@@ -127,7 +123,7 @@ export async function getTreeById(treeId: string): Promise<FamilyTree | null> {
 }
 
 export async function updateTree(treeId: string, input: UpdateTreeInput) {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const validated = updateTreeSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -154,8 +150,87 @@ export async function updateTree(treeId: string, input: UpdateTreeInput) {
   return data as FamilyTree;
 }
 
+export async function getTreeMemberships(treeId: string): Promise<Array<TreeMembership & { profile?: { display_name: string; email: string | null; avatar_url: string | null } }>> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Verify user has access
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership) throw new Error("No access to this tree");
+
+  const { data, error } = await supabase
+    .from("tree_memberships")
+    .select("*, profiles(display_name, email, avatar_url)")
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to fetch memberships: ${error.message}`);
+
+  return (data ?? []).map((m: Record<string, unknown>) => ({
+    id: m.id as string,
+    tree_id: m.tree_id as string,
+    user_id: m.user_id as string,
+    role: m.role as TreeMembership["role"],
+    linked_node_id: m.linked_node_id as string | null,
+    joined_at: m.joined_at as string,
+    profile: m.profiles as { display_name: string; email: string | null; avatar_url: string | null } | undefined,
+  }));
+}
+
+export async function updateMembership(membershipId: string, treeId: string, role: TreeMembership["role"]) {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Verify ownership
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership || membership.role !== "owner") {
+    throw new Error("Only the owner can change roles");
+  }
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ role })
+    .eq("id", membershipId);
+
+  if (error) throw new Error(`Failed to update membership: ${error.message}`);
+}
+
+export async function removeMembership(membershipId: string, treeId: string) {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership || membership.role !== "owner") {
+    throw new Error("Only the owner can remove members");
+  }
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .delete()
+    .eq("id", membershipId);
+
+  if (error) throw new Error(`Failed to remove membership: ${error.message}`);
+}
+
 export async function deleteTree(treeId: string) {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -175,4 +250,5 @@ export async function deleteTree(treeId: string) {
     .eq("id", treeId);
 
   if (error) throw new Error(`Failed to delete tree: ${error.message}`);
+  revalidatePath("/dashboard");
 }

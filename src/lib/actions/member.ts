@@ -1,16 +1,10 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAuthUser } from "@/lib/actions/auth";
 import { createMemberSchema, updateMemberSchema } from "@/lib/validators/member";
 import type { CreateMemberInput, UpdateMemberInput } from "@/lib/validators/member";
 import type { TreeMember } from "@/types";
-
-async function getAuthUserId(): Promise<string> {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Unauthorized");
-  return userId;
-}
 
 async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, treeId: string, userId: string) {
   const { data } = await supabase
@@ -25,7 +19,7 @@ async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, t
 }
 
 export async function createMember(input: CreateMemberInput): Promise<TreeMember> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const validated = createMemberSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -35,19 +29,21 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
   // Set the user context for audit triggers
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
+  const orNull = (v: string | undefined | null) => v && v.trim() !== "" ? v : null;
+
   const { data, error } = await supabase
     .from("tree_members")
     .insert({
       tree_id: validated.tree_id,
       first_name: validated.first_name,
-      last_name: validated.last_name ?? null,
-      maiden_name: validated.maiden_name ?? null,
-      gender: validated.gender ?? null,
-      date_of_birth: validated.date_of_birth ?? null,
-      date_of_death: validated.date_of_death ?? null,
-      birth_place: validated.birth_place ?? null,
-      death_place: validated.death_place ?? null,
-      bio: validated.bio ?? null,
+      last_name: orNull(validated.last_name),
+      maiden_name: orNull(validated.maiden_name),
+      gender: orNull(validated.gender),
+      date_of_birth: orNull(validated.date_of_birth),
+      date_of_death: orNull(validated.date_of_death),
+      birth_place: orNull(validated.birth_place),
+      death_place: orNull(validated.death_place),
+      bio: orNull(validated.bio),
       is_deceased: validated.is_deceased ?? false,
       created_by: userId,
     })
@@ -59,7 +55,7 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
 }
 
 export async function updateMember(memberId: string, treeId: string, input: UpdateMemberInput): Promise<TreeMember> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const validated = updateMemberSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -78,9 +74,13 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
 
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
+  const sanitized = Object.fromEntries(
+    Object.entries(validated).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : v])
+  );
+
   const { data, error } = await supabase
     .from("tree_members")
-    .update(validated)
+    .update(sanitized)
     .eq("id", memberId)
     .eq("tree_id", treeId)
     .select()
@@ -91,7 +91,7 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
 }
 
 export async function deleteMember(memberId: string, treeId: string) {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);
@@ -118,7 +118,7 @@ export async function deleteMember(memberId: string, treeId: string) {
 }
 
 export async function getMembersByTreeId(treeId: string): Promise<TreeMember[]> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);
@@ -134,7 +134,7 @@ export async function getMembersByTreeId(treeId: string): Promise<TreeMember[]> 
 }
 
 export async function getMemberById(memberId: string, treeId: string): Promise<TreeMember | null> {
-  const userId = await getAuthUserId();
+  const userId = await getAuthUser();
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);

@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { getTreeById } from "@/lib/actions/tree";
 import { getMembersByTreeId } from "@/lib/actions/member";
 import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
+import Link from "next/link";
+import { TreeCanvas } from "@/components/tree/tree-canvas";
+import { EmptyTreeState } from "@/components/tree/empty-tree-state";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,6 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function TreePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { userId } = await auth();
   const tree = await getTreeById(id);
 
   if (!tree) notFound();
@@ -19,6 +24,9 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
   ]);
+
+  // TODO: Check actual membership role for canEdit
+  const canEdit = tree.owner_id === userId;
 
   return (
     <div className="flex-1 flex flex-col">
@@ -29,26 +37,32 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
             <p className="text-sm text-muted-foreground">{tree.description}</p>
           )}
         </div>
-        <div className="text-sm text-muted-foreground">
-          {members.length} member{members.length !== 1 ? "s" : ""}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-muted-foreground">
+            {members.length} member{members.length !== 1 ? "s" : ""}
+          </span>
+          {canEdit && (
+            <Link
+              href={`/tree/${id}/settings`}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Settings
+            </Link>
+          )}
         </div>
       </div>
       <div className="flex-1 relative bg-muted/20">
         {members.length === 0 ? (
-          <div className="flex items-center justify-center h-full min-h-[60vh] text-center">
-            <div>
-              <p className="text-muted-foreground mb-2">This tree is empty.</p>
-              <p className="text-sm text-muted-foreground">
-                Tree visualization will appear here once members are added.
-              </p>
-            </div>
-          </div>
+          <EmptyTreeState treeId={id} canEdit={canEdit} />
         ) : (
           <div className="w-full h-[calc(100vh-8rem)]">
-            {/* TreeCanvas component will be added in Phase 2 */}
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              Tree visualization loading... ({members.length} members, {relationships.length} relationships)
-            </div>
+            <TreeCanvas
+              tree={tree}
+              members={members}
+              relationships={relationships}
+              canEdit={canEdit}
+              currentUserId={userId ?? ""}
+            />
           </div>
         )}
       </div>
