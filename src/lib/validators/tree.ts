@@ -1,0 +1,15 @@
+import { z } from "zod/v4";
+
+export const createTreeSchema = z.object({
+  name: z.string().min(1, "Tree name is required").max(100),
+  description: z.string().max(500).optional(),
+});
+
+export const updateTreeSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().max(500).optional(),
+  is_public: z.boolean().optional(),
+});
+
+export type CreateTreeInput = z.infer<typeof createTreeSchema>;
+export type UpdateTreeInput = z.infer<typeof updateTreeSchema>;
