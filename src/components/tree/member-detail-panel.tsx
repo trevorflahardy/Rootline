@@ -13,6 +13,9 @@ import {
   Check,
   XIcon,
   ExternalLink,
+  UserCheck,
+  UserX,
+  Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +24,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatLifespan } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
+import {
+  selfAssignToNode,
+  selfUnassignFromNode,
+  unlinkNodeProfile,
+  type TreePermissions,
+  type NodeProfileLink,
+} from "@/lib/actions/permissions";
 import type { TreeMember, Relationship } from "@/types";
 
 interface MemberDetailPanelProps {
@@ -28,6 +38,10 @@ interface MemberDetailPanelProps {
   relationships: Relationship[];
   allMembers: TreeMember[];
   canEdit: boolean;
+  treeId: string;
+  currentUserId: string;
+  permissions: TreePermissions | null;
+  linkedProfile: NodeProfileLink | null;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -175,6 +189,10 @@ export function MemberDetailPanel({
   relationships,
   allMembers,
   canEdit,
+  treeId,
+  currentUserId,
+  permissions,
+  linkedProfile,
   onClose,
   onEdit,
   onDelete,
@@ -182,7 +200,55 @@ export function MemberDetailPanel({
   onHoverMember,
 }: MemberDetailPanelProps) {
   const router = useRouter();
+  const [claimLoading, setClaimLoading] = useState(false);
   const memberMap = new Map(allMembers.map((m) => [m.id, m]));
+
+  // Can user claim this node? Must have a membership, not already linked, and node not claimed
+  const canClaim = permissions && !permissions.linkedNodeId && !linkedProfile;
+  // Is the current user the one linked to this node?
+  const isSelfLinked = linkedProfile?.userId === currentUserId;
+  // Can owner unlink someone else?
+  const canOwnerUnlink = permissions?.isOwner && linkedProfile && !isSelfLinked;
+
+  async function handleClaim() {
+    setClaimLoading(true);
+    try {
+      await selfAssignToNode(treeId, member.id);
+      toast.success(`You are now linked to ${member.first_name}!`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to claim");
+    } finally {
+      setClaimLoading(false);
+    }
+  }
+
+  async function handleUnclaim() {
+    setClaimLoading(true);
+    try {
+      await selfUnassignFromNode(treeId);
+      toast.success("You have been unlinked from this node");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink");
+    } finally {
+      setClaimLoading(false);
+    }
+  }
+
+  async function handleOwnerUnlink() {
+    if (!linkedProfile) return;
+    setClaimLoading(true);
+    try {
+      await unlinkNodeProfile(treeId, linkedProfile.membershipId);
+      toast.success(`Unlinked ${linkedProfile.displayName} from this node`);
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink");
+    } finally {
+      setClaimLoading(false);
+    }
+  }
 
   // Find parents, children, spouses
   const parents = relationships
@@ -242,11 +308,18 @@ export function MemberDetailPanel({
       <div className="p-4 space-y-5">
         {/* Profile */}
         <div className="flex items-start gap-4">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-            {member.avatar_url ? (
-              <img src={member.avatar_url} alt={member.first_name} className="h-16 w-16 rounded-full object-cover" />
-            ) : (
-              <User className="h-8 w-8 text-primary" />
+          <div className="relative">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              {(linkedProfile?.avatarUrl ?? member.avatar_url) ? (
+                <img src={(linkedProfile?.avatarUrl ?? member.avatar_url)!} alt={member.first_name} className="h-16 w-16 rounded-full object-cover" />
+              ) : (
+                <User className="h-8 w-8 text-primary" />
+              )}
+            </div>
+            {linkedProfile && (
+              <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-background" title={`Linked to ${linkedProfile.displayName}`}>
+                <UserCheck className="h-3 w-3 text-white" />
+              </div>
             )}
           </div>
           <div className="min-w-0">
@@ -264,6 +337,33 @@ export function MemberDetailPanel({
             </div>
           </div>
         </div>
+
+        {/* Profile link actions */}
+        {linkedProfile ? (
+          <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2">
+            <UserCheck className="h-4 w-4 text-blue-500 flex-shrink-0" />
+            <span className="text-sm text-blue-700 dark:text-blue-300 flex-1 truncate">
+              Linked to {linkedProfile.displayName}
+            </span>
+            {isSelfLinked && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={handleUnclaim} disabled={claimLoading}>
+                <UserX className="h-3.5 w-3.5 mr-1" />
+                {claimLoading ? "..." : "Unassign"}
+              </Button>
+            )}
+            {canOwnerUnlink && (
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={handleOwnerUnlink} disabled={claimLoading}>
+                <Unlink className="h-3.5 w-3.5 mr-1" />
+                {claimLoading ? "..." : "Remove"}
+              </Button>
+            )}
+          </div>
+        ) : canClaim ? (
+          <Button variant="outline" size="sm" className="w-full" onClick={handleClaim} disabled={claimLoading}>
+            <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+            {claimLoading ? "Linking..." : "This is me!"}
+          </Button>
+        ) : null}
 
         <Separator />
 

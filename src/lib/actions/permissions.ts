@@ -110,3 +110,88 @@ export async function selfAssignToNode(
 
   if (error) throw new Error(`Failed to assign: ${error.message}`);
 }
+
+export async function selfUnassignFromNode(treeId: string): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("id, linked_node_id")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership) throw new Error("No membership in this tree");
+  if (!membership.linked_node_id) throw new Error("You are not assigned to any node");
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ linked_node_id: null })
+    .eq("id", membership.id);
+
+  if (error) throw new Error(`Failed to unassign: ${error.message}`);
+}
+
+export async function unlinkNodeProfile(
+  treeId: string,
+  membershipId: string
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Only owner can unlink others
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can unlink profiles");
+  }
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ linked_node_id: null })
+    .eq("id", membershipId)
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to unlink: ${error.message}`);
+}
+
+export interface NodeProfileLink {
+  userId: string;
+  membershipId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export async function getNodeProfileMap(
+  treeId: string
+): Promise<Record<string, NodeProfileLink>> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("tree_memberships")
+    .select("id, user_id, linked_node_id, profiles(display_name, avatar_url)")
+    .eq("tree_id", treeId)
+    .not("linked_node_id", "is", null);
+
+  if (error) throw new Error(`Failed to fetch node profiles: ${error.message}`);
+
+  const map: Record<string, NodeProfileLink> = {};
+  for (const m of data ?? []) {
+    if (m.linked_node_id) {
+      const profile = m.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
+      map[m.linked_node_id] = {
+        userId: m.user_id,
+        membershipId: m.id,
+        displayName: profile?.display_name ?? "Unknown",
+        avatarUrl: profile?.avatar_url ?? null,
+      };
+    }
+  }
+  return map;
+}

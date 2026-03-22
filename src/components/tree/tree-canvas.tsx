@@ -35,6 +35,7 @@ import { AddMemberDialog } from "./add-member-dialog";
 import { EditMemberDialog } from "./edit-member-dialog";
 import { TreeSearch } from "./tree-search";
 import type { TreeMember, Relationship, FamilyTree } from "@/types";
+import type { NodeProfileLink, TreePermissions } from "@/lib/actions/permissions";
 
 const nodeTypes: NodeTypes = {
   member: MemberNode as unknown as NodeTypes["member"],
@@ -50,6 +51,8 @@ interface TreeCanvasProps {
   relationships: Relationship[];
   canEdit: boolean;
   currentUserId: string;
+  nodeProfileMap?: Record<string, NodeProfileLink>;
+  permissions?: TreePermissions;
 }
 
 function TreeCanvasInner({
@@ -57,6 +60,9 @@ function TreeCanvasInner({
   members: initialMembers,
   relationships: initialRelationships,
   canEdit,
+  currentUserId,
+  nodeProfileMap = {},
+  permissions,
 }: TreeCanvasProps) {
   const { fitView, setCenter } = useReactFlow();
   const router = useRouter();
@@ -115,6 +121,7 @@ function TreeCanvasInner({
           ...n.data,
           isSelected: false,
           isPathHighlighted: false,
+          linkedProfile: nodeProfileMap[n.id] ?? null,
         } as MemberNodeData,
       };
     });
@@ -421,6 +428,10 @@ function TreeCanvasInner({
             relationships={relationships}
             allMembers={members}
             canEdit={canEdit}
+            treeId={tree.id}
+            currentUserId={currentUserId}
+            permissions={permissions ?? null}
+            linkedProfile={nodeProfileMap[selectedMember.id] ?? null}
             onClose={() => { setSelectedMemberId(null); setHoveredRelMemberId(null); }}
             onEdit={() => setEditingMember(selectedMember)}
             onDelete={() => setDeleteTarget(selectedMember)}

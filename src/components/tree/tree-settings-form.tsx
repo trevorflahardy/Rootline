@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2, ArrowLeft, User, Crown, Eye, Edit } from "lucide-react";
+import { Trash2, ArrowLeft, User, Crown, Eye, Edit, Unlink, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { updateTree, deleteTree, updateMembership, removeMembership } from "@/lib/actions/tree";
+import { unlinkNodeProfile } from "@/lib/actions/permissions";
 import { updateTreeSchema, type UpdateTreeInput } from "@/lib/validators/tree";
 import type { FamilyTree, TreeMember, TreeMembership, TreeRole } from "@/types";
 
@@ -108,6 +109,18 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
     }
   }
 
+  async function handleUnlinkNode(membershipId: string) {
+    try {
+      await unlinkNodeProfile(tree.id, membershipId);
+      toast.success("Profile unlinked from node");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlink");
+    }
+  }
+
+  const memberMap = new Map(members.map((m) => [m.id, m]));
+
   return (
     <>
       <Button variant="ghost" size="sm" onClick={() => router.push(`/tree/${tree.id}`)}>
@@ -190,6 +203,26 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
                     {m.profile?.email && (
                       <p className="text-xs text-muted-foreground truncate">{m.profile.email}</p>
                     )}
+                    {m.linked_node_id && (() => {
+                      const linkedMember = memberMap.get(m.linked_node_id!);
+                      return linkedMember ? (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <LinkIcon className="h-3 w-3 text-blue-500" />
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400">
+                            Linked to {linkedMember.first_name} {linkedMember.last_name ?? ""}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleUnlinkNode(m.id)}
+                            title="Remove profile link"
+                          >
+                            <Unlink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                   {isOwner ? (
                     <Badge variant="secondary" className="flex items-center gap-1">

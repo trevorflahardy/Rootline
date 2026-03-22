@@ -2,21 +2,25 @@
 
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { User, Crown } from "lucide-react";
+import { User, Crown, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatLifespan } from "@/lib/utils/date";
 import type { TreeMember } from "@/types";
+import type { NodeProfileLink } from "@/lib/actions/permissions";
 
 export type MemberNodeData = TreeMember & {
   isSelected?: boolean;
   isPathHighlighted?: boolean;
   isOwnerNode?: boolean;
+  linkedProfile?: NodeProfileLink | null;
   [key: string]: unknown;
 };
 
 function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
   const lifespan = formatLifespan(data.date_of_birth, data.date_of_death, data.is_deceased);
   const active = data.isSelected || data.isPathHighlighted;
+  // Prefer linked Clerk profile avatar over the member's own avatar
+  const displayAvatar = data.linkedProfile?.avatarUrl ?? data.avatar_url;
 
   const handleColor = active ? "oklch(0.45 0.18 155)" : "oklch(0.75 0 0)";
 
@@ -42,24 +46,31 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         )}
       >
         <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              "h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold",
-              data.is_deceased
-                ? "bg-muted text-muted-foreground grayscale"
-                : active
-                  ? "bg-[oklch(0.45_0.18_155_/_0.12)] text-[oklch(0.4_0.15_155)]"
-                  : "bg-muted text-muted-foreground"
-            )}
-          >
-            {data.avatar_url ? (
-              <img
-                src={data.avatar_url}
-                alt={data.first_name}
-                className="h-10 w-10 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-5 w-5" />
+          <div className="relative">
+            <div
+              className={cn(
+                "h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold",
+                data.is_deceased
+                  ? "bg-muted text-muted-foreground grayscale"
+                  : active
+                    ? "bg-[oklch(0.45_0.18_155_/_0.12)] text-[oklch(0.4_0.15_155)]"
+                    : "bg-muted text-muted-foreground"
+              )}
+            >
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt={data.first_name}
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <User className="h-5 w-5" />
+              )}
+            </div>
+            {data.linkedProfile && (
+              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-card" title={`Linked to ${data.linkedProfile.displayName}`}>
+                <UserCheck className="h-2.5 w-2.5 text-white" />
+              </div>
             )}
           </div>
 
