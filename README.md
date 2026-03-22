@@ -83,7 +83,7 @@ Rootline helps families come together to build, explore, and preserve their fami
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/rootline.git
+git clone https://github.com/trevorflahardy/Rootline.git
 cd rootline
 ```
 
@@ -127,6 +127,7 @@ Run the SQL migrations in your Supabase project's SQL Editor, in order:
 2. `supabase/migrations/002_functions.sql`
 3. `supabase/migrations/003_rls_policies.sql`
 4. `supabase/migrations/004_triggers.sql`
+...
 
 ### 5. Configure Clerk Webhook
 
