@@ -299,6 +299,16 @@ function TreeCanvasInner({
     }
   }, [pathStart, pathEnd, relationships]);
 
+  const clearSelection = useCallback(() => {
+    setSelectedMemberId(null);
+    setHoveredRelMemberId(null);
+    setPathStart(null);
+    setPathEnd(null);
+    setHighlightedPath([]);
+    setHighlightedEdges([]);
+    setRelationshipLabel(null);
+  }, []);
+
   // Keyboard shortcut for search
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -313,16 +323,6 @@ function TreeCanvasInner({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [clearSelection]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedMemberId(null);
-    setHoveredRelMemberId(null);
-    setPathStart(null);
-    setPathEnd(null);
-    setHighlightedPath([]);
-    setHighlightedEdges([]);
-    setRelationshipLabel(null);
-  }, []);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
