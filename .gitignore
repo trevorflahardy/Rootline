@@ -46,3 +46,4 @@ next-env.d.ts
 skills-lock.json
 .mcp.json
 .claude-flow/
+.swarm/
