@@ -1,0 +1,74 @@
+{
+  "agents": {
+    "test-swarm-agent-01": {
+      "agentId": "test-swarm-agent-01",
+      "agentType": "tester",
+      "status": "terminated",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-23T18:15:04.123Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "blur-health-fix": {
+      "agentId": "blur-health-fix",
+      "agentType": "coder",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-23T18:46:43.242Z",
+      "domain": "frontend",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "doc-upload": {
+      "agentId": "doc-upload",
+      "agentType": "coder",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-23T18:46:44.189Z",
+      "domain": "frontend",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    },
+    "hydration-fix": {
+      "agentId": "hydration-fix",
+      "agentType": "coder",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-23T18:46:45.068Z",
+      "domain": "frontend",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "brg-theme": {
+      "agentId": "brg-theme",
+      "agentType": "coder",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-23T18:46:46.225Z",
+      "domain": "frontend",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit"
+    }
+  },
+  "version": "3.0.0"
+}

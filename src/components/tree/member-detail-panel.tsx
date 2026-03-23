@@ -454,9 +454,9 @@ export function MemberDetailPanel({
   );
 
   return (
-    <div className="absolute top-0 right-0 z-20 h-full w-full max-w-sm glass-card glass-heavy glass-edge-top glass-edge-left overflow-y-auto">
+    <div className="absolute top-0 right-0 z-20 h-full w-full max-w-sm glass-card glass-heavy glass-edge-top glass-edge-left overflow-y-auto" style={{ backdropFilter: 'blur(72px)', WebkitBackdropFilter: 'blur(72px)' }}>
       {/* Header */}
-      <div className="sticky top-0 bg-transparent border-b border-[var(--glass-border-subtle)] px-4 py-3 flex items-center justify-between z-10 backdrop-blur-sm">
+      <div className="sticky top-0 border-b border-[var(--glass-border-subtle)] px-4 py-3 flex items-center justify-between z-10" style={{ background: 'var(--glass-bg-heavy)', backdropFilter: 'blur(72px)', WebkitBackdropFilter: 'blur(72px)' }}>
         <h3 className="font-semibold">Member Details</h3>
         <div className="flex items-center gap-1">
           {memberCanEdit && !editCheckLoading && (
