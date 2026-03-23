@@ -36,7 +36,7 @@ import { EditMemberDialog } from "./edit-member-dialog";
 import { TreeSearch } from "./tree-search";
 import { GedcomImportDialog } from "@/components/import-export/gedcom-import-dialog";
 import type { TreeMember, Relationship, FamilyTree } from "@/types";
-import type { NodeProfileLink, TreePermissions } from "@/lib/actions/permissions";
+import { canEditMember as checkCanEditMember, type NodeProfileLink, type TreePermissions } from "@/lib/actions/permissions";
 
 const nodeTypes: NodeTypes = {
   member: MemberNode as unknown as NodeTypes["member"],
@@ -69,6 +69,15 @@ function TreeCanvasInner({
 }: TreeCanvasProps) {
   const { fitView, setCenter } = useReactFlow();
   const router = useRouter();
+
+  const canEditMember = useCallback(
+    async (memberId: string): Promise<boolean> => {
+      if (!canEdit) return false;
+      if (permissions?.isOwner) return true;
+      return checkCanEditMember(tree.id, memberId);
+    },
+    [canEdit, permissions?.isOwner, tree.id]
+  );
 
   const [members, setMembers] = useState(initialMembers);
   const [relationships, setRelationships] = useState(initialRelationships);
@@ -494,7 +503,7 @@ function TreeCanvasInner({
             member={selectedMember}
             relationships={relationships}
             allMembers={members}
-            canEdit={canEdit}
+            canEditMember={canEditMember}
             treeId={tree.id}
             currentUserId={currentUserId}
             permissions={permissions ?? null}

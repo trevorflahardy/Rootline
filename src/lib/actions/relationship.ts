@@ -14,13 +14,32 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
   // Check access
   const { data: membership } = await supabase
     .from("tree_memberships")
-    .select("role")
+    .select("role, linked_node_id")
     .eq("tree_id", validated.tree_id)
     .eq("user_id", userId)
     .single();
 
   if (!membership) throw new Error("No access to this tree");
   if (membership.role === "viewer") throw new Error("Viewers cannot add relationships");
+
+  // Editors with linked node can only create relationships within their branch
+  if (membership.role === "editor" && membership.linked_node_id) {
+    const [fromResult, toResult] = await Promise.all([
+      supabase.rpc("is_descendant_of", {
+        p_tree_id: validated.tree_id,
+        p_node_id: validated.from_member_id,
+        p_ancestor_id: membership.linked_node_id,
+      }),
+      supabase.rpc("is_descendant_of", {
+        p_tree_id: validated.tree_id,
+        p_node_id: validated.to_member_id,
+        p_ancestor_id: membership.linked_node_id,
+      }),
+    ]);
+    if (!fromResult.data && !toResult.data) {
+      throw new Error("You can only create relationships within your branch");
+    }
+  }
 
   await supabase.rpc("set_request_user_id", { user_id: userId });
 

@@ -195,3 +195,118 @@ export async function getNodeProfileMap(
   }
   return map;
 }
+
+export interface NodeMembership {
+  id: string;
+  userId: string;
+  role: TreeRole;
+  linkedNodeId: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export async function getNodeMembership(
+  treeId: string,
+  nodeId: string
+): Promise<NodeMembership | null> {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from("tree_memberships")
+    .select("id, user_id, role, linked_node_id, profiles(display_name, avatar_url)")
+    .eq("tree_id", treeId)
+    .eq("linked_node_id", nodeId)
+    .single();
+
+  if (!data) return null;
+  const profile = data.profiles as unknown as { display_name: string; avatar_url: string | null } | null;
+  return {
+    id: data.id,
+    userId: data.user_id,
+    role: data.role as TreeRole,
+    linkedNodeId: data.linked_node_id!,
+    displayName: profile?.display_name ?? "Unknown",
+    avatarUrl: profile?.avatar_url ?? null,
+  };
+}
+
+export async function updateMemberRole(
+  treeId: string,
+  membershipId: string,
+  newRole: "editor" | "viewer"
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Only owner can change roles
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can change member roles");
+  }
+
+  // Don't allow changing owner role
+  const { data: targetMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("id", membershipId)
+    .eq("tree_id", treeId)
+    .single();
+
+  if (!targetMembership) throw new Error("Membership not found");
+  if (targetMembership.role === "owner") throw new Error("Cannot change owner role");
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ role: newRole })
+    .eq("id", membershipId)
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to update role: ${error.message}`);
+}
+
+export async function updateMemberLinkedNode(
+  treeId: string,
+  membershipId: string,
+  nodeId: string | null
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can change linked nodes");
+  }
+
+  // If setting a node, check it's not already claimed
+  if (nodeId) {
+    const { data: existing } = await supabase
+      .from("tree_memberships")
+      .select("id")
+      .eq("tree_id", treeId)
+      .eq("linked_node_id", nodeId)
+      .neq("id", membershipId)
+      .single();
+
+    if (existing) throw new Error("This node is already linked to another member");
+  }
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ linked_node_id: nodeId })
+    .eq("id", membershipId)
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to update linked node: ${error.message}`);
+}

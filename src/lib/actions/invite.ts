@@ -41,6 +41,23 @@ export async function createInvite(input: CreateInviteInput): Promise<Invitation
     throw new Error("Only tree owners can create invites");
   }
 
+  // Check if target node already has a linked user
+  if (validated.target_node_id) {
+    const { data: existingLink } = await supabase
+      .from("tree_memberships")
+      .select("id, user_id, profiles(display_name)")
+      .eq("tree_id", validated.tree_id)
+      .eq("linked_node_id", validated.target_node_id)
+      .single();
+
+    if (existingLink) {
+      const profile = existingLink.profiles as unknown as { display_name: string } | null;
+      throw new Error(
+        `This node is already linked to ${profile?.display_name ?? "another user"}. Unlink them first before creating a new invite for this node.`
+      );
+    }
+  }
+
   const inviteCode = generateInviteCode();
 
   const { data, error } = await supabase

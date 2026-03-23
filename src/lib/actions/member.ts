@@ -26,6 +26,9 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
   const membership = await checkTreeAccess(supabase, validated.tree_id, userId);
   if (membership.role === "viewer") throw new Error("Viewers cannot add members");
 
+  // Editors with a linked node can only add members (they'll be scoped at relationship creation)
+  // Standalone member creation is allowed; branch scope is enforced in createRelationship
+
   // Set the user context for audit triggers
   await supabase.rpc("set_request_user_id", { user_id: userId });
 

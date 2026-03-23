@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import {
   UserX,
   Unlink,
   Fingerprint,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +29,11 @@ import {
   selfAssignToNode,
   selfUnassignFromNode,
   unlinkNodeProfile,
+  getNodeMembership,
+  updateMemberRole,
   type TreePermissions,
   type NodeProfileLink,
+  type NodeMembership,
 } from "@/lib/actions/permissions";
 import type { TreeMember, Relationship } from "@/types";
 
@@ -37,7 +41,7 @@ interface MemberDetailPanelProps {
   member: TreeMember;
   relationships: Relationship[];
   allMembers: TreeMember[];
-  canEdit: boolean;
+  canEditMember: (memberId: string) => Promise<boolean>;
   treeId: string;
   currentUserId: string;
   permissions: TreePermissions | null;
@@ -188,7 +192,7 @@ export function MemberDetailPanel({
   member,
   relationships,
   allMembers,
-  canEdit,
+  canEditMember,
   treeId,
   currentUserId,
   permissions,
@@ -201,7 +205,33 @@ export function MemberDetailPanel({
 }: MemberDetailPanelProps) {
   const router = useRouter();
   const [claimLoading, setClaimLoading] = useState(false);
+  const [memberCanEdit, setMemberCanEdit] = useState(false);
+  const [editCheckLoading, setEditCheckLoading] = useState(true);
+  const [nodeMembership, setNodeMembership] = useState<NodeMembership | null>(null);
+  const [roleUpdating, setRoleUpdating] = useState(false);
   const memberMap = new Map(allMembers.map((m) => [m.id, m]));
+
+  // Check per-member edit permission
+  useEffect(() => {
+    setEditCheckLoading(true);
+    setMemberCanEdit(false);
+    canEditMember(member.id).then((result) => {
+      setMemberCanEdit(result);
+      setEditCheckLoading(false);
+    }).catch(() => {
+      setMemberCanEdit(false);
+      setEditCheckLoading(false);
+    });
+  }, [member.id, canEditMember]);
+
+  // Fetch node membership info for permissions section
+  useEffect(() => {
+    if (!permissions?.canEdit) {
+      setNodeMembership(null);
+      return;
+    }
+    getNodeMembership(treeId, member.id).then(setNodeMembership).catch(() => setNodeMembership(null));
+  }, [treeId, member.id, permissions?.canEdit]);
 
   // Can user claim this node? Must have a membership, not already linked, and node not claimed
   const canClaim = permissions && !permissions.linkedNodeId && !linkedProfile;
@@ -287,7 +317,7 @@ export function MemberDetailPanel({
       <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between z-10">
         <h3 className="font-semibold">Member Details</h3>
         <div className="flex items-center gap-1">
-          {canEdit && (
+          {memberCanEdit && !editCheckLoading && (
             <>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="Full edit">
                 <Edit className="h-3.5 w-3.5" />
@@ -387,22 +417,83 @@ export function MemberDetailPanel({
           </button>
         ) : null}
 
+        {/* Permissions Section - visible to editors and owners */}
+        {permissions?.canEdit && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="h-3 w-3" />
+                Permissions
+              </p>
+
+              {nodeMembership ? (
+                <div className="rounded-lg border px-3 py-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                        {nodeMembership.avatarUrl ? (
+                          <Image src={nodeMembership.avatarUrl} alt={nodeMembership.displayName} className="h-6 w-6 rounded-full object-cover" width={24} height={24} />
+                        ) : (
+                          <User className="h-3 w-3 text-primary" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">{nodeMembership.displayName}</span>
+                    </div>
+                    {permissions.isOwner ? (
+                      <select
+                        className="text-xs border rounded px-2 py-1 bg-background"
+                        value={nodeMembership.role}
+                        disabled={roleUpdating || nodeMembership.role === "owner"}
+                        onChange={async (e) => {
+                          const newRole = e.target.value as "editor" | "viewer";
+                          setRoleUpdating(true);
+                          try {
+                            await updateMemberRole(treeId, nodeMembership.id, newRole);
+                            setNodeMembership((prev) => prev ? { ...prev, role: newRole } : prev);
+                            toast.success(`Role updated to ${newRole}`);
+                            router.refresh();
+                          } catch (error) {
+                            toast.error(error instanceof Error ? error.message : "Failed to update role");
+                          } finally {
+                            setRoleUpdating(false);
+                          }
+                        }}
+                      >
+                        {nodeMembership.role === "owner" && (
+                          <option value="owner">Owner</option>
+                        )}
+                        <option value="editor">Editor</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    ) : (
+                      <Badge variant="outline" className="text-xs capitalize">{nodeMembership.role}</Badge>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No user linked to this member</p>
+              )}
+            </div>
+          </>
+        )}
+
         <Separator />
 
         {/* All fields — click to edit for admins */}
         <div className="space-y-3">
-          <InlineField label="First name" value={member.first_name} field="first_name" canEdit={canEdit} onSave={handleInlineSave} />
-          <InlineField label="Last name" value={member.last_name} field="last_name" canEdit={canEdit} onSave={handleInlineSave} />
-          <InlineField label="Maiden name" value={member.maiden_name} field="maiden_name" canEdit={canEdit} onSave={handleInlineSave} />
-          <InlineField label="Date of birth" value={member.date_of_birth} field="date_of_birth" type="date" canEdit={canEdit} onSave={handleInlineSave} />
-          <InlineField label="Birth place" value={member.birth_place} field="birth_place" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="First name" value={member.first_name} field="first_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="Last name" value={member.last_name} field="last_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="Maiden name" value={member.maiden_name} field="maiden_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="Date of birth" value={member.date_of_birth} field="date_of_birth" type="date" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="Birth place" value={member.birth_place} field="birth_place" canEdit={memberCanEdit} onSave={handleInlineSave} />
           {(member.is_deceased || member.date_of_death) && (
             <>
-              <InlineField label="Date of death" value={member.date_of_death} field="date_of_death" type="date" canEdit={canEdit} onSave={handleInlineSave} />
-              <InlineField label="Death place" value={member.death_place} field="death_place" canEdit={canEdit} onSave={handleInlineSave} />
+              <InlineField label="Date of death" value={member.date_of_death} field="date_of_death" type="date" canEdit={memberCanEdit} onSave={handleInlineSave} />
+              <InlineField label="Death place" value={member.death_place} field="death_place" canEdit={memberCanEdit} onSave={handleInlineSave} />
             </>
           )}
-          <InlineField label="Bio" value={member.bio} field="bio" type="textarea" canEdit={canEdit} onSave={handleInlineSave} />
+          <InlineField label="Bio" value={member.bio} field="bio" type="textarea" canEdit={memberCanEdit} onSave={handleInlineSave} />
         </div>
 
         <Separator />
