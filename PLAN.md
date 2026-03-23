@@ -1,7 +1,7 @@
 # Rootline - Implementation Plan & Progress Tracker
 
-> **Last Updated**: 2026-03-22
-> **Status**: Phase 4 - In Progress (Phases 1, 2, & 3 Complete)
+> **Last Updated**: 2026-03-23
+> **Status**: Phase 5 - Not Started (Phases 1–4 Complete)
 
 ---
 
@@ -15,6 +15,7 @@
 - [Phase 2: Core Features](#phase-2-core-features)
 - [Phase 3: Collaboration](#phase-3-collaboration)
 - [Phase 4: Polish](#phase-4-polish)
+- [Phase 5: Advanced Relationships & Permissions](#phase-5-advanced-relationships--permissions)
 - [Dependencies](#dependencies)
 - [Environment Variables](#environment-variables)
 - [Additional Considerations](#additional-considerations)
@@ -361,47 +362,180 @@ rootline/
 
 ### Stream 10: Version Control & Audit Log
 
-**Status**: ⏳ NOT STARTED
+**Status**: ✅ COMPLETE
 
-- [ ] Audit server actions (createSnapshot, getAuditLog, rollback)
-- [ ] History page (`/tree/[id]/history`)
-- [ ] `snapshot-viewer.tsx`
-- [ ] `rollback-dialog.tsx`
+- [x] Audit server actions (createSnapshot, getAuditLog, getSnapshots, rollbackToSnapshot)
+- [x] History page (`/tree/[id]/history`) with server + client components
+- [x] `audit-timeline.tsx` — timeline with action badges and change summaries
+- [x] `snapshot-viewer.tsx` — snapshot cards with member/relationship counts
+- [x] `rollback-dialog.tsx` — confirmation dialog with data loss warning
+- [x] `history-client.tsx` — client wrapper for pagination, snapshot creation, rollback
 
 ### Stream 11: GEDCOM Import/Export
 
-**Status**: ⏳ NOT STARTED
+**Status**: ✅ COMPLETE
 
-- [ ] `gedcom-parser.ts` — GEDCOM 5.5.1 → tree data
-- [ ] `gedcom-exporter.ts` — tree data → GEDCOM
-- [ ] `gedcom-import-dialog.tsx`
-- [ ] `gedcom-export-button.tsx`
+- [x] `gedcom-parser.ts` — GEDCOM 5.5.1 → tree data (handles date formats, name variants, maiden names)
+- [x] `gedcom-exporter.ts` — tree data → GEDCOM 5.5.1 (INDI, FAM, HEAD, TRLR records)
+- [x] `gedcom-import-dialog.tsx` — file upload, preview, confirm import
+- [x] `gedcom-export-button.tsx` — fetch + download .ged file
+- [x] `import.ts` server action — bulk-create members + relationships from parsed GEDCOM
+- [x] Toolbar integration (import + export buttons)
+- [x] Tests: 27 tests (15 parser + 12 exporter)
 
 ### Stream 12: Tree Image Export
 
-**Status**: ⏳ NOT STARTED
+**Status**: ✅ COMPLETE
 
-- [ ] `tree-image-export.tsx` — html-to-image capture
-- [ ] PNG + PDF export
-- [ ] Toolbar integration
+- [x] `tree-image-export.tsx` — html-to-image capture with 2x pixel ratio
+- [x] PNG + SVG export (auto-download)
+- [x] Print/PDF export (opens print dialog with tree image)
+- [x] Toolbar integration (dropdown menu with format options)
+- [x] Excludes minimap, toolbar, overlays from capture via `data-export-exclude`
 
 ### Stream 13: Landing Page & SEO
 
-**Status**: ⏳ NOT STARTED
+**Status**: ✅ COMPLETE
 
-- [ ] Hero section + CTA
-- [ ] Feature showcase
-- [ ] How it works
-- [ ] SEO: metadata, Open Graph, JSON-LD, sitemap
+- [x] Hero section + CTA (completed in Phase 2)
+- [x] Feature showcase + How it works (completed in Phase 2)
+- [x] Root layout metadata: Open Graph, Twitter Card, keywords, authors
+- [x] Marketing layout: JSON-LD `WebApplication` structured data
+- [x] `sitemap.ts` — Next.js sitemap route
+- [x] `robots.ts` — Next.js robots route (disallows /dashboard, /tree, /api)
+- [x] `opengraph-image.tsx` — dynamic OG image (1200×630) with brand gradient
 
 ### Stream 14: Testing
 
-**Status**: ⏳ NOT STARTED (tests written per-phase, final sweep here)
+**Status**: ✅ COMPLETE (83 → 207 tests across 18 files)
 
-- [ ] vitest config
-- [ ] Unit tests: tree-layout, path-finder, relationship-calculator, GEDCOM parser/exporter, validators
-- [ ] Integration tests: server actions
+- [x] vitest config verified
+- [x] Unit tests: tree-layout, path-finder, relationship-calculator, date utils, GEDCOM parser/exporter
+- [x] Validator tests: tree, member, relationship, invite, profile schemas
+- [x] Integration tests: server actions (tree, member, relationship, invite) with mocked Supabase
 - [ ] E2E: Playwright (future)
+
+### Bugfix: Permission Enforcement (2026-03-23)
+
+- [x] Fixed `createRelationship` — editors with linked nodes now scoped to descendants only
+- [x] Fixed `createInvite` — blocks inviting to nodes already linked to a user
+- [x] Fixed client-side detail panel — per-member `canEditMember()` check instead of global `canEdit` boolean
+- [x] Added permissions section to member detail panel (owner-editable, editor-visible, viewer-hidden)
+- [x] New server actions: `getNodeMembership`, `updateMemberRole`, `updateMemberLinkedNode`
+- [x] Fixed hydration mismatch — `suppressHydrationWarning` on Button component
+
+---
+
+## Phase 5: Advanced Relationships & Permissions
+
+**Goal**: Horizontal relationship linking (in-laws, step-relations), enhanced permission management UI, and tree UX improvements.
+
+### Stream 15: Horizontal Relationship Linking
+
+**Status**: ⏳ NOT STARTED
+
+Currently, the tree only supports direct vertical relationships (parent→child) and spouse connections. This stream adds the ability to link family members who aren't directly related but connected horizontally — e.g., siblings-in-law, step-parents, co-parents.
+
+- [ ] Extend `relationship_type` enum: add `sibling`, `step_parent`, `step_child`, `in_law`, `guardian` types
+- [ ] Database migration (`006_extended_relationships.sql`) — ALTER CHECK constraint on `relationships.relationship_type`
+- [ ] Update `relationship-calculator.ts` — handle new relationship types in path traversal and label generation
+- [ ] Update `createRelationshipSchema` validator — accept new relationship types
+- [ ] `add-relationship-dialog.tsx` — new dialog for linking two existing members with any relationship type (not just via add-member flow)
+- [ ] Update `relationship-edge.tsx` — distinct visual styles for new edge types (dotted for in-law, dashed for step, etc.)
+- [ ] Update `tree-layout.ts` — layout algorithm adjustments for horizontal relationships (siblings placed side-by-side, in-laws grouped near spouse)
+- [ ] Update `path-finder.ts` — BFS traversal includes new relationship types
+- [ ] Update GEDCOM parser/exporter to handle extended relationship types
+- [ ] Tests: relationship calculator with new types, layout with horizontal edges
+
+### Stream 16: Permission Management Dashboard
+
+**Status**: ⏳ NOT STARTED
+
+Improve the tree settings page with a dedicated permission management view.
+
+- [ ] `permission-manager.tsx` — table/list of all tree members with role, linked node, last active
+- [ ] Inline role editing (owner can change editor↔viewer)
+- [ ] Inline linked node reassignment (owner can change which node a member is scoped to)
+- [ ] Bulk operations: revoke access, change roles for multiple members
+- [ ] Activity indicators: show when each member last edited the tree
+- [ ] Integrate into tree settings page (`/tree/[id]/settings`)
+
+### Stream 17: Tree UX Improvements
+
+**Status**: ⏳ NOT STARTED
+
+- [ ] Drag-and-drop member reordering within the tree canvas
+- [ ] Multi-select nodes (shift+click) for bulk operations (delete, move branch)
+- [ ] Undo/redo for tree edits (client-side action stack)
+- [ ] Keyboard shortcuts: Delete to remove selected node, Ctrl+Z to undo
+- [ ] Context menu (right-click) on nodes: edit, delete, add child, add spouse, view details
+- [ ] Mobile touch gestures: pinch-to-zoom, long-press for context menu
+
+### Stream 18: Member Documents
+
+**Status**: ⏳ NOT STARTED
+
+Allow users to attach documents (birth certificates, marriage licenses, immigration papers, etc.) to tree members. Self-linked users can upload to their own node; owners/editors can upload to anyone in their scope.
+
+**Database:**
+- [ ] Migration (`006_member_documents.sql`) — new `documents` table: id UUID, tree_id, member_id (refs tree_members), uploaded_by, storage_path, file_name, file_size, mime_type, document_type (enum: birth_certificate, marriage_license, death_certificate, immigration, legal, medical, photo_album, other), description, is_private (boolean, default false), created_at
+- [ ] Supabase Storage bucket: `tree-documents` with RLS policies
+- [ ] RLS: read if tree member (respect `is_private` — only uploader + owner can see private docs), write if owner/editor within scope OR self-linked user uploading to own node
+
+**Server Actions (`src/lib/actions/document.ts`):**
+- [ ] `uploadDocument(treeId, memberId, file, metadata)` — upload to Supabase Storage, create DB record
+- [ ] `getDocumentsByMember(treeId, memberId)` — list documents for a member (filtered by privacy)
+- [ ] `getDocumentsByTree(treeId)` — list all documents in a tree (owner only)
+- [ ] `deleteDocument(documentId, treeId)` — delete from storage + DB (uploader or owner)
+- [ ] `updateDocument(documentId, treeId, metadata)` — update description, type, privacy
+- [ ] Permission checks: self-linked users can upload to their own node only; editors scoped to their branch; owners can upload anywhere
+
+**Components:**
+- [ ] `src/components/documents/document-upload.tsx` — drag-and-drop upload with file type validation (PDF, images, .doc/.docx), max 25MB, document type selector, optional description, privacy toggle
+- [ ] `src/components/documents/document-list.tsx` — grid/list view of attached documents with thumbnails (PDF first page preview, image thumbnails), download button, delete (if permitted)
+- [ ] `src/components/documents/document-viewer.tsx` — full-screen modal PDF/image viewer optimized for mobile and web:
+  - PDF rendering via `react-pdf` (pdf.js wrapper) with page navigation, zoom, pinch-to-zoom on mobile
+  - Image viewer with zoom/pan
+  - Responsive: full-screen on mobile, modal on desktop
+  - Download button, share button
+  - Keyboard navigation: arrow keys for pages, Escape to close
+- [ ] `src/components/documents/document-type-badge.tsx` — colored badge per document type
+
+**Integration:**
+- [ ] Add "Documents" tab/section to member detail panel (`member-detail-panel.tsx`)
+- [ ] Add document count badge on member nodes in the tree canvas
+- [ ] Add "Documents" section to member detail page (`/tree/[id]/member/[memberId]`)
+- [ ] Validators: `src/lib/validators/document.ts` — file size, mime type, document type enum
+
+**Tests:**
+- [ ] Unit tests: document validators, permission logic
+- [ ] Integration tests: upload flow, privacy filtering, scope enforcement
+
+### Stream 19: Testing & Hardening
+
+**Status**: ⏳ NOT STARTED
+
+- [ ] E2E tests with Playwright: tree CRUD, invite flow, permission scoping, GEDCOM import, document upload
+- [ ] Permission integration tests: verify scoped editors cannot escape their branch
+- [ ] Performance tests: trees with 500+ members
+- [ ] Accessibility audit: screen reader, keyboard-only navigation, WCAG 2.1 AA
+
+---
+
+### Verification Checklist: After Phase 5
+
+- [ ] Create a sibling relationship between two members, verify edge renders correctly
+- [ ] Add an in-law relationship, verify path-finder includes it
+- [ ] As owner, change a member's role from the permission manager
+- [ ] As owner, reassign a member's linked node scope
+- [ ] Right-click a node, verify context menu appears with correct options
+- [ ] Undo a member deletion via Ctrl+Z
+- [ ] Upload a PDF to a member, open in viewer, navigate pages on mobile and desktop
+- [ ] As self-linked user, upload document to own node (succeeds), try uploading to another node (fails)
+- [ ] As owner, view all documents across the tree, including private ones
+- [ ] Verify private documents hidden from non-uploaders
+- [ ] Run full E2E suite, all passing
+- [ ] `bun run lint` and `bun test` pass
 
 ---
 
@@ -458,9 +592,13 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 | Deceased member handling | Phase 2 | Grayscale + icon in node     |
 | Collapse/expand subtrees | Phase 2 | Performance for large trees  |
 | Relationship calculator  | Phase 2 | LCA algorithm                |
-| GEDCOM import/export     | Phase 4 | Standard genealogy format    |
-| Tree image export        | Phase 4 | PNG/PDF                      |
-| In-app notifications     | Phase 3 | Supabase Realtime            |
+| GEDCOM import/export     | ✅ Done | Standard genealogy format    |
+| Tree image export        | ✅ Done | PNG/SVG/PDF                  |
+| In-app notifications     | ✅ Done | Polling-based (30s)          |
+| Horizontal relationships | Phase 5 | Sibling, in-law, step, etc.  |
+| Permission manager UI    | Phase 5 | Role editing, node scoping   |
+| Context menu / undo-redo | Phase 5 | Right-click, Ctrl+Z          |
+| Member documents         | Phase 5 | PDF/image upload + viewer    |
 | Data privacy / GDPR      | Ongoing | Cascade deletes, export      |
 | Accessibility            | Ongoing | ARIA, keyboard nav, contrast |
 | Rate limiting            | Phase 3 | Server action checks         |
