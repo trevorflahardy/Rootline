@@ -163,7 +163,7 @@ function RelatedMemberCard({
       onClick={onSelect}
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
-      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm glass-card glass-light hover:bg-white/15 dark:hover:bg-white/10 transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm glass-card glass-light hover:bg-foreground/10 dark:hover:bg-foreground/10 transition-colors text-left group"
     >
       <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
         {member.avatar_url ? (
@@ -415,7 +415,7 @@ export function MemberDetailPanel({
             </div>
             {linkedProfile && (
               <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-background" title={`Linked to ${linkedProfile.displayName}`}>
-                <UserCheck className="h-3 w-3 text-white" />
+                <UserCheck className="h-3 w-3 text-foreground" />
               </div>
             )}
           </div>

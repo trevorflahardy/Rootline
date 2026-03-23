@@ -35,8 +35,8 @@ export function DashboardHeader({ emptyState }: DashboardHeaderProps) {
     <div className="glass-card glass-edge-top rounded-2xl p-6 mb-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">My Family Trees</h1>
-          <p className="text-white/50">
+          <h1 className="text-2xl font-bold text-foreground">My Family Trees</h1>
+          <p className="text-muted-foreground">
             Manage and explore your family lineages
           </p>
         </div>

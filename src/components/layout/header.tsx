@@ -31,7 +31,7 @@ export function Header() {
       <div className="container mx-auto flex h-14 items-center px-4">
         <Link href={isSignedIn ? "/dashboard" : "/"} className="flex items-center gap-2 mr-6">
           <TreePine className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-lg text-white">Rootline</span>
+          <span className="font-semibold text-lg text-foreground">Rootline</span>
         </Link>
 
         {/* Desktop nav */}
@@ -45,7 +45,7 @@ export function Header() {
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   pathname === link.href
                     ? "bg-primary/15 text-primary"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
               >
                 {link.label}
@@ -82,10 +82,10 @@ export function Header() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72 bg-stone-900/95 backdrop-blur-xl border-white/8">
+            <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-xl border-border/50">
               <SheetTitle className="flex items-center gap-2 mb-6">
                 <TreePine className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-white">Rootline</span>
+                <span className="font-semibold text-foreground">Rootline</span>
               </SheetTitle>
               <nav className="flex flex-col gap-2">
                 {mounted && isLoaded && (
@@ -98,7 +98,7 @@ export function Header() {
                           "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                           pathname === link.href
                             ? "bg-primary/15 text-primary"
-                            : "text-white/50 hover:text-white"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
                         {link.label}

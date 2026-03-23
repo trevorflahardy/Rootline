@@ -22,8 +22,8 @@ export function EmptyTreeState({ treeId, canEdit }: EmptyTreeStateProps) {
           <TreePine className="h-8 w-8 text-primary" />
         </div>
         <div>
-          <p className="font-medium text-lg text-white">Your tree is empty</p>
-          <p className="text-sm text-white/50 mt-1">
+          <p className="font-medium text-lg text-foreground">Your tree is empty</p>
+          <p className="text-sm text-muted-foreground mt-1">
             Add the first family member to start building your tree.
           </p>
         </div>

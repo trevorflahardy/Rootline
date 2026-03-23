@@ -81,7 +81,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
               )}
             </div>
             {data.linkedProfile && (
-              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-white/20" title={`Linked to ${data.linkedProfile.displayName}`}>
+              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-primary/20" title={`Linked to ${data.linkedProfile.displayName}`}>
                 <UserCheck className="h-2.5 w-2.5 text-white" />
               </div>
             )}
@@ -89,7 +89,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <p className="text-sm font-semibold truncate text-white">
+              <p className="text-sm font-semibold truncate text-foreground">
                 {data.first_name}
                 {data.last_name ? ` ${data.last_name}` : ""}
               </p>
@@ -98,12 +98,12 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
               )}
             </div>
             {data.maiden_name && (
-              <p className="text-[10px] text-white/40 truncate">
+              <p className="text-[10px] text-muted-foreground truncate">
                 n&eacute;e {data.maiden_name}
               </p>
             )}
             {lifespan && (
-              <p className="text-xs text-white/40">{lifespan}</p>
+              <p className="text-xs text-muted-foreground">{lifespan}</p>
             )}
           </div>
         </div>

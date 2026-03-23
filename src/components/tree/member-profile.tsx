@@ -206,7 +206,7 @@ export function MemberProfile({
             </div>
             {linkedProfile && (
               <div className="absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-background" title={`Linked to ${linkedProfile.displayName}`}>
-                <UserCheck className="h-3.5 w-3.5 text-white" />
+                <UserCheck className="h-3.5 w-3.5 text-primary-foreground" />
               </div>
             )}
           </div>

@@ -32,7 +32,7 @@ export default function HomePage() {
               Where families come together
             </p>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95] text-white">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[0.95] text-foreground">
               Every family has
               <br />
               <span className="text-primary">a story worth</span>
@@ -40,7 +40,7 @@ export default function HomePage() {
               preserving.
             </h1>
 
-            <p className="text-xl md:text-2xl text-white/60 max-w-2xl mx-auto mb-12 leading-relaxed">
+            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
               Rootline makes it easy for your whole family to build, explore,
               and preserve your shared history — together.
             </p>
@@ -53,7 +53,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <Link href="#how-it-works">
-                <Button variant="ghost" size="lg" className="text-base px-8 h-13 rounded-full text-white/60 hover:text-white hover:bg-white/5">
+                <Button variant="ghost" size="lg" className="text-base px-8 h-13 rounded-full text-muted-foreground hover:text-foreground hover:bg-foreground/5">
                   See how it works
                 </Button>
               </Link>
@@ -67,7 +67,7 @@ export default function HomePage() {
                 <div className="w-3 h-3 rounded-full bg-red-400/80" />
                 <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
                 <div className="w-3 h-3 rounded-full bg-green-400/80" />
-                <span className="text-xs text-white/40 ml-2">The Rodriguez Family</span>
+                <span className="text-xs text-muted-foreground/60 ml-2">The Rodriguez Family</span>
               </div>
               {/* Mini tree preview */}
               <div className="flex flex-col items-center gap-4 py-6">
@@ -76,25 +76,25 @@ export default function HomePage() {
                   <div className="h-0.5 w-8 bg-primary/30" />
                   <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">SR</div>
                 </div>
-                <div className="w-0.5 h-6 bg-white/10" />
+                <div className="w-0.5 h-6 bg-border" />
                 <div className="flex items-center gap-12">
                   <div className="flex flex-col items-center gap-1">
                     <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-medium">CR</div>
-                    <span className="text-[10px] text-white/40">Carlos</span>
+                    <span className="text-[10px] text-muted-foreground/60">Carlos</span>
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-medium">AR</div>
-                    <span className="text-[10px] text-white/40">Ana</span>
+                    <span className="text-[10px] text-muted-foreground/60">Ana</span>
                   </div>
                   <div className="flex flex-col items-center gap-1">
                     <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-medium">LR</div>
-                    <span className="text-[10px] text-white/40">Luis</span>
+                    <span className="text-[10px] text-muted-foreground/60">Luis</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-2">
-                  <div className="w-0.5 h-4 bg-white/10" />
+                  <div className="w-0.5 h-4 bg-border" />
                   <div className="w-0.5 h-4 bg-transparent" />
-                  <div className="w-0.5 h-4 bg-white/10" />
+                  <div className="w-0.5 h-4 bg-border" />
                 </div>
                 <div className="flex items-center gap-8">
                   <div className="flex gap-3">
@@ -102,10 +102,10 @@ export default function HomePage() {
                     <div className="h-8 w-8 rounded-full bg-success/15 flex items-center justify-center text-success text-[10px] font-medium ring-2 ring-success/30">MR</div>
                   </div>
                   <div className="flex gap-3">
-                    <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-white/40 text-[10px] font-medium">SR</div>
+                    <div className="h-8 w-8 rounded-full bg-foreground/5 flex items-center justify-center text-muted-foreground/60 text-[10px] font-medium">SR</div>
                   </div>
                 </div>
-                <p className="text-xs text-white/40 mt-4 flex items-center gap-1.5">
+                <p className="text-xs text-muted-foreground/60 mt-4 flex items-center gap-1.5">
                   <span className="inline-block w-2 h-2 rounded-full bg-success animate-pulse" />
                   Elena just added 2 new family members
                 </p>
@@ -116,9 +116,9 @@ export default function HomePage() {
       </section>
 
       {/* Social proof strip */}
-      <section className="border-y border-white/5 bg-white/[0.02] py-6">
+      <section className="border-y border-border/50 bg-foreground/[0.03] py-6">
         <div className="container mx-auto px-4">
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 text-sm text-white/50">
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-3 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5"><Heart className="h-4 w-4 text-primary" /> Built for families of all sizes</span>
             <span className="flex items-center gap-1.5"><Shield className="h-4 w-4 text-primary" /> Your data stays private</span>
             <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary" /> Works across the globe</span>
@@ -132,10 +132,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-20">
             <p className="text-primary font-medium text-sm mb-3">Features</p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-5 text-white">
+            <h2 className="text-3xl md:text-5xl font-bold mb-5 text-foreground">
               Everything your family needs.
               <br className="hidden md:block" />
-              <span className="text-white/40">Nothing it doesn&apos;t.</span>
+              <span className="text-muted-foreground/60">Nothing it doesn&apos;t.</span>
             </h2>
           </div>
 
@@ -148,14 +148,14 @@ export default function HomePage() {
                     <TreePine className="h-3.5 w-3.5" />
                     Core Experience
                   </div>
-                  <h3 className="text-2xl font-bold mb-3 text-white">Interactive family tree</h3>
-                  <p className="text-white/50 leading-relaxed">
+                  <h3 className="text-2xl font-bold mb-3 text-foreground">Interactive family tree</h3>
+                  <p className="text-muted-foreground leading-relaxed">
                     A living, breathing visualization of your lineage. Pan and zoom across generations,
                     click any member to see their story, and watch your tree grow in real time as family
                     members contribute.
                   </p>
                 </div>
-                <div className="md:w-64 h-40 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-center">
+                <div className="md:w-64 h-40 rounded-xl bg-foreground/[0.03] border border-border/50 flex items-center justify-center">
                   <TreePine className="h-16 w-16 text-primary/30" />
                 </div>
               </div>
@@ -198,8 +198,8 @@ export default function HomePage() {
                 <div className={`inline-flex items-center justify-center rounded-xl ${feature.bg} p-2.5 mb-4`}>
                   <feature.icon className={`h-5 w-5 ${feature.color}`} />
                 </div>
-                <h3 className="font-semibold text-lg mb-2 text-white">{feature.title}</h3>
-                <p className="text-white/50 text-sm leading-relaxed">{feature.description}</p>
+                <h3 className="font-semibold text-lg mb-2 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -211,13 +211,13 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <p className="text-primary font-medium text-sm mb-3">Getting started</p>
-            <h2 className="text-3xl md:text-5xl font-bold text-white">Three steps. That&apos;s it.</h2>
+            <h2 className="text-3xl md:text-5xl font-bold text-foreground">Three steps. That&apos;s it.</h2>
           </div>
 
           <div className="max-w-4xl mx-auto">
             <div className="grid md:grid-cols-3 gap-12 md:gap-8 relative">
               {/* Connecting line on desktop */}
-              <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-0.5 bg-white/8" />
+              <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-0.5 bg-foreground/5" />
 
               {[
                 {
@@ -240,8 +240,8 @@ export default function HomePage() {
                   <div className="w-24 h-24 rounded-2xl glass-card glass-edge-top border-2 border-primary/20 flex items-center justify-center mx-auto mb-6 relative z-10">
                     <span className="text-3xl font-bold text-primary">{item.step}</span>
                   </div>
-                  <h3 className="font-semibold text-lg mb-2 text-white">{item.title}</h3>
-                  <p className="text-white/50 text-sm leading-relaxed max-w-xs mx-auto">{item.desc}</p>
+                  <h3 className="font-semibold text-lg mb-2 text-foreground">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">{item.desc}</p>
                 </div>
               ))}
             </div>
@@ -258,22 +258,22 @@ export default function HomePage() {
                 <Share2 className="h-3.5 w-3.5" />
                 Import & Export
               </div>
-              <h3 className="text-2xl font-bold mb-3 text-white">Already have a family tree?</h3>
-              <p className="text-white/50 leading-relaxed mb-4">
+              <h3 className="text-2xl font-bold mb-3 text-foreground">Already have a family tree?</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
                 Import your existing research from Ancestry, MyHeritage, or any software
                 that exports GEDCOM files. Or export your Rootline tree to share with others.
                 Your data is always portable.
               </p>
               <Link href="/sign-up">
-                <Button variant="outline" className="rounded-full border-white/10 text-white/80 hover:bg-white/5 hover:text-white">
+                <Button variant="outline" className="rounded-full border-border text-muted-foreground hover:bg-foreground/5 hover:text-foreground">
                   Import your tree
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             </div>
-            <div className="w-full md:w-48 h-32 rounded-xl bg-white/[0.03] border-2 border-dashed border-white/10 flex flex-col items-center justify-center gap-2">
-              <Share2 className="h-8 w-8 text-white/20" />
-              <span className="text-xs text-white/30">Drop .ged file here</span>
+            <div className="w-full md:w-48 h-32 rounded-xl bg-foreground/[0.03] border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+              <Share2 className="h-8 w-8 text-muted-foreground/40" />
+              <span className="text-xs text-muted-foreground/60">Drop .ged file here</span>
             </div>
           </div>
         </div>
@@ -293,7 +293,7 @@ export default function HomePage() {
             Just you and the people who matter most.
           </p>
           <Link href="/sign-up">
-            <Button size="lg" variant="secondary" className="text-base px-10 h-13 rounded-full shadow-lg shadow-black/20 bg-white/90 text-stone-900 hover:bg-white">
+            <Button size="lg" variant="secondary" className="text-base px-10 h-13 rounded-full shadow-lg shadow-black/20 bg-white/90 text-foreground hover:bg-white">
               Create your family tree
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

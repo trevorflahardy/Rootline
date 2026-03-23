@@ -46,15 +46,15 @@ export async function getTreeHealth(treeId: string): Promise<TreeHealthData> {
   // Get member IDs that have at least one relationship
   const { data: relationships, error: relError } = await supabase
     .from("relationships")
-    .select("source_member_id, target_member_id")
+    .select("from_member_id, to_member_id")
     .eq("tree_id", treeId);
 
   if (relError) throw new Error(`Failed to fetch relationships: ${relError.message}`);
 
   const membersWithRelationships = new Set<string>();
   for (const rel of relationships ?? []) {
-    membersWithRelationships.add(rel.source_member_id);
-    membersWithRelationships.add(rel.target_member_id);
+    membersWithRelationships.add(rel.from_member_id);
+    membersWithRelationships.add(rel.to_member_id);
   }
 
   // Count complete members: first_name + last_name + date_of_birth + at least 1 relationship
