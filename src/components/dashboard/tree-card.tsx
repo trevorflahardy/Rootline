@@ -14,7 +14,7 @@ export function TreeCard({ tree }: TreeCardProps) {
 
   return (
     <Link href={`/tree/${tree.id}`}>
-      <Card className="h-full transition-colors hover:bg-accent/30 cursor-pointer">
+      <Card className="h-full glass-card glass-edge-top cursor-pointer hover:scale-[1.02] hover:glass-elevated transition-all duration-300">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">

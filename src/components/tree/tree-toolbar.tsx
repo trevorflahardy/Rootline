@@ -34,7 +34,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
-    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg p-1.5" data-export-exclude>
+    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 glass-card glass-light glass-edge-top rounded-xl p-1.5" data-export-exclude>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()}>

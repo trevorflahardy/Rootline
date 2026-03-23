@@ -34,7 +34,8 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ c
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/20">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="glass-card glass-elevated glass-edge-top p-8 rounded-xl max-w-md w-full">
       <AcceptInviteCard
         inviteCode={code}
         treeName={treeName}
@@ -43,6 +44,7 @@ export default async function InviteAcceptPage({ params }: { params: Promise<{ c
         isMaxedOut={isMaxedOut}
         isLoggedIn={!!userId}
       />
+      </div>
     </div>
   );
 }

@@ -241,7 +241,7 @@ export function PermissionManager({
         </div>
       )}
 
-      <div className="rounded-lg border">
+      <div className="glass-card glass-edge-top rounded-lg border-white/10">
         <Table>
           <TableHeader>
             <TableRow>

@@ -116,7 +116,7 @@ export function NodeContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+      className="fixed z-50 min-w-[180px] glass-card glass-elevated glass-edge-top rounded-md p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
       style={{ left: position.x, top: position.y }}
     >
       <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground truncate max-w-[200px]">

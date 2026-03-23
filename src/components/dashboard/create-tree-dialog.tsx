@@ -50,7 +50,7 @@ export function CreateTreeDialog({ open, onOpenChange }: CreateTreeDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-card glass-elevated glass-edge-top glass-edge-left border-white/10">
         <DialogHeader>
           <DialogTitle>Create Family Tree</DialogTitle>
           <DialogDescription>
@@ -63,6 +63,7 @@ export function CreateTreeDialog({ open, onOpenChange }: CreateTreeDialogProps) 
             <Input
               id="name"
               placeholder="e.g. The Johnson Family"
+              className="bg-white/5 border-white/10 focus:ring-primary"
               {...register("name")}
             />
             {errors.name && (
@@ -74,6 +75,7 @@ export function CreateTreeDialog({ open, onOpenChange }: CreateTreeDialogProps) 
             <Textarea
               id="description"
               placeholder="A brief description of this family tree..."
+              className="bg-white/5 border-white/10 focus:ring-primary"
               {...register("description")}
             />
             {errors.description && (

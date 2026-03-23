@@ -60,7 +60,7 @@ function RelationshipEdgeComponent({
       ? "oklch(0.45 0.18 155)"
       : highlightMode === "descendant"
         ? "oklch(0.62 0.12 210)"
-        : "oklch(0.75 0 0)";
+        : "oklch(0.55 0 0 / 0.6)";
 
   const markerId = `arrow-${id}`;
 

@@ -129,7 +129,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
       </Button>
 
       {/* General settings */}
-      <Card>
+      <Card className="glass-card glass-edge-top border-white/10">
         <CardHeader>
           <CardTitle>General</CardTitle>
           <CardDescription>Update your tree&apos;s name and description.</CardDescription>
@@ -153,7 +153,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
       </Card>
 
       {/* Visibility */}
-      <Card>
+      <Card className="glass-card glass-edge-top border-white/10">
         <CardHeader>
           <CardTitle>Visibility</CardTitle>
           <CardDescription>Control who can view your family tree.</CardDescription>
@@ -174,7 +174,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
       </Card>
 
       {/* Members */}
-      <Card>
+      <Card className="glass-card glass-edge-top border-white/10">
         <CardHeader>
           <CardTitle>Members ({memberships.length})</CardTitle>
           <CardDescription>People who have access to this tree.</CardDescription>
@@ -260,7 +260,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
       </Card>
 
       {/* Danger zone */}
-      <Card className="border-destructive/30">
+      <Card className="glass-card glass-edge-top border-destructive/30">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
           <CardDescription>Irreversible actions for this tree.</CardDescription>

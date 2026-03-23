@@ -586,11 +586,12 @@ function TreeCanvasInner({
           nodesDraggable={canEdit}
           nodesConnectable={canEdit}
           connectionLineStyle={{ stroke: "oklch(0.55 0.08 155)", strokeWidth: 2 }}
+          style={{ background: 'transparent' }}
         >
-          <Background gap={24} size={1} color="oklch(0.8 0.01 75 / 0.3)" />
+          <Background gap={24} size={1} color="oklch(0.8 0.01 75 / 0.15)" />
           <MiniMap
             nodeStrokeWidth={3}
-            className="bg-background/80! border! border-border! rounded-lg! shadow-sm!"
+            className="glass-card rounded-lg! shadow-sm!"
             maskColor="oklch(0.5 0 0 / 0.1)"
           />
         </ReactFlow>
@@ -608,7 +609,7 @@ function TreeCanvasInner({
 
         {/* Undo/Redo floating controls */}
         {(canUndo || canRedo) && (
-          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg p-1.5" data-export-exclude>
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 glass-card glass-light rounded-xl p-1.5" data-export-exclude>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -646,7 +647,7 @@ function TreeCanvasInner({
 
         {/* Multi-select bulk action bar */}
         {selectedNodeIds.size > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3" data-export-exclude>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-card glass-light rounded-xl px-4 py-2 flex items-center gap-3" data-export-exclude>
             <span className="text-sm font-medium">{selectedNodeIds.size} selected</span>
             {canEdit && (
               <Button
@@ -674,7 +675,7 @@ function TreeCanvasInner({
 
         {/* Relationship label */}
         {relationshipLabel && selectedNodeIds.size <= 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3" data-export-exclude>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 glass-card glass-light rounded-xl px-4 py-2 flex items-center gap-3" data-export-exclude>
             <span className="text-sm font-medium">{relationshipLabel}</span>
             <button
               onClick={clearSelection}

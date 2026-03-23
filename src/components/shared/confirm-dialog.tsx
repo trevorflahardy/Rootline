@@ -33,7 +33,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

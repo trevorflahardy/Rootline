@@ -102,7 +102,7 @@ export function AddRelationshipDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input]:border-[var(--glass-border-subtle)] [&_input:focus]:ring-2 [&_input:focus]:ring-primary">
         <DialogHeader>
           <DialogTitle>Link Members</DialogTitle>
           <DialogDescription>

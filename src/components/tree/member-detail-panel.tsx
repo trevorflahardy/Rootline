@@ -163,7 +163,7 @@ function RelatedMemberCard({
       onClick={onSelect}
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
-      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm hover:bg-accent transition-colors text-left group"
+      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm glass-card glass-light hover:bg-white/15 dark:hover:bg-white/10 transition-colors text-left group"
     >
       <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
         {member.avatar_url ? (
@@ -381,9 +381,9 @@ export function MemberDetailPanel({
   );
 
   return (
-    <div className="absolute top-0 right-0 z-20 h-full w-full max-w-sm border-l bg-background shadow-xl overflow-y-auto">
+    <div className="absolute top-0 right-0 z-20 h-full w-full max-w-sm glass-card glass-heavy glass-edge-top glass-edge-left overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 bg-background border-b px-4 py-3 flex items-center justify-between z-10">
+      <div className="sticky top-0 bg-transparent border-b border-[var(--glass-border-subtle)] px-4 py-3 flex items-center justify-between z-10 backdrop-blur-sm">
         <h3 className="font-semibold">Member Details</h3>
         <div className="flex items-center gap-1">
           {memberCanEdit && !editCheckLoading && (

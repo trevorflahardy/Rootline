@@ -68,7 +68,7 @@ export function PhotoGallery({ photos, treeId, canEdit }: PhotoGalleryProps) {
 
       {/* Lightbox */}
       <Dialog open={!!lightboxPhoto} onOpenChange={() => setLightboxPhoto(null)}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+        <DialogContent className="max-w-3xl p-0 overflow-hidden glass-elevated border-white/10">
           {lightboxPhoto && (
             <div className="relative">
               <div className="relative w-full max-h-[80vh]" style={{ minHeight: "300px" }}>

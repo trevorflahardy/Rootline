@@ -14,7 +14,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <TooltipProvider>
         {children}
-        <Toaster richColors position="bottom-right" />
+        <Toaster
+          richColors
+          position="bottom-right"
+          toastOptions={{
+            className: "glass-card glass-light border-[var(--glass-border-subtle)] backdrop-blur-xl",
+            style: {
+              background: "var(--glass-bg)",
+              borderLeft: "3px solid var(--primary)",
+            },
+          }}
+        />
       </TooltipProvider>
     </NextThemesProvider>
   );

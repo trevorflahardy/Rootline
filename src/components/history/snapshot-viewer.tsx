@@ -46,7 +46,7 @@ export function SnapshotViewer({
           snapshot.snapshot_data?.relationships?.length ?? 0;
 
         return (
-          <Card key={snapshot.id}>
+          <Card key={snapshot.id} className="glass-card glass-edge-top border-white/10 transition-transform duration-200 hover:scale-[1.01]">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between gap-2">
                 <CardTitle className="text-sm font-medium">

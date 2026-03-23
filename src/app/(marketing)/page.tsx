@@ -62,7 +62,7 @@ export default function HomePage() {
 
           {/* Decorative tree illustration placeholder */}
           <div className="mt-20 max-w-3xl mx-auto">
-            <div className="rounded-2xl border bg-card/50 backdrop-blur-sm p-8 shadow-xl shadow-black/5">
+            <div className="glass-card glass-elevated rounded-2xl p-8 shadow-xl shadow-black/5">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-3 h-3 rounded-full bg-red-400" />
                 <div className="w-3 h-3 rounded-full bg-yellow-400" />
@@ -141,7 +141,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto">
             {/* Large feature card */}
-            <div className="md:col-span-2 rounded-2xl border bg-gradient-to-br from-primary/5 to-transparent p-8 md:p-10">
+            <div className="md:col-span-2 glass-card glass-edge-top rounded-2xl p-8 md:p-10">
               <div className="flex flex-col md:flex-row md:items-center gap-6">
                 <div className="flex-1">
                   <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
@@ -193,7 +193,7 @@ export default function HomePage() {
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="rounded-2xl border p-7 transition-all hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 duration-300"
+                className="glass-card glass-edge-top rounded-2xl p-7 transition-all hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5 hover:scale-[1.01] duration-300"
               >
                 <div className={`inline-flex items-center justify-center rounded-xl ${feature.bg} p-2.5 mb-4`}>
                   <feature.icon className={`h-5 w-5 ${feature.color}`} />
@@ -207,7 +207,7 @@ export default function HomePage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-24 bg-muted/30">
+      <section id="how-it-works" className="py-24">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <p className="text-primary font-medium text-sm mb-3">Getting started</p>
@@ -237,7 +237,7 @@ export default function HomePage() {
                 },
               ].map((item) => (
                 <div key={item.step} className="text-center relative">
-                  <div className="w-24 h-24 rounded-2xl bg-background border-2 border-primary/20 flex items-center justify-center mx-auto mb-6 relative z-10">
+                  <div className="w-24 h-24 rounded-2xl glass-card border-2 border-primary/20 flex items-center justify-center mx-auto mb-6 relative z-10">
                     <span className="text-3xl font-bold text-primary">{item.step}</span>
                   </div>
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
@@ -252,7 +252,7 @@ export default function HomePage() {
       {/* Import/Export callout */}
       <section className="py-24">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto rounded-2xl border bg-card p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
+          <div className="max-w-4xl mx-auto glass-card glass-edge-top rounded-2xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
             <div className="flex-1">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary mb-4">
                 <Share2 className="h-3.5 w-3.5" />

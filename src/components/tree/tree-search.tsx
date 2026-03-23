@@ -37,7 +37,7 @@ export function TreeSearch({ open, onOpenChange, members, onSelect }: TreeSearch
   }, [members, query]);
 
   return (
-    <CommandDialog open={open} onOpenChange={onOpenChange}>
+    <CommandDialog open={open} onOpenChange={onOpenChange} className="glass-card glass-elevated">
       <CommandInput
         placeholder="Search family members..."
         value={query}

@@ -17,7 +17,7 @@ export function EmptyTreeState({ treeId, canEdit }: EmptyTreeStateProps) {
 
   return (
     <div className="flex items-center justify-center h-full min-h-[60vh] text-center">
-      <div className="max-w-sm space-y-4">
+      <div className="glass-card glass-edge-top rounded-2xl max-w-sm space-y-4 p-8">
         <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
           <TreePine className="h-8 w-8 text-primary" />
         </div>

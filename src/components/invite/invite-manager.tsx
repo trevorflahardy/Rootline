@@ -83,7 +83,7 @@ export function InviteManager({ treeId, invites, members }: InviteManagerProps) 
   );
 
   return (
-    <Card>
+    <Card className="glass-card glass-edge-top border-white/10">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Invitations</CardTitle>

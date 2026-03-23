@@ -89,7 +89,7 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0 glass-card glass-elevated glass-edge-top border-white/10" align="end">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <p className="font-semibold text-sm">Notifications</p>
           {unreadCount > 0 && (

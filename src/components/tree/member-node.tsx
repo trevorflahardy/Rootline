@@ -47,15 +47,11 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
 
       <div
         className={cn(
-          "rounded-xl border-[1.5px] bg-card shadow-sm px-4 py-3 min-w-40 max-w-50 transition-all duration-200 cursor-pointer",
+          "glass-card glass-edge-top rounded-2xl px-4 py-3 min-w-40 max-w-50 transition-all duration-200 cursor-pointer hover:bg-(--glass-bg-heavy)",
           data.is_deceased && "opacity-70",
-          visualState === "selected" || visualState === "path"
-            ? "border-[oklch(0.45_0.18_155)]"
-            : visualState === "descendant"
-              ? "border-[oklch(0.62_0.12_210)]"
-            : "border-border",
-          visualState === "path" && "shadow-md shadow-[oklch(0.5_0.18_155/0.12)]",
-          visualState === "descendant" && "shadow-md shadow-[oklch(0.62_0.12_210/0.1)]",
+          visualState === "selected" && "border-2 border-primary scale-105 transition-transform",
+          visualState === "path" && "shadow-[0_0_20px_rgba(34,197,94,0.4)]",
+          visualState === "descendant" && "border-primary/30 shadow-md shadow-primary/10",
         )}
       >
         <div className="flex items-center gap-3">
@@ -85,7 +81,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
               )}
             </div>
             {data.linkedProfile && (
-              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-card" title={`Linked to ${data.linkedProfile.displayName}`}>
+              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-white/20" title={`Linked to ${data.linkedProfile.displayName}`}>
                 <UserCheck className="h-2.5 w-2.5 text-white" />
               </div>
             )}

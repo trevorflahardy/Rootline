@@ -90,7 +90,7 @@ export function GedcomImportDialog({ open, onOpenChange, treeId }: GedcomImportD
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)]">
         <DialogHeader>
           <DialogTitle>Import GEDCOM File</DialogTitle>
           <DialogDescription>

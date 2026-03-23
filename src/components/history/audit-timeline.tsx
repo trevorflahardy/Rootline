@@ -129,7 +129,7 @@ export function AuditTimeline({
     <div className="space-y-4">
       <div className="relative">
         {/* Timeline line */}
-        <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
+        <div className="absolute left-4 top-0 bottom-0 w-px bg-white/10" />
 
         <div className="space-y-3">
           {entries.map((entry) => {
@@ -139,7 +139,7 @@ export function AuditTimeline({
                 {/* Timeline dot */}
                 <div className="absolute left-[11px] top-4 size-[10px] rounded-full border-2 border-background bg-muted-foreground" />
 
-                <Card>
+                <Card className="glass-card glass-light glass-edge-top border-white/10">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1">

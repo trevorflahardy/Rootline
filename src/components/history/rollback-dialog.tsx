@@ -46,7 +46,7 @@ export function RollbackDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="glass-elevated border-white/10">
         <DialogHeader>
           <DialogTitle>Restore Snapshot</DialogTitle>
           <DialogDescription>

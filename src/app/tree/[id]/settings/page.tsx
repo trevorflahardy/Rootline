@@ -30,25 +30,31 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
   ]);
 
   return (
-    <div className="flex-1">
-      <div className="border-b px-4 py-3">
+    <div className="flex-1 min-h-screen">
+      <div className="glass-card glass-edge-top px-4 py-3 mx-4 mt-4 rounded-xl">
         <h1 className="font-semibold text-lg">Tree Settings</h1>
         <p className="text-sm text-muted-foreground">{tree.name}</p>
       </div>
       <div className="max-w-2xl mx-auto p-6 space-y-8">
-        <TreeSettingsForm
-          tree={tree}
-          memberships={memberships}
-          members={members}
-          currentUserId={userId ?? ""}
-        />
-        <PermissionManager
-          treeId={id}
-          memberships={membershipsWithActivity}
-          members={members}
-          currentUserId={userId ?? ""}
-        />
-        <InviteManager treeId={id} invites={invites} members={members} />
+        <div className="glass-card glass-edge-top p-6 rounded-xl">
+          <TreeSettingsForm
+            tree={tree}
+            memberships={memberships}
+            members={members}
+            currentUserId={userId ?? ""}
+          />
+        </div>
+        <div className="glass-card glass-edge-top p-6 rounded-xl">
+          <PermissionManager
+            treeId={id}
+            memberships={membershipsWithActivity}
+            members={members}
+            currentUserId={userId ?? ""}
+          />
+        </div>
+        <div className="glass-card glass-edge-top p-6 rounded-xl">
+          <InviteManager treeId={id} invites={invites} members={members} />
+        </div>
       </div>
     </div>
   );

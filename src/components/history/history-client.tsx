@@ -82,15 +82,15 @@ export function HistoryClient({
   }
 
   return (
-    <div className="flex-1">
-      <div className="border-b px-4 py-3">
+    <div className="flex-1 min-h-screen">
+      <div className="glass-card glass-edge-top px-4 py-3 mx-4 mt-4 rounded-xl">
         <h1 className="font-semibold text-lg">History</h1>
         <p className="text-sm text-muted-foreground">{treeName}</p>
       </div>
 
       <div className="max-w-3xl mx-auto p-6 space-y-8">
         {/* Snapshots Section */}
-        <Card>
+        <Card className="glass-card glass-edge-top border-white/10">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Snapshots</CardTitle>
@@ -140,7 +140,7 @@ export function HistoryClient({
         </Card>
 
         {/* Audit Log Section */}
-        <Card>
+        <Card className="glass-card glass-edge-top border-white/10">
           <CardHeader>
             <CardTitle>Change Log</CardTitle>
           </CardHeader>
