@@ -45,6 +45,12 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
           <span className="text-sm text-muted-foreground">
             {members.length} member{members.length !== 1 ? "s" : ""}
           </span>
+          <Link
+            href={`/tree/${id}/history`}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            History
+          </Link>
           {permissions.isOwner && (
             <Link
               href={`/tree/${id}/settings`}

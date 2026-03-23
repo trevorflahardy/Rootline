@@ -14,26 +14,47 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://rootline.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "Rootline - Map Your Family Story",
     template: "%s | Rootline",
   },
   description:
     "A modern, collaborative family lineage tracking application. Build, explore, and preserve your family tree together.",
-  keywords: ["family tree", "genealogy", "lineage", "family history", "ancestry"],
+  keywords: [
+    "family tree",
+    "genealogy",
+    "lineage",
+    "family history",
+    "ancestry",
+    "family tree builder",
+    "GEDCOM",
+    "collaborative family tree",
+    "family tree visualization",
+  ],
+  authors: [{ name: "Rootline" }],
+  creator: "Rootline",
   openGraph: {
     title: "Rootline - Map Your Family Story",
     description:
       "Build, explore, and preserve your family tree together with an interactive visualization.",
+    url: siteUrl,
     type: "website",
     siteName: "Rootline",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: "Rootline - Map Your Family Story",
     description:
       "Build, explore, and preserve your family tree together with an interactive visualization.",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

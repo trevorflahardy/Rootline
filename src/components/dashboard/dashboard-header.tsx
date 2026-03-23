@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateTreeDialog } from "./create-tree-dialog";
+import { JoinTreeDialog } from "./join-tree-dialog";
 
 interface DashboardHeaderProps {
   emptyState?: boolean;
@@ -11,16 +12,22 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ emptyState }: DashboardHeaderProps) {
   const [showCreate, setShowCreate] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
 
   if (emptyState) {
     return (
-      <>
+      <div className="flex flex-col sm:flex-row items-center gap-3">
         <Button onClick={() => setShowCreate(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Your First Tree
         </Button>
+        <Button variant="outline" onClick={() => setShowJoin(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Join with Invite Code
+        </Button>
         <CreateTreeDialog open={showCreate} onOpenChange={setShowCreate} />
-      </>
+        <JoinTreeDialog open={showJoin} onOpenChange={setShowJoin} />
+      </div>
     );
   }
 
@@ -32,11 +39,18 @@ export function DashboardHeader({ emptyState }: DashboardHeaderProps) {
           Manage and explore your family lineages
         </p>
       </div>
-      <Button onClick={() => setShowCreate(true)}>
-        <Plus className="h-4 w-4 mr-2" />
-        New Tree
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button variant="outline" onClick={() => setShowJoin(true)}>
+          <UserPlus className="h-4 w-4 mr-2" />
+          Join Tree
+        </Button>
+        <Button onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Tree
+        </Button>
+      </div>
       <CreateTreeDialog open={showCreate} onOpenChange={setShowCreate} />
+      <JoinTreeDialog open={showJoin} onOpenChange={setShowJoin} />
     </div>
   );
 }

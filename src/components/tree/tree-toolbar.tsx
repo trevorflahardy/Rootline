@@ -7,7 +7,7 @@ import {
   Maximize2,
   Plus,
   Search,
-  Download,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -16,19 +16,23 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { TreeImageExport } from "@/components/import-export/tree-image-export";
+import { GedcomExportButton } from "@/components/import-export/gedcom-export-button";
 
 interface TreeToolbarProps {
+  treeId: string;
   onAddMember: () => void;
   onSearch: () => void;
-  onExport?: () => void;
+  onImportGedcom?: () => void;
+  treeName?: string;
   canEdit: boolean;
 }
 
-export function TreeToolbar({ onAddMember, onSearch, onExport, canEdit }: TreeToolbarProps) {
+export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, treeName, canEdit }: TreeToolbarProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
-    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg p-1.5">
+    <div className="absolute top-4 left-4 z-10 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg p-1.5" data-export-exclude>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()}>
@@ -78,19 +82,22 @@ export function TreeToolbar({ onAddMember, onSearch, onExport, canEdit }: TreeTo
         </Tooltip>
       )}
 
-      {onExport && (
-        <>
-          <Separator orientation="vertical" className="h-6 mx-1" />
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onExport}>
-                <Download className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Export as image</TooltipContent>
-          </Tooltip>
-        </>
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {canEdit && onImportGedcom && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onImportGedcom}>
+              <Upload className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Import GEDCOM</TooltipContent>
+        </Tooltip>
       )}
+
+      <GedcomExportButton treeId={treeId} treeName={treeName} />
+
+      <TreeImageExport treeName={treeName} />
     </div>
   );
 }

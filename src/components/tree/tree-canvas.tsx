@@ -34,6 +34,7 @@ import { MemberDetailPanel } from "./member-detail-panel";
 import { AddMemberDialog } from "./add-member-dialog";
 import { EditMemberDialog } from "./edit-member-dialog";
 import { TreeSearch } from "./tree-search";
+import { GedcomImportDialog } from "@/components/import-export/gedcom-import-dialog";
 import type { TreeMember, Relationship, FamilyTree } from "@/types";
 import type { NodeProfileLink, TreePermissions } from "@/lib/actions/permissions";
 
@@ -85,6 +86,7 @@ function TreeCanvasInner({
   const [relationshipLabel, setRelationshipLabel] = useState<string | null>(null);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [editingMember, setEditingMember] = useState<TreeMember | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TreeMember | null>(null);
@@ -465,14 +467,17 @@ function TreeCanvasInner({
 
         {/* Toolbar */}
         <TreeToolbar
+          treeId={tree.id}
           onAddMember={() => setShowAddDialog(true)}
           onSearch={() => setShowSearch(true)}
+          onImportGedcom={() => setShowImportDialog(true)}
+          treeName={tree.name}
           canEdit={canEdit}
         />
 
         {/* Relationship label */}
         {relationshipLabel && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3" data-export-exclude>
             <span className="text-sm font-medium">{relationshipLabel}</span>
             <button
               onClick={clearSelection}
@@ -509,6 +514,13 @@ function TreeCanvasInner({
           treeId={tree.id}
           existingMembers={members}
           onMemberAdded={handleMemberAdded}
+        />
+
+        {/* GEDCOM import dialog */}
+        <GedcomImportDialog
+          open={showImportDialog}
+          onOpenChange={setShowImportDialog}
+          treeId={tree.id}
         />
 
         {/* Search */}
