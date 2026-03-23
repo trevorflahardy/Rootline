@@ -65,18 +65,17 @@ npm run lint
 ## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
 
 - All operations MUST be concurrent/parallel in a single message
-- Use Claude Code's Task tool for spawning agents, not just MCP
-- ALWAYS batch ALL todos in ONE TodoWrite call (5-10+ minimum)
-- ALWAYS spawn ALL agents in ONE message with full instructions via Task tool
+- NEVER use Claude Code's Agent/Task tool to spawn subagents — use ruflo MCP exclusively
 - ALWAYS batch ALL file reads/writes/edits in ONE message
 - ALWAYS batch ALL Bash commands in ONE message
 
 ## Swarm Orchestration
 
-- MUST initialize the swarm using CLI tools when starting complex tasks
-- MUST spawn concurrent agents using Claude Code's Task tool
-- Never use CLI tools alone for execution — Task tool agents do the actual work
-- MUST call CLI tools AND Task tool in ONE message for complex work
+- MUST initialize swarm via `mcp__ruflo__swarm_init` before spawning agents
+- MUST spawn ALL agents via `mcp__ruflo__agent_spawn` — NEVER via Claude Code's Task/Agent tool
+- MUST call `swarm_init` AND all `agent_spawn` calls in ONE message for parallel startup
+- Use `mcp__ruflo__agent_update` to track agent status (active → completed)
+- Use `mcp__ruflo__swarm_status` and `mcp__ruflo__agent_list` to monitor progress
 
 ### 3-Tier Model Routing (ADR-026)
 
@@ -104,11 +103,11 @@ npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --
 
 ## Swarm Execution Rules
 
-- ALWAYS use `run_in_background: true` for all agent Task calls
-- ALWAYS put ALL agent Task calls in ONE message for parallel execution
-- After spawning, STOP — do NOT add more tool calls or check status
-- Never poll TaskOutput or check swarm status — trust agents to return
-- When agent results arrive, review ALL results before proceeding
+- ALWAYS call `mcp__ruflo__swarm_init` + ALL `mcp__ruflo__agent_spawn` calls in ONE message
+- After spawning, STOP — do NOT add more tool calls or poll status
+- Use `mcp__ruflo__agent_update` to mark agents completed when results are received
+- When all agents complete, review results then proceed with next steps
+- Direct file edits (Edit tool) are done by Claude itself, NOT delegated to subagents
 
 ## V3 CLI Commands
 
@@ -176,11 +175,12 @@ npx @claude-flow/cli@latest daemon start
 npx @claude-flow/cli@latest doctor --fix
 ```
 
-## Claude Code vs CLI Tools
+## Claude Code vs ruflo MCP vs CLI Tools
 
-- Claude Code's Task tool handles ALL execution: agents, file ops, code generation, git
-- CLI tools handle coordination via Bash: swarm init, memory, hooks, routing
-- NEVER use CLI tools as a substitute for Task tool agents
+- **ruflo MCP** handles ALL agent spawning and swarm coordination (`mcp__ruflo__swarm_init`, `mcp__ruflo__agent_spawn`)
+- **Claude Code** (Edit/Read/Bash/Grep/Glob) handles direct file operations, builds, and tests
+- **CLI tools** (via Bash) handle memory, hooks, and routing: `npx @claude-flow/cli@latest ...`
+- NEVER use Claude Code's Agent or Task tool to spawn subagents — ruflo MCP only
 
 ## Support
 
