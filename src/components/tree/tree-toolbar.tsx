@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Upload,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,11 +25,12 @@ interface TreeToolbarProps {
   onAddMember: () => void;
   onSearch: () => void;
   onImportGedcom?: () => void;
+  onLinkMembers?: () => void;
   treeName?: string;
   canEdit: boolean;
 }
 
-export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, treeName, canEdit }: TreeToolbarProps) {
+export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onLinkMembers, treeName, canEdit }: TreeToolbarProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
@@ -72,14 +74,27 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, tre
       </Tooltip>
 
       {canEdit && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddMember}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Add member</TooltipContent>
-        </Tooltip>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddMember}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add member</TooltipContent>
+          </Tooltip>
+
+          {onLinkMembers && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLinkMembers}>
+                  <Link2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Link members</TooltipContent>
+            </Tooltip>
+          )}
+        </>
       )}
 
       <Separator orientation="vertical" className="h-6 mx-1" />

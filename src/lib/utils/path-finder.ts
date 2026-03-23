@@ -115,15 +115,27 @@ function getDirection(
   toNode: string,
   relationships: Relationship[]
 ): "up" | "down" | "spouse" {
-  if (type === "spouse" || type === "divorced") return "spouse";
+  // Horizontal relationship types — no hierarchy
+  if (type === "spouse" || type === "divorced" || type === "sibling" || type === "in_law") {
+    return "spouse";
+  }
 
-  // Check the original direction of the parent_child relationship
+  // Check the original direction of the hierarchical relationship
   const rel = relationships.find(
     (r) =>
       (r.from_member_id === fromNode && r.to_member_id === toNode) ||
       (r.from_member_id === toNode && r.to_member_id === fromNode)
   );
 
+  if (type === "step_child") {
+    // step_child is reversed: to_member is the parent
+    if (rel && rel.to_member_id === fromNode) {
+      return "down"; // fromNode is the parent (to_member), going down
+    }
+    return "up";
+  }
+
+  // parent_child, adopted, step_parent, guardian: from_member is parent
   if (rel && rel.from_member_id === fromNode) {
     return "down"; // fromNode is parent, toNode is child — going down
   }

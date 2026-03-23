@@ -11,6 +11,18 @@ export function calculateRelationship(path: PathStep[]): string {
   if (path.length <= 1) return "Self";
   if (path.length === 2) {
     const step = path[1];
+    // Check for specific extended relationship types first
+    if (step.relationshipType === "sibling") return "Sibling";
+    if (step.relationshipType === "in_law") return "In-Law";
+    if (step.relationshipType === "step_parent") {
+      return step.direction === "up" ? "Step-Parent" : "Step-Child";
+    }
+    if (step.relationshipType === "step_child") {
+      return step.direction === "up" ? "Step-Child" : "Step-Parent";
+    }
+    if (step.relationshipType === "guardian") {
+      return step.direction === "up" ? "Guardian" : "Ward";
+    }
     if (step.direction === "spouse") return "Spouse";
     if (step.direction === "down") return "Child";
     if (step.direction === "up") return "Parent";

@@ -1,7 +1,7 @@
 # Rootline - Implementation Plan & Progress Tracker
 
 > **Last Updated**: 2026-03-23
-> **Status**: Phase 5 - Not Started (Phases 1–4 Complete)
+> **Status**: Phase 5 - Not Started (Phases 1–4 Complete, Phase 5.5 planned)
 
 ---
 
@@ -16,6 +16,7 @@
 - [Phase 3: Collaboration](#phase-3-collaboration)
 - [Phase 4: Polish](#phase-4-polish)
 - [Phase 5: Advanced Relationships & Permissions](#phase-5-advanced-relationships--permissions)
+- [Phase 5.5: Glassmorphism UI Redesign](#phase-55-glassmorphism-ui-redesign)
 - [Dependencies](#dependencies)
 - [Environment Variables](#environment-variables)
 - [Additional Considerations](#additional-considerations)
@@ -539,6 +540,182 @@ Allow users to attach documents (birth certificates, marriage licenses, immigrat
 
 ---
 
+## Phase 5.5: Glassmorphism UI Redesign
+
+**Goal**: Comprehensive visual redesign of the entire application into a modern glassmorphism style. Gray-neutral glass surfaces with purposeful brand color accents. Add Tree Health metric. This is a large-scope change executed via a coordinated agent swarm.
+
+> **Important**: This phase MUST use the `/rootline-glassmorphism` skill for all design token and component pattern decisions, and the `/ui-ux-pro-max` skill (plus `/frontend-design`, `/mobile-first-design`) for design quality review. The `/tailwind-v4-shadcn` skill should be consulted for Tailwind v4 utility patterns.
+
+### Execution Strategy: Agent Swarm
+
+This redesign is too large for a single pass. It must be broken into independent chunks executed by parallel agents with reviewer agents monitoring progress.
+
+**Agent Roles:**
+
+| Role | Agent Type | Responsibility |
+|------|-----------|----------------|
+| **Theme Architect** | `general-purpose` | Sets up glass tokens in `globals.css`, creates `@utility` directives, validates dark mode tokens |
+| **Component Workers** (x3-5) | `general-purpose` | Each handles a component group (sidebar, cards, panels, nodes, dialogs, toolbar) |
+| **Reviewer Agent** | `general-purpose` | After each chunk, reviews for: glass consistency, dark mode, contrast ratios, token usage, no hardcoded colors |
+| **Test Agent** | `general-purpose` | Writes and runs visual/unit tests for glass utilities and components |
+| **Integration Agent** | `general-purpose` | Final pass: ensures all pages work together, no regressions, builds pass |
+
+**Execution Order:**
+1. Theme Architect sets up tokens/utilities (blocking — all others wait)
+2. Component Workers run in parallel (independent chunks)
+3. Reviewer Agent checks each chunk before merge
+4. Test Agent runs after each chunk
+5. Integration Agent does final pass
+
+### Stream 20: Glass Design System Foundation
+
+**Status**: ⏳ NOT STARTED
+
+Set up the glassmorphism design tokens, Tailwind utilities, and background system.
+
+- [ ] Add glass CSS custom properties to `globals.css` (light + dark mode variants)
+- [ ] Create `@utility` directives: `glass-card`, `glass-heavy`, `glass-light`, `glass-elevated`, `glass-edge-top`, `glass-edge-left`
+- [ ] Add `@supports (backdrop-filter: blur(1px))` fallback styles for non-supporting browsers
+- [ ] Update page backgrounds: warm gradient in light mode (`gray-100 via gray-50 to stone-100`), deep gradient in dark mode
+- [ ] Add optional subtle radial gradient blobs (primary color, very low opacity) for depth
+- [ ] Update `@theme inline` block with new glass-related custom properties
+- [ ] Tests: utility class output tests, dark mode token tests, `@supports` fallback test
+- [ ] Reviewer: verify WCAG AA contrast ratios for text on glass surfaces in both modes
+
+### Stream 21: Sidebar & Navigation Redesign
+
+**Status**: ⏳ NOT STARTED
+
+Redesign the left sidebar navigation with glassmorphism and add Tree Health metric.
+
+- [ ] Sidebar container: `glass-card glass-heavy glass-edge-left` with fixed height
+- [ ] Navigation items: transparent default, primary background when active, rounded-xl
+- [ ] **Tree Health metric component** (`src/components/tree/tree-health-bar.tsx`):
+  - Calculate: `(members with complete profiles) / (total members) * 100`
+  - "Complete profile" = has `first_name` + `last_name` + `date_of_birth` + at least one relationship
+  - Display: percentage + progress bar (primary color fill on muted track)
+  - Subtitle: "X new records found today" (count members created in last 24h)
+  - Position: prominently at top of sidebar, above navigation links
+- [ ] Tree Health server action (`getTreeHealth(treeId)`) — returns percentage + recent record count
+- [ ] "Add Relative" CTA button at bottom: primary background, full-width
+- [ ] Header/top navigation bar: `glass-card glass-light` with search bar
+- [ ] Mobile responsive: sidebar collapses to hamburger menu with glass overlay
+- [ ] Tests: Tree Health calculation logic, sidebar rendering, mobile breakpoint behavior
+- [ ] Reviewer: verify navigation accessibility (keyboard nav, ARIA roles, focus management)
+
+### Stream 22: Tree Canvas & Node Redesign
+
+**Status**: ⏳ NOT STARTED
+
+Redesign tree member nodes, edges, and the canvas background.
+
+- [ ] Tree canvas background: page gradient shows through (no opaque background)
+- [ ] Member nodes (`member-node.tsx`): `glass-card glass-edge-top` with rounded-2xl
+  - Avatar circle + name + date range centered
+  - Selected state: `border-2 border-primary` with slight scale-up
+  - Hover: transition to `glass-bg-heavy`
+  - Deceased members: `opacity-70` with subtle grayscale filter
+- [ ] Relationship edges: update colors to work against gradient backgrounds
+- [ ] Path highlighting: green glow effect on glass nodes when path-highlighted
+- [ ] Minimap: glass-light styling with reduced opacity
+- [ ] Toolbar: `glass-card glass-light` horizontal bar
+- [ ] Empty tree state: glass card with centered CTA
+- [ ] Tests: node hover/select state classes, deceased styling, edge rendering
+- [ ] Reviewer: verify tree interactions still work (drag, zoom, click, shift-click path)
+
+### Stream 23: Dashboard & Card Redesign
+
+**Status**: ⏳ NOT STARTED
+
+Redesign dashboard page, tree cards, and stat displays.
+
+- [ ] Dashboard layout: gradient background, glass cards floating on top
+- [ ] Tree cards: `glass-card glass-edge-top` with hover `scale-[1.02]` + `glass-elevated` shadow transition
+- [ ] Create tree dialog: `glass-card glass-elevated glass-edge-top glass-edge-left` in modal overlay
+- [ ] Dashboard header: glass-light bar with user greeting and "Create Tree" CTA
+- [ ] Stat cards (if applicable): icon + label + value in `glass-card` with chart accents
+- [ ] Empty state: glass card with illustration
+- [ ] Tests: card hover animation classes, dialog glass styling, responsive grid
+- [ ] Reviewer: verify dark mode card readability, hover transitions smooth
+
+### Stream 24: Detail Panel, Dialogs & Forms Redesign
+
+**Status**: ⏳ NOT STARTED
+
+Redesign the member detail side panel, all dialogs/modals, and form elements.
+
+- [ ] Member detail panel: `glass-card glass-heavy glass-edge-top glass-edge-left`, slides in from right
+  - Profile photo section: no glass (image renders directly)
+  - Life Timeline: colored dots on glass surface, connected by subtle line
+  - Archive Gallery: glass-light thumbnails in grid
+  - "Share Branch" and "Report (PDF)" buttons: glass-card glass-light styling
+- [ ] All dialogs (add member, edit member, confirm, rollback, GEDCOM import): glass-elevated styling
+  - Modal backdrop: `bg-black/40 backdrop-blur-sm`
+  - Dialog surface: `glass-card glass-elevated glass-edge-top glass-edge-left`
+- [ ] Form inputs: semi-transparent backgrounds (`bg-white/10` borders), focus ring using primary color
+- [ ] Select dropdowns, popovers, command palette: glass-elevated
+- [ ] Toast notifications: glass-card glass-light with colored left border
+- [ ] Tests: dialog open/close glass transitions, form input focus states, panel slide animation
+- [ ] Reviewer: verify form accessibility (label association, error states visible on glass)
+
+### Stream 25: Settings, History & Remaining Pages
+
+**Status**: ⏳ NOT STARTED
+
+Apply glassmorphism to all remaining pages and components.
+
+- [ ] Tree settings page: glass cards for each settings section
+- [ ] History page: audit timeline on glass cards, snapshot viewer glass-card grid
+- [ ] Profile page: glass card for user info
+- [ ] Invite acceptance page: centered glass card with tree info
+- [ ] Landing/marketing page: hero with glass elements, feature cards as glass-card
+- [ ] Auth pages (sign-in/sign-up): centered glass card on gradient background
+- [ ] Notification popover: glass-elevated dropdown
+- [ ] Photo gallery lightbox: glass overlay
+- [ ] Tests: page-level rendering tests for glass classes, responsive layout tests
+- [ ] Reviewer: cross-page consistency check — same glass depth levels used consistently
+
+### Stream 26: Integration Testing & Visual QA
+
+**Status**: ⏳ NOT STARTED
+
+Final integration pass to ensure the full redesign is cohesive and regression-free.
+
+- [ ] Full build: `bun run build` passes
+- [ ] Lint: `bun run lint` passes — no new errors
+- [ ] Type check: `bunx tsc --noEmit` passes
+- [ ] All existing tests pass (`bun test`)
+- [ ] New glass utility tests pass
+- [ ] Tree Health metric tests pass
+- [ ] Visual QA checklist:
+  - [ ] Light mode: all pages use consistent glass depth
+  - [ ] Dark mode: all pages readable, glass opacity correct
+  - [ ] Mobile: sidebar collapses, glass responsive
+  - [ ] Tree canvas: nodes, edges, toolbar all glass-styled
+  - [ ] Dialogs: all modals use glass-elevated
+  - [ ] Forms: inputs readable on glass surfaces
+  - [ ] Contrast: spot-check text on glass meets WCAG AA
+- [ ] Performance: no excessive backdrop-filter nesting (max 2 layers deep)
+- [ ] Browser compatibility: Chrome, Firefox, Safari tested for backdrop-filter support
+
+### Verification Checklist: After Phase 5.5
+
+- [ ] App opens with gradient background and glass sidebar
+- [ ] Tree Health metric shows correct percentage in sidebar
+- [ ] Tree nodes render as glass cards with proper hover/select states
+- [ ] Detail panel slides in with glass styling
+- [ ] All dialogs appear as frosted glass over blurred backdrop
+- [ ] Dashboard cards have glass hover effect with scale transition
+- [ ] Dark mode: all glass elements adjust opacity/shadow correctly
+- [ ] Mobile: sidebar collapses, glass overlay menu works
+- [ ] No hardcoded colors — all use CSS custom properties or Tailwind tokens
+- [ ] `bun run build` succeeds
+- [ ] `bun run lint` passes
+- [ ] `bun test` passes all tests (existing + new glass tests)
+- [ ] `/rootline-glassmorphism` skill file is up to date with final token values
+
+---
+
 ## Dependencies
 
 ### Production
@@ -599,6 +776,7 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 | Permission manager UI    | Phase 5 | Role editing, node scoping   |
 | Context menu / undo-redo | Phase 5 | Right-click, Ctrl+Z          |
 | Member documents         | Phase 5 | PDF/image upload + viewer    |
+| Glassmorphism redesign   | Phase 5.5 | Full UI overhaul + Tree Health |
 | Data privacy / GDPR      | Ongoing | Cascade deletes, export      |
 | Accessibility            | Ongoing | ARIA, keyboard nav, contrast |
 | Rate limiting            | Phase 3 | Server action checks         |

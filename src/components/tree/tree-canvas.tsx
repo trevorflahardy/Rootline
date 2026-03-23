@@ -15,11 +15,15 @@ import {
   type EdgeTypes,
   type Connection,
   type OnNodesChange,
+  type NodeMouseHandler,
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
+import { Undo2, Redo2, Trash2 } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { computeTreeLayout } from "@/lib/utils/tree-layout";
 import { findPath, getPathRelationshipIds } from "@/lib/utils/path-finder";
@@ -27,11 +31,14 @@ import { calculateRelationship } from "@/lib/utils/relationship-calculator";
 import { deleteMember, saveMemberPositions } from "@/lib/actions/member";
 import { createRelationship } from "@/lib/actions/relationship";
 import { useRealtimeTree } from "@/lib/hooks/use-realtime-tree";
+import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { MemberNode, type MemberNodeData } from "./member-node";
 import { RelationshipEdge, type EdgeHighlightMode, type RelationshipEdgeData } from "./relationship-edge";
+import { NodeContextMenu } from "./node-context-menu";
 import { TreeToolbar } from "./tree-toolbar";
 import { MemberDetailPanel } from "./member-detail-panel";
 import { AddMemberDialog } from "./add-member-dialog";
+import { AddRelationshipDialog } from "./add-relationship-dialog";
 import { EditMemberDialog } from "./edit-member-dialog";
 import { TreeSearch } from "./tree-search";
 import { GedcomImportDialog } from "@/components/import-export/gedcom-import-dialog";
@@ -87,6 +94,7 @@ function TreeCanvasInner({
   useEffect(() => { setRelationships(initialRelationships); }, [initialRelationships]);
 
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [hoveredRelMemberId, setHoveredRelMemberId] = useState<string | null>(null);
   const [pathStart, setPathStart] = useState<string | null>(null);
   const [pathEnd, setPathEnd] = useState<string | null>(null);
@@ -95,11 +103,23 @@ function TreeCanvasInner({
   const [relationshipLabel, setRelationshipLabel] = useState<string | null>(null);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showAddRelationshipDialog, setShowAddRelationshipDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [editingMember, setEditingMember] = useState<TreeMember | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TreeMember | null>(null);
+  const [bulkDeleteTargets, setBulkDeleteTargets] = useState<TreeMember[] | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    memberId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Undo/redo
+  const { push: pushUndo, undo, redo, canUndo, canRedo, undoDescription, redoDescription } = useUndoRedo();
 
   const normalizedDescendantHighlightDepth =
     Number.isFinite(descendantHighlightDepth)
@@ -312,51 +332,144 @@ function TreeCanvasInner({
 
   const clearSelection = useCallback(() => {
     setSelectedMemberId(null);
+    setSelectedNodeIds(new Set());
     setHoveredRelMemberId(null);
     setPathStart(null);
     setPathEnd(null);
     setHighlightedPath([]);
     setHighlightedEdges([]);
     setRelationshipLabel(null);
+    setContextMenu(null);
   }, []);
 
-  // Keyboard shortcut for search
+  // Keyboard shortcuts
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      // Search shortcut
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setShowSearch(true);
+        return;
       }
+
+      // Undo: Ctrl/Cmd+Z
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === "z") {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      // Redo: Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y
+      if (
+        ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "z") ||
+        ((e.metaKey || e.ctrlKey) && e.key === "y")
+      ) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // Delete/Backspace: delete selected node(s)
+      if ((e.key === "Delete" || e.key === "Backspace") && canEdit) {
+        // Don't trigger if user is typing in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+          return;
+        }
+
+        if (selectedNodeIds.size > 1) {
+          const targets = members.filter((m) => selectedNodeIds.has(m.id));
+          if (targets.length > 0) {
+            setBulkDeleteTargets(targets);
+          }
+        } else if (selectedMemberId) {
+          const member = members.find((m) => m.id === selectedMemberId);
+          if (member) {
+            setDeleteTarget(member);
+          }
+        }
+        return;
+      }
+
+      // Escape: close context menu, clear selection
       if (e.key === "Escape") {
-        clearSelection();
+        if (contextMenu) {
+          setContextMenu(null);
+        } else {
+          clearSelection();
+        }
+        return;
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [clearSelection]);
+  }, [clearSelection, undo, redo, canEdit, selectedMemberId, selectedNodeIds, members, contextMenu]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       const memberId = node.id;
 
-      if (_event.shiftKey) {
+      // Close context menu on any click
+      setContextMenu(null);
+
+      // Alt+click for path highlighting
+      if (_event.altKey) {
         if (!pathStart) {
           setPathStart(memberId);
-          toast.info("Now shift-click another member to see the relationship");
+          toast.info("Now Alt-click another member to see the relationship");
         } else if (pathStart !== memberId) {
           setPathEnd(memberId);
         }
         return;
       }
 
+      // Shift+click for multi-select
+      if (_event.shiftKey) {
+        setSelectedNodeIds((prev) => {
+          const next = new Set(prev);
+          if (next.has(memberId)) {
+            next.delete(memberId);
+          } else {
+            next.add(memberId);
+          }
+          // Also include currently selected member in multi-select
+          if (selectedMemberId && !next.has(selectedMemberId)) {
+            next.add(selectedMemberId);
+          }
+          next.add(memberId);
+          return next;
+        });
+        if (!selectedMemberId) {
+          setSelectedMemberId(memberId);
+        }
+        return;
+      }
+
+      // Regular click: single select, clear multi-select
+      setSelectedNodeIds(new Set());
       setSelectedMemberId(memberId);
     },
-    [pathStart]
+    [pathStart, selectedMemberId]
+  );
+
+  // Context menu handler
+  const handleNodeContextMenu: NodeMouseHandler = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      setContextMenu({
+        memberId: node.id,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    []
   );
 
   const handlePaneClick = useCallback(() => {
     setSelectedMemberId(null);
+    setSelectedNodeIds(new Set());
     setHoveredRelMemberId(null);
+    setContextMenu(null);
   }, []);
 
   // Handle drag-to-connect: create a parent_child relationship
@@ -440,7 +553,13 @@ function TreeCanvasInner({
     [setCenter]
   );
 
+  // Close context menu on pan/zoom
+  const handleMoveStart = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
   const selectedMember = members.find((m) => m.id === selectedMemberId);
+  const contextMenuMember = contextMenu ? members.find((m) => m.id === contextMenu.memberId) : null;
 
   return (
     <div className="w-full h-full relative">
@@ -451,8 +570,10 @@ function TreeCanvasInner({
           onNodesChange={handleNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={handleNodeClick}
+          onNodeContextMenu={handleNodeContextMenu}
           onNodeDragStop={handleNodeDragStop}
           onPaneClick={handlePaneClick}
+          onMoveStart={handleMoveStart}
           onConnect={handleConnect}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
@@ -480,12 +601,79 @@ function TreeCanvasInner({
           onAddMember={() => setShowAddDialog(true)}
           onSearch={() => setShowSearch(true)}
           onImportGedcom={() => setShowImportDialog(true)}
+          onLinkMembers={() => setShowAddRelationshipDialog(true)}
           treeName={tree.name}
           canEdit={canEdit}
         />
 
+        {/* Undo/Redo floating controls */}
+        {(canUndo || canRedo) && (
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-1 rounded-xl border bg-background/95 backdrop-blur-sm shadow-lg p-1.5" data-export-exclude>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!canUndo}
+                  onClick={() => undo()}
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {canUndo ? `Undo: ${undoDescription}` : "Nothing to undo"}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!canRedo}
+                  onClick={() => redo()}
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {canRedo ? `Redo: ${redoDescription}` : "Nothing to redo"}
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* Multi-select bulk action bar */}
+        {selectedNodeIds.size > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3" data-export-exclude>
+            <span className="text-sm font-medium">{selectedNodeIds.size} selected</span>
+            {canEdit && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  const targets = members.filter((m) => selectedNodeIds.has(m.id));
+                  if (targets.length > 0) {
+                    setBulkDeleteTargets(targets);
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete Selected
+              </Button>
+            )}
+            <button
+              onClick={() => setSelectedNodeIds(new Set())}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
         {/* Relationship label */}
-        {relationshipLabel && (
+        {relationshipLabel && selectedNodeIds.size <= 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 bg-background/95 backdrop-blur-sm border rounded-xl shadow-lg px-4 py-2 flex items-center gap-3" data-export-exclude>
             <span className="text-sm font-medium">{relationshipLabel}</span>
             <button
@@ -495,6 +683,30 @@ function TreeCanvasInner({
               Clear
             </button>
           </div>
+        )}
+
+        {/* Context menu */}
+        {contextMenu && contextMenuMember && (
+          <NodeContextMenu
+            member={contextMenuMember}
+            position={{ x: contextMenu.x, y: contextMenu.y }}
+            canEdit={canEdit}
+            onEdit={() => setEditingMember(contextMenuMember)}
+            onDelete={() => setDeleteTarget(contextMenuMember)}
+            onAddChild={() => {
+              setSelectedMemberId(contextMenuMember.id);
+              setShowAddDialog(true);
+            }}
+            onAddSpouse={() => {
+              setSelectedMemberId(contextMenuMember.id);
+              setShowAddDialog(true);
+            }}
+            onViewDetails={() => setSelectedMemberId(contextMenuMember.id)}
+            onViewProfile={() => {
+              setSelectedMemberId(contextMenuMember.id);
+            }}
+            onClose={() => setContextMenu(null)}
+          />
         )}
 
         {/* Detail panel */}
@@ -523,6 +735,15 @@ function TreeCanvasInner({
           treeId={tree.id}
           existingMembers={members}
           onMemberAdded={handleMemberAdded}
+        />
+
+        {/* Add relationship dialog */}
+        <AddRelationshipDialog
+          open={showAddRelationshipDialog}
+          onOpenChange={setShowAddRelationshipDialog}
+          treeId={tree.id}
+          members={members}
+          onRelationshipAdded={handleMemberAdded}
         />
 
         {/* GEDCOM import dialog */}
@@ -554,7 +775,7 @@ function TreeCanvasInner({
           />
         )}
 
-        {/* Delete confirm */}
+        {/* Delete confirm (single) */}
         <ConfirmDialog
           open={!!deleteTarget}
           onOpenChange={() => setDeleteTarget(null)}
@@ -566,14 +787,56 @@ function TreeCanvasInner({
           onConfirm={async () => {
             if (!deleteTarget) return;
             setDeleting(true);
+            const memberToDelete = deleteTarget;
             try {
-              await deleteMember(deleteTarget.id, tree.id);
-              toast.success(`${deleteTarget.first_name} removed`);
+              await pushUndo({
+                type: "delete_member",
+                description: `Delete ${memberToDelete.first_name} ${memberToDelete.last_name ?? ""}`.trim(),
+                execute: async () => {
+                  await deleteMember(memberToDelete.id, tree.id);
+                },
+                undo: async () => {
+                  // Undo is best-effort; server action would need a restore endpoint
+                  toast.info("Undo not available for delete — refresh to see current state");
+                  router.refresh();
+                },
+              });
+              toast.success(`${memberToDelete.first_name} removed`);
               setDeleteTarget(null);
               setSelectedMemberId(null);
               router.refresh();
-            } catch (error) {
-              toast.error(error instanceof Error ? error.message : "Failed to delete");
+            } catch {
+              toast.error("Failed to delete");
+            } finally {
+              setDeleting(false);
+            }
+          }}
+        />
+
+        {/* Bulk delete confirm */}
+        <ConfirmDialog
+          open={!!bulkDeleteTargets}
+          onOpenChange={() => setBulkDeleteTargets(null)}
+          title={`Delete ${bulkDeleteTargets?.length ?? 0} members?`}
+          description="This will permanently remove the selected members and all their relationships from the tree."
+          confirmLabel="Delete All"
+          destructive
+          loading={deleting}
+          onConfirm={async () => {
+            if (!bulkDeleteTargets) return;
+            setDeleting(true);
+            try {
+              for (const member of bulkDeleteTargets) {
+                await deleteMember(member.id, tree.id);
+              }
+              toast.success(`${bulkDeleteTargets.length} members removed`);
+              setBulkDeleteTargets(null);
+              setSelectedMemberId(null);
+              setSelectedNodeIds(new Set());
+              router.refresh();
+            } catch {
+              toast.error("Failed to delete some members");
+              router.refresh();
             } finally {
               setDeleting(false);
             }

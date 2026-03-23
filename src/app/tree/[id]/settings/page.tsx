@@ -3,7 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { getTreeById, getTreeMemberships } from "@/lib/actions/tree";
 import { getMembersByTreeId } from "@/lib/actions/member";
 import { getInvitesByTreeId } from "@/lib/actions/invite";
+import { getTreeMembershipsWithActivity } from "@/lib/actions/permissions";
 import { TreeSettingsForm } from "@/components/tree/tree-settings-form";
+import { PermissionManager } from "@/components/permissions/permission-manager";
 import { InviteManager } from "@/components/invite/invite-manager";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -20,8 +22,9 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
   if (!tree) notFound();
   if (tree.owner_id !== userId) redirect(`/tree/${id}`);
 
-  const [memberships, members, invites] = await Promise.all([
+  const [memberships, membershipsWithActivity, members, invites] = await Promise.all([
     getTreeMemberships(id),
+    getTreeMembershipsWithActivity(id),
     getMembersByTreeId(id),
     getInvitesByTreeId(id),
   ]);
@@ -36,6 +39,12 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
         <TreeSettingsForm
           tree={tree}
           memberships={memberships}
+          members={members}
+          currentUserId={userId ?? ""}
+        />
+        <PermissionManager
+          treeId={id}
+          memberships={membershipsWithActivity}
           members={members}
           currentUserId={userId ?? ""}
         />

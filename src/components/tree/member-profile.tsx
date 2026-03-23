@@ -17,6 +17,7 @@ import {
   UserX,
   Unlink,
   Camera,
+  FileText,
   Fingerprint,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,10 @@ import {
 import { EditMemberDialog } from "./edit-member-dialog";
 import { PhotoUpload } from "@/components/photos/photo-upload";
 import { PhotoGallery } from "@/components/photos/photo-gallery";
+import { DocumentList } from "@/components/documents/document-list";
+import { DocumentUpload } from "@/components/documents/document-upload";
 import type { Media } from "@/lib/actions/photo";
-import type { TreeMember, Relationship } from "@/types";
+import type { TreeMember, Relationship, Document } from "@/types";
 
 interface MemberProfileProps {
   member: TreeMember;
@@ -45,6 +48,7 @@ interface MemberProfileProps {
   treeId: string;
   canEdit: boolean;
   photos?: Media[];
+  documents?: Document[];
   permissions?: TreePermissions;
   linkedProfile?: NodeProfileLink | null;
   currentUserId?: string;
@@ -57,6 +61,7 @@ export function MemberProfile({
   treeId,
   canEdit,
   photos = [],
+  documents = [],
   permissions,
   linkedProfile = null,
   currentUserId,
@@ -67,6 +72,7 @@ export function MemberProfile({
   const [deleting, setDeleting] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+  const [showDocUpload, setShowDocUpload] = useState(false);
 
   const canSelfAssign = permissions && !permissions.linkedNodeId && !linkedProfile;
   const isSelfLinked = linkedProfile?.userId === currentUserId;
@@ -410,6 +416,28 @@ export function MemberProfile({
           </CardContent>
         </Card>
 
+        {/* Documents */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Documents</CardTitle>
+            {canEdit && (
+              <Button variant="outline" size="sm" onClick={() => setShowDocUpload(true)}>
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
+                Upload
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <DocumentList
+              documents={documents}
+              canEdit={canEdit}
+              currentUserId={currentUserId ?? ""}
+              treeId={treeId}
+              onRefresh={() => router.refresh()}
+            />
+          </CardContent>
+        </Card>
+
         {/* Photo upload dialog */}
         <PhotoUpload
           open={showPhotoUpload}
@@ -417,6 +445,15 @@ export function MemberProfile({
           treeId={treeId}
           memberId={member.id}
           onUploaded={() => router.refresh()}
+        />
+
+        {/* Document upload dialog */}
+        <DocumentUpload
+          open={showDocUpload}
+          onOpenChange={setShowDocUpload}
+          treeId={treeId}
+          memberId={member.id}
+          onUploadComplete={() => router.refresh()}
         />
 
         {/* Metadata */}

@@ -45,7 +45,15 @@ function RelationshipEdgeComponent({
         ? "4 4"
         : relType === "adopted"
           ? "2 4"
-          : undefined;
+          : relType === "sibling"
+            ? "6 3"
+            : relType === "step_parent" || relType === "step_child"
+              ? "10 3 2 3"
+              : relType === "in_law"
+                ? "3 6"
+                : relType === "guardian"
+                  ? "12 4"
+                  : undefined;
 
   const color =
     highlightMode === "hover" || highlightMode === "path"

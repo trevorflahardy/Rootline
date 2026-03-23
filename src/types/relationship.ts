@@ -1,4 +1,4 @@
-export type RelationshipType = "parent_child" | "spouse" | "divorced" | "adopted";
+export type RelationshipType = "parent_child" | "spouse" | "divorced" | "adopted" | "sibling" | "step_parent" | "step_child" | "in_law" | "guardian";
 
 export interface Relationship {
   id: string;

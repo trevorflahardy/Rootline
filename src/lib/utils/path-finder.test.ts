@@ -97,6 +97,47 @@ describe("findPath", () => {
     expect(path).not.toBeNull();
     expect(path!.length).toBeGreaterThanOrEqual(4);
   });
+
+  it("finds path through sibling relationship", () => {
+    const rels = [
+      makeRel("r1", "parent", "child1"),
+      makeRel("r2", "child1", "child2", "sibling"),
+    ];
+    const path = findPath(rels, "parent", "child2");
+    expect(path).not.toBeNull();
+    expect(path!.length).toBe(3);
+  });
+
+  it("finds path through step_parent relationship", () => {
+    const rels = [makeRel("r1", "step", "child", "step_parent")];
+    const path = findPath(rels, "step", "child");
+    expect(path).toHaveLength(2);
+    expect(path![1].direction).toBe("down");
+  });
+
+  it("finds path through guardian relationship", () => {
+    const rels = [makeRel("r1", "guardian", "ward", "guardian")];
+    const path = findPath(rels, "ward", "guardian");
+    expect(path).toHaveLength(2);
+    expect(path![1].direction).toBe("up");
+  });
+
+  it("finds path through in_law relationship (horizontal)", () => {
+    const rels = [makeRel("r1", "person1", "person2", "in_law")];
+    const path = findPath(rels, "person1", "person2");
+    expect(path).toHaveLength(2);
+    expect(path![1].direction).toBe("spouse");
+  });
+
+  it("finds mixed path through step_parent and sibling", () => {
+    const rels = [
+      makeRel("r1", "step_parent", "child1", "step_parent"),
+      makeRel("r2", "child1", "child2", "sibling"),
+    ];
+    const path = findPath(rels, "step_parent", "child2");
+    expect(path).not.toBeNull();
+    expect(path!.length).toBe(3);
+  });
 });
 
 describe("getPathRelationshipIds", () => {

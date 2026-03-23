@@ -5,6 +5,7 @@ import { getRelationshipsByTreeId } from "@/lib/actions/relationship";
 import { auth } from "@clerk/nextjs/server";
 import { getTreePermissions, canEditMember, getNodeProfileMap } from "@/lib/actions/permissions";
 import { getPhotosByMemberId } from "@/lib/actions/photo";
+import { getDocumentsByMember } from "@/lib/actions/document";
 import { MemberProfile } from "@/components/tree/member-profile";
 
 export async function generateMetadata({
@@ -32,12 +33,13 @@ export default async function MemberDetailPage({
   if (!tree) notFound();
 
   const { userId } = await auth();
-  const [member, allMembers, relationships, permissions, photos, nodeProfileMap] = await Promise.all([
+  const [member, allMembers, relationships, permissions, photos, documents, nodeProfileMap] = await Promise.all([
     getMemberById(memberId, id),
     getMembersByTreeId(id),
     getRelationshipsByTreeId(id),
     getTreePermissions(id),
     getPhotosByMemberId(memberId, id),
+    getDocumentsByMember(id, memberId),
     getNodeProfileMap(id),
   ]);
 
@@ -54,6 +56,7 @@ export default async function MemberDetailPage({
         treeId={id}
         canEdit={canEdit}
         photos={photos}
+        documents={documents}
         permissions={permissions}
         linkedProfile={nodeProfileMap[memberId] ?? null}
         currentUserId={userId ?? ""}

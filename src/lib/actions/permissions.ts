@@ -270,6 +270,179 @@ export async function updateMemberRole(
   if (error) throw new Error(`Failed to update role: ${error.message}`);
 }
 
+export interface MembershipWithActivity {
+  id: string;
+  tree_id: string;
+  user_id: string;
+  role: TreeRole;
+  linked_node_id: string | null;
+  joined_at: string;
+  profile?: {
+    display_name: string;
+    email: string | null;
+    avatar_url: string | null;
+  };
+  last_active: string | null;
+}
+
+export async function getTreeMembershipsWithActivity(
+  treeId: string
+): Promise<MembershipWithActivity[]> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Verify user has access
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership) throw new Error("No access to this tree");
+
+  const { data, error } = await supabase
+    .from("tree_memberships")
+    .select("*, profiles(display_name, email, avatar_url)")
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to fetch memberships: ${error.message}`);
+
+  // Get last activity from audit_logs per user
+  const userIds = (data ?? []).map((m: Record<string, unknown>) => m.user_id as string);
+  const activityMap: Record<string, string> = {};
+
+  if (userIds.length > 0) {
+    const { data: logs } = await supabase
+      .from("audit_logs")
+      .select("user_id, created_at")
+      .eq("tree_id", treeId)
+      .in("user_id", userIds)
+      .order("created_at", { ascending: false });
+
+    if (logs) {
+      for (const log of logs) {
+        if (!activityMap[log.user_id]) {
+          activityMap[log.user_id] = log.created_at;
+        }
+      }
+    }
+  }
+
+  return (data ?? []).map((m: Record<string, unknown>) => ({
+    id: m.id as string,
+    tree_id: m.tree_id as string,
+    user_id: m.user_id as string,
+    role: m.role as TreeRole,
+    linked_node_id: m.linked_node_id as string | null,
+    joined_at: m.joined_at as string,
+    profile: m.profiles as MembershipWithActivity["profile"],
+    last_active: activityMap[m.user_id as string] ?? null,
+  }));
+}
+
+export async function revokeMembership(
+  treeId: string,
+  membershipId: string
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  // Only owner can revoke
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role, id")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can revoke memberships");
+  }
+
+  // Cannot revoke self
+  if (callerMembership.id === membershipId) {
+    throw new Error("Cannot revoke your own membership");
+  }
+
+  // Cannot revoke another owner
+  const { data: targetMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("id", membershipId)
+    .eq("tree_id", treeId)
+    .single();
+
+  if (!targetMembership) throw new Error("Membership not found");
+  if (targetMembership.role === "owner") throw new Error("Cannot revoke owner membership");
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .delete()
+    .eq("id", membershipId)
+    .eq("tree_id", treeId);
+
+  if (error) throw new Error(`Failed to revoke membership: ${error.message}`);
+}
+
+export async function bulkUpdateRoles(
+  treeId: string,
+  membershipIds: string[],
+  newRole: "editor" | "viewer"
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can bulk update roles");
+  }
+
+  const { error } = await supabase
+    .from("tree_memberships")
+    .update({ role: newRole })
+    .eq("tree_id", treeId)
+    .in("id", membershipIds)
+    .neq("role", "owner");
+
+  if (error) throw new Error(`Failed to bulk update roles: ${error.message}`);
+}
+
+export async function bulkRevokeMemberships(
+  treeId: string,
+  membershipIds: string[]
+): Promise<void> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  const { data: callerMembership } = await supabase
+    .from("tree_memberships")
+    .select("role, id")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!callerMembership || callerMembership.role !== "owner") {
+    throw new Error("Only the tree owner can bulk revoke memberships");
+  }
+
+  // Filter out self and owners
+  const { error } = await supabase
+    .from("tree_memberships")
+    .delete()
+    .eq("tree_id", treeId)
+    .in("id", membershipIds)
+    .neq("role", "owner");
+
+  if (error) throw new Error(`Failed to bulk revoke memberships: ${error.message}`);
+}
+
 export async function updateMemberLinkedNode(
   treeId: string,
   membershipId: string,

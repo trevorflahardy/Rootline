@@ -53,11 +53,19 @@ export function computeTreeLayout(
   }
 
   // Add relationships as edges
-  // For spouse relationships, we don't add edges to dagre (they're on the same rank)
-  // Only parent_child and adopted create hierarchy
+  // Hierarchical types create dagre edges; horizontal types (spouse, divorced, sibling, in_law) do not
   for (const rel of relationships) {
-    if (rel.relationship_type === "parent_child" || rel.relationship_type === "adopted") {
+    if (
+      rel.relationship_type === "parent_child" ||
+      rel.relationship_type === "adopted" ||
+      rel.relationship_type === "step_parent" ||
+      rel.relationship_type === "guardian"
+    ) {
+      // from_member is parent/guardian, to_member is child/ward
       g.setEdge(rel.from_member_id, rel.to_member_id);
+    } else if (rel.relationship_type === "step_child") {
+      // Reversed: to_member is the parent figure
+      g.setEdge(rel.to_member_id, rel.from_member_id);
     }
   }
 

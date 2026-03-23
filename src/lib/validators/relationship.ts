@@ -5,6 +5,11 @@ const relationshipTypeEnum = z.enum([
   "spouse",
   "divorced",
   "adopted",
+  "sibling",
+  "step_parent",
+  "step_child",
+  "in_law",
+  "guardian",
 ]);
 
 export const createRelationshipSchema = z.object({

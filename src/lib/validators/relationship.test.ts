@@ -17,7 +17,7 @@ describe("createRelationshipSchema", () => {
   });
 
   it("validates all relationship types", () => {
-    for (const type of ["parent_child", "spouse", "divorced", "adopted"]) {
+    for (const type of ["parent_child", "spouse", "divorced", "adopted", "sibling", "step_parent", "step_child", "in_law", "guardian"]) {
       const result = createRelationshipSchema.safeParse({
         tree_id: validUuid,
         from_member_id: validUuid2,

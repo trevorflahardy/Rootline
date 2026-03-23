@@ -101,6 +101,102 @@ describe("createRelationship", () => {
     ).rejects.toThrow("Viewers cannot add relationships");
   });
 
+  it("creates sibling relationship when user is editor", async () => {
+    const mockRel = {
+      id: "rel-2",
+      tree_id: validUuid,
+      from_member_id: validUuid2,
+      to_member_id: validUuid3,
+      relationship_type: "sibling",
+      start_date: null,
+      end_date: null,
+      created_at: "2026-01-01T00:00:00Z",
+    };
+
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "tree_memberships") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { role: "editor" },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "relationships") {
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockRel, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const result = await createRelationship({
+      tree_id: validUuid,
+      from_member_id: validUuid2,
+      to_member_id: validUuid3,
+      relationship_type: "sibling",
+    });
+    expect(result.relationship_type).toBe("sibling");
+  });
+
+  it("creates guardian relationship when user is editor", async () => {
+    const mockRel = {
+      id: "rel-3",
+      tree_id: validUuid,
+      from_member_id: validUuid2,
+      to_member_id: validUuid3,
+      relationship_type: "guardian",
+      start_date: null,
+      end_date: null,
+      created_at: "2026-01-01T00:00:00Z",
+    };
+
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "tree_memberships") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { role: "editor" },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "relationships") {
+        return {
+          insert: vi.fn().mockReturnValue({
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockRel, error: null }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const result = await createRelationship({
+      tree_id: validUuid,
+      from_member_id: validUuid2,
+      to_member_id: validUuid3,
+      relationship_type: "guardian",
+    });
+    expect(result.relationship_type).toBe("guardian");
+  });
+
   it("creates relationship when user is editor", async () => {
     const mockRel = {
       id: "rel-1",

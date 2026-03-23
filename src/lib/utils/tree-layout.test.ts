@@ -78,6 +78,51 @@ describe("computeTreeLayout", () => {
     expect(layout.edges[0].data.relationship_type).toBe("spouse");
   });
 
+  it("places siblings at the same rank (no hierarchy edge)", () => {
+    const members = [makeMember("a", "Alice"), makeMember("b", "Bob")];
+    const rels: Relationship[] = [
+      { ...makeRel("r1", "a", "b"), relationship_type: "sibling" },
+    ];
+    const layout = computeTreeLayout(members, rels);
+    const nodeA = layout.nodes.find((n) => n.id === "a")!;
+    const nodeB = layout.nodes.find((n) => n.id === "b")!;
+    // Siblings should be on same rank (same y) since no dagre hierarchy edge
+    expect(nodeA.position.y).toBe(nodeB.position.y);
+  });
+
+  it("creates hierarchy for step_parent", () => {
+    const members = [makeMember("step", "StepParent"), makeMember("child", "Child")];
+    const rels: Relationship[] = [
+      { ...makeRel("r1", "step", "child"), relationship_type: "step_parent" },
+    ];
+    const layout = computeTreeLayout(members, rels);
+    const stepNode = layout.nodes.find((n) => n.id === "step")!;
+    const childNode = layout.nodes.find((n) => n.id === "child")!;
+    expect(stepNode.position.y).toBeLessThan(childNode.position.y);
+  });
+
+  it("does not create hierarchy for in_law", () => {
+    const members = [makeMember("a", "A"), makeMember("b", "B")];
+    const rels: Relationship[] = [
+      { ...makeRel("r1", "a", "b"), relationship_type: "in_law" },
+    ];
+    const layout = computeTreeLayout(members, rels);
+    const nodeA = layout.nodes.find((n) => n.id === "a")!;
+    const nodeB = layout.nodes.find((n) => n.id === "b")!;
+    expect(nodeA.position.y).toBe(nodeB.position.y);
+  });
+
+  it("creates hierarchy for guardian", () => {
+    const members = [makeMember("g", "Guardian"), makeMember("w", "Ward")];
+    const rels: Relationship[] = [
+      { ...makeRel("r1", "g", "w"), relationship_type: "guardian" },
+    ];
+    const layout = computeTreeLayout(members, rels);
+    const gNode = layout.nodes.find((n) => n.id === "g")!;
+    const wNode = layout.nodes.find((n) => n.id === "w")!;
+    expect(gNode.position.y).toBeLessThan(wNode.position.y);
+  });
+
   it("handles three-generation tree", () => {
     const members = [
       makeMember("gp", "Grandparent"),

@@ -71,4 +71,60 @@ describe("calculateRelationship", () => {
   it("identifies Spouse's Parent", () => {
     expect(calculateRelationship(makePath([null, "spouse", "up"]))).toBe("Spouse's Parent");
   });
+
+  it("identifies direct Sibling via sibling relationship type", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "sibling", direction: "spouse" },
+    ];
+    expect(calculateRelationship(path)).toBe("Sibling");
+  });
+
+  it("identifies Step-Parent", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "step_parent", direction: "up" },
+    ];
+    expect(calculateRelationship(path)).toBe("Step-Parent");
+  });
+
+  it("identifies Step-Child (step_parent going down)", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "step_parent", direction: "down" },
+    ];
+    expect(calculateRelationship(path)).toBe("Step-Child");
+  });
+
+  it("identifies Step-Child via step_child type", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "step_child", direction: "up" },
+    ];
+    expect(calculateRelationship(path)).toBe("Step-Child");
+  });
+
+  it("identifies Guardian", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "guardian", direction: "up" },
+    ];
+    expect(calculateRelationship(path)).toBe("Guardian");
+  });
+
+  it("identifies Ward", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "guardian", direction: "down" },
+    ];
+    expect(calculateRelationship(path)).toBe("Ward");
+  });
+
+  it("identifies In-Law", () => {
+    const path: PathStep[] = [
+      { memberId: "a", relationshipId: null, relationshipType: null, direction: null },
+      { memberId: "b", relationshipId: "r1", relationshipType: "in_law", direction: "spouse" },
+    ];
+    expect(calculateRelationship(path)).toBe("In-Law");
+  });
 });

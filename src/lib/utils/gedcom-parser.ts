@@ -396,5 +396,35 @@ export function parseGedcom(text: string): GedcomParseResult {
     }
   }
 
+  // Parse custom extended relationship tags from INDI records
+  const customTagMap: Record<string, RelationshipType> = {
+    "_SIBL": "sibling",
+    "_STEP": "step_parent",
+    "_STEPC": "step_child",
+    "_GUARD": "guardian",
+    "_INLAW": "in_law",
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.level === 1 && line.tag in customTagMap && line.value) {
+      // Find the parent INDI record xref
+      let ownerXref: string | null = null;
+      for (let j = i - 1; j >= 0; j--) {
+        if (lines[j].level === 0 && lines[j].xref) {
+          ownerXref = lines[j].xref;
+          break;
+        }
+      }
+      if (ownerXref && memberXrefs.has(ownerXref) && memberXrefs.has(line.value)) {
+        relationships.push({
+          from_gedcom_id: ownerXref,
+          to_gedcom_id: line.value,
+          relationship_type: customTagMap[line.tag],
+        });
+      }
+    }
+  }
+
   return { members, relationships, errors };
 }

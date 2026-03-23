@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
   Unlink,
   Fingerprint,
   Shield,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
+import { getDocumentsByMember } from "@/lib/actions/document";
+import { DocumentTypeBadge } from "@/components/documents/document-type-badge";
 import {
   selfAssignToNode,
   selfUnassignFromNode,
@@ -35,7 +38,7 @@ import {
   type NodeProfileLink,
   type NodeMembership,
 } from "@/lib/actions/permissions";
-import type { TreeMember, Relationship } from "@/types";
+import type { TreeMember, Relationship, Document } from "@/types";
 
 interface MemberDetailPanelProps {
   member: TreeMember;
@@ -209,7 +212,8 @@ export function MemberDetailPanel({
   const [editCheckLoading, setEditCheckLoading] = useState(true);
   const [nodeMembership, setNodeMembership] = useState<NodeMembership | null>(null);
   const [roleUpdating, setRoleUpdating] = useState(false);
-  const memberMap = new Map(allMembers.map((m) => [m.id, m]));
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const memberMap = useMemo(() => new Map(allMembers.map((m) => [m.id, m])), [allMembers]);
 
   // Check per-member edit permission
   useEffect(() => {
@@ -232,6 +236,13 @@ export function MemberDetailPanel({
     }
     getNodeMembership(treeId, member.id).then(setNodeMembership).catch(() => setNodeMembership(null));
   }, [treeId, member.id, permissions?.canEdit]);
+
+  // Fetch documents for this member
+  useEffect(() => {
+    getDocumentsByMember(treeId, member.id)
+      .then(setDocuments)
+      .catch(() => setDocuments([]));
+  }, [treeId, member.id]);
 
   // Can user claim this node? Must have a membership, not already linked, and node not claimed
   const canClaim = permissions && !permissions.linkedNodeId && !linkedProfile;
@@ -280,7 +291,7 @@ export function MemberDetailPanel({
     }
   }
 
-  // Find parents, children, spouses
+  // Find parents, children, spouses, and extended relationships
   const parents = relationships
     .filter((r) => r.to_member_id === member.id && (r.relationship_type === "parent_child" || r.relationship_type === "adopted"))
     .map((r) => ({ member: memberMap.get(r.from_member_id), type: r.relationship_type }))
@@ -302,6 +313,64 @@ export function MemberDetailPanel({
       return { member: memberMap.get(otherId), type: r.relationship_type };
     })
     .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+
+  const siblings = relationships
+    .filter(
+      (r) =>
+        (r.from_member_id === member.id || r.to_member_id === member.id) &&
+        r.relationship_type === "sibling"
+    )
+    .map((r) => {
+      const otherId = r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
+      return { member: memberMap.get(otherId), type: r.relationship_type };
+    })
+    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+
+  const stepParents = relationships
+    .filter(
+      (r) =>
+        (r.to_member_id === member.id && r.relationship_type === "step_parent") ||
+        (r.from_member_id === member.id && r.relationship_type === "step_child")
+    )
+    .map((r) => {
+      const parentId = r.relationship_type === "step_parent" ? r.from_member_id : r.to_member_id;
+      return { member: memberMap.get(parentId), type: r.relationship_type };
+    })
+    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+
+  const stepChildren = relationships
+    .filter(
+      (r) =>
+        (r.from_member_id === member.id && r.relationship_type === "step_parent") ||
+        (r.to_member_id === member.id && r.relationship_type === "step_child")
+    )
+    .map((r) => {
+      const childId = r.relationship_type === "step_parent" ? r.to_member_id : r.from_member_id;
+      return { member: memberMap.get(childId), type: r.relationship_type };
+    })
+    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+
+  const inLaws = relationships
+    .filter(
+      (r) =>
+        (r.from_member_id === member.id || r.to_member_id === member.id) &&
+        r.relationship_type === "in_law"
+    )
+    .map((r) => {
+      const otherId = r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
+      return { member: memberMap.get(otherId), type: r.relationship_type };
+    })
+    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+
+  const guardians = relationships
+    .filter((r) => r.to_member_id === member.id && r.relationship_type === "guardian")
+    .map((r) => ({ member: memberMap.get(r.from_member_id), type: r.relationship_type }))
+    .filter((g) => g.member) as Array<{ member: TreeMember; type: string }>;
+
+  const wards = relationships
+    .filter((r) => r.from_member_id === member.id && r.relationship_type === "guardian")
+    .map((r) => ({ member: memberMap.get(r.to_member_id), type: r.relationship_type }))
+    .filter((w) => w.member) as Array<{ member: TreeMember; type: string }>;
 
   const handleInlineSave = useCallback(
     async (field: string, value: string) => {
@@ -551,8 +620,141 @@ export function MemberDetailPanel({
             </div>
           )}
 
-          {parents.length === 0 && spouses.length === 0 && children.length === 0 && (
+          {siblings.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Siblings</p>
+              <div className="space-y-0.5">
+                {siblings.map((s) => (
+                  <RelatedMemberCard
+                    key={s.member.id}
+                    member={s.member}
+                    onSelect={() => onSelectMember(s.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stepParents.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Step-Parents</p>
+              <div className="space-y-0.5">
+                {stepParents.map((s) => (
+                  <RelatedMemberCard
+                    key={s.member.id}
+                    member={s.member}
+                    onSelect={() => onSelectMember(s.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {stepChildren.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Step-Children</p>
+              <div className="space-y-0.5">
+                {stepChildren.map((s) => (
+                  <RelatedMemberCard
+                    key={s.member.id}
+                    member={s.member}
+                    onSelect={() => onSelectMember(s.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {inLaws.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">In-Laws</p>
+              <div className="space-y-0.5">
+                {inLaws.map((il) => (
+                  <RelatedMemberCard
+                    key={il.member.id}
+                    member={il.member}
+                    onSelect={() => onSelectMember(il.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? il.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {guardians.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Guardians</p>
+              <div className="space-y-0.5">
+                {guardians.map((g) => (
+                  <RelatedMemberCard
+                    key={g.member.id}
+                    member={g.member}
+                    onSelect={() => onSelectMember(g.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? g.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {wards.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Wards</p>
+              <div className="space-y-0.5">
+                {wards.map((w) => (
+                  <RelatedMemberCard
+                    key={w.member.id}
+                    member={w.member}
+                    onSelect={() => onSelectMember(w.member.id)}
+                    onHover={(h) => onHoverMember?.(h ? w.member.id : null)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {parents.length === 0 && spouses.length === 0 && children.length === 0 &&
+           siblings.length === 0 && stepParents.length === 0 && stepChildren.length === 0 &&
+           inLaws.length === 0 && guardians.length === 0 && wards.length === 0 && (
             <p className="text-sm text-muted-foreground">No family relationships recorded yet.</p>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Documents */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="h-3 w-3" />
+              Documents
+              {documents.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1 h-4 px-1">
+                  {documents.length}
+                </Badge>
+              )}
+            </p>
+          </div>
+          {documents.length > 0 ? (
+            <div className="space-y-1">
+              {documents.slice(0, 3).map((doc) => (
+                <div key={doc.id} className="flex items-center gap-2 text-sm rounded px-2 py-1.5 hover:bg-accent transition-colors">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate flex-1">{doc.file_name}</span>
+                  <DocumentTypeBadge documentType={doc.document_type} />
+                </div>
+              ))}
+              {documents.length > 3 && (
+                <p className="text-xs text-muted-foreground px-2">
+                  +{documents.length - 3} more — view all on member page
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No documents attached</p>
           )}
         </div>
 

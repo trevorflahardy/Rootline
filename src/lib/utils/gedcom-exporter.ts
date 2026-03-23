@@ -169,6 +169,23 @@ export function exportGedcom(members: TreeMember[], relationships: Relationship[
     }
   });
 
+  // Build extended relationship map: ownerXref -> [{tag, targetXref}]
+  const extendedRelTypeToTag: Record<string, string> = {
+    sibling: "_SIBL",
+    step_parent: "_STEP",
+    step_child: "_STEPC",
+    guardian: "_GUARD",
+    in_law: "_INLAW",
+  };
+
+  const extendedRels = relationships.filter((r) => r.relationship_type in extendedRelTypeToTag);
+  const memberExtRels = new Map<string, Array<{ tag: string; targetId: string }>>();
+  for (const rel of extendedRels) {
+    const tag = extendedRelTypeToTag[rel.relationship_type];
+    if (!memberExtRels.has(rel.from_member_id)) memberExtRels.set(rel.from_member_id, []);
+    memberExtRels.get(rel.from_member_id)!.push({ tag, targetId: rel.to_member_id });
+  }
+
   // HEAD
   lines.push("0 HEAD");
   lines.push("1 SOUR RootLine");
@@ -180,6 +197,9 @@ export function exportGedcom(members: TreeMember[], relationships: Relationship[
   lines.push("1 CHAR UTF-8");
   if (treeName) {
     lines.push(`1 NOTE ${treeName}`);
+  }
+  if (extendedRels.length > 0) {
+    lines.push("1 NOTE Custom tags: _SIBL=sibling, _STEP=step_parent, _STEPC=step_child, _GUARD=guardian, _INLAW=in_law");
   }
 
   // INDI records
@@ -220,6 +240,12 @@ export function exportGedcom(members: TreeMember[], relationships: Relationship[
     for (const fx of famS) lines.push(`1 FAMS ${fx}`);
     const famC = memberFamC.get(member.id) ?? [];
     for (const fx of famC) lines.push(`1 FAMC ${fx}`);
+
+    // Extended relationships (custom tags)
+    const extRels = memberExtRels.get(member.id) ?? [];
+    for (const ext of extRels) {
+      lines.push(`1 ${ext.tag} ${memberXref(ext.targetId, idMap)}`);
+    }
 
     // Notes
     if (member.bio) {
