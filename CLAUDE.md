@@ -1,95 +1,188 @@
-# Lineage Tracker
+# Claude Code Configuration - RuFlo V3
 
-## Project Overview
+## Behavioral Rules (Always Enforced)
 
-A Next.js application for lineage tracking.
+- Do what has been asked; nothing more, nothing less
+- NEVER create files unless they're absolutely necessary for achieving your goal
+- ALWAYS prefer editing an existing file to creating a new one
+- NEVER proactively create documentation files (*.md) or README files unless explicitly requested
+- NEVER save working files, text/mds, or tests to the root folder
+- Never continuously check status after spawning a swarm — wait for results
+- ALWAYS read a file before editing it
+- NEVER commit secrets, credentials, or .env files
 
-## Tech Stack
+## File Organization
 
-- **Framework:** Next.js (App Router, TypeScript)
-- **Runtime:** Bun
-- **Styling:** Tailwind CSS v4
-- **Backend:** Supabase (auth, database, storage)
-- **Deployment:** Vercel
-- **Package Manager:** Bun
+- NEVER save to root folder — use the directories below
+- Use `/src` for source code files
+- Use `/tests` for test files
+- Use `/docs` for documentation and markdown files
+- Use `/config` for configuration files
+- Use `/scripts` for utility scripts
+- Use `/examples` for example code
 
-## Project Structure
+## Project Architecture
 
+- Follow Domain-Driven Design with bounded contexts
+- Keep files under 500 lines
+- Use typed interfaces for all public APIs
+- Prefer TDD London School (mock-first) for new code
+- Use event sourcing for state changes
+- Ensure input validation at system boundaries
+
+### Project Config
+
+- **Topology**: hierarchical-mesh
+- **Max Agents**: 15
+- **Memory**: hybrid
+- **HNSW**: Enabled
+- **Neural**: Enabled
+
+## Build & Test
+
+```bash
+# Build
+npm run build
+
+# Test
+npm test
+
+# Lint
+npm run lint
 ```
-src/
-  app/          # Next.js App Router pages and layouts
-  components/   # Reusable React components
-  lib/          # Utility functions and shared logic
-  types/        # TypeScript type definitions
+
+- ALWAYS run tests after making code changes
+- ALWAYS verify build succeeds before committing
+
+## Security Rules
+
+- NEVER hardcode API keys, secrets, or credentials in source files
+- NEVER commit .env files or any file containing secrets
+- Always validate user input at system boundaries
+- Always sanitize file paths to prevent directory traversal
+- Run `npx @claude-flow/cli@latest security scan` after security-related changes
+
+## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
+
+- All operations MUST be concurrent/parallel in a single message
+- Use Claude Code's Task tool for spawning agents, not just MCP
+- ALWAYS batch ALL todos in ONE TodoWrite call (5-10+ minimum)
+- ALWAYS spawn ALL agents in ONE message with full instructions via Task tool
+- ALWAYS batch ALL file reads/writes/edits in ONE message
+- ALWAYS batch ALL Bash commands in ONE message
+
+## Swarm Orchestration
+
+- MUST initialize the swarm using CLI tools when starting complex tasks
+- MUST spawn concurrent agents using Claude Code's Task tool
+- Never use CLI tools alone for execution — Task tool agents do the actual work
+- MUST call CLI tools AND Task tool in ONE message for complex work
+
+### 3-Tier Model Routing (ADR-026)
+
+| Tier | Handler | Latency | Cost | Use Cases |
+|------|---------|---------|------|-----------|
+| **1** | Agent Booster (WASM) | <1ms | $0 | Simple transforms (var→const, add types) — Skip LLM |
+| **2** | Haiku | ~500ms | $0.0002 | Simple tasks, low complexity (<30%) |
+| **3** | Sonnet/Opus | 2-5s | $0.003-0.015 | Complex reasoning, architecture, security (>30%) |
+
+- Always check for `[AGENT_BOOSTER_AVAILABLE]` or `[TASK_MODEL_RECOMMENDATION]` before spawning agents
+- Use Edit tool directly when `[AGENT_BOOSTER_AVAILABLE]`
+
+## Swarm Configuration & Anti-Drift
+
+- ALWAYS use hierarchical topology for coding swarms
+- Keep maxAgents at 6-8 for tight coordination
+- Use specialized strategy for clear role boundaries
+- Use `raft` consensus for hive-mind (leader maintains authoritative state)
+- Run frequent checkpoints via `post-task` hooks
+- Keep shared memory namespace for all agents
+
+```bash
+npx @claude-flow/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
 ```
 
-## Commands
+## Swarm Execution Rules
 
-- `bun dev` — Start development server (Turbopack)
-- `bun run build` — Production build
-- `bun run lint` — Run ESLint
-- `bun test` — Run tests
+- ALWAYS use `run_in_background: true` for all agent Task calls
+- ALWAYS put ALL agent Task calls in ONE message for parallel execution
+- After spawning, STOP — do NOT add more tool calls or check status
+- Never poll TaskOutput or check swarm status — trust agents to return
+- When agent results arrive, review ALL results before proceeding
 
-## Conventions
+## V3 CLI Commands
 
-- Use `src/` directory for all application code
-- Use `@/*` import alias for absolute imports from `src/`
-- Prefer server components by default; add `"use client"` only when needed
-- Environment variables: use `.env.local` for local dev (never commit)
-- Supabase client setup goes in `src/lib/supabase/`
-- Use `next/image` `<Image>` instead of `<img>` for all images (remote patterns configured in `next.config.ts`)
-- Auth is handled by Clerk (webhooks sync to Supabase `profiles` table)
+### Core Commands
 
-## Glassmorphism Design System
+| Command | Subcommands | Description |
+|---------|-------------|-------------|
+| `init` | 4 | Project initialization |
+| `agent` | 8 | Agent lifecycle management |
+| `swarm` | 6 | Multi-agent swarm coordination |
+| `memory` | 11 | AgentDB memory with HNSW search |
+| `task` | 6 | Task creation and lifecycle |
+| `session` | 7 | Session state management |
+| `hooks` | 17 | Self-learning hooks + 12 workers |
+| `hive-mind` | 6 | Byzantine fault-tolerant consensus |
 
-Rootline uses a **modern glassmorphism** visual language. All UI components must follow the design tokens and patterns defined in the `/rootline-glassmorphism` skill (`.claude/skills/rootline-glassmorphism/SKILL.md`).
+### Quick CLI Examples
 
-### Key Principles
+```bash
+npx @claude-flow/cli@latest init --wizard
+npx @claude-flow/cli@latest agent spawn -t coder --name my-coder
+npx @claude-flow/cli@latest swarm init --v3-mode
+npx @claude-flow/cli@latest memory search --query "authentication patterns"
+npx @claude-flow/cli@latest doctor --fix
+```
 
-- **Glass surfaces**: Use `glass-card`, `glass-heavy`, `glass-light`, `glass-elevated` Tailwind utilities — never manually write `backdrop-filter` or rgba backgrounds inline
-- **Neutral glass, colored content**: Glass surfaces are gray/white translucent. Brand primary color appears only in content (buttons, active nav items, progress bars, links), never in the glass itself
-- **Gradient backgrounds**: Pages use subtle warm gradients (`gray-100 via gray-50 to stone-100` light, `gray-950 via gray-900 to stone-950` dark) that show through the glass blur
-- **Edge highlights**: Use `glass-edge-top` and `glass-edge-left` utilities for the characteristic refraction effect on glass panels
-- **Tree Health metric**: Sidebar displays a tree completeness percentage with progress bar — defined in the skill file
-- **Dark mode**: Glass tokens auto-adjust via CSS custom properties — always test both modes
-- **Max 2 blur layers**: Never nest more than 2 `backdrop-filter` elements for performance
+## Available Agents (60+ Types)
 
-### When Modifying the Design System
+### Core Development
+`coder`, `reviewer`, `tester`, `planner`, `researcher`
 
-If the user requests changes to the glassmorphism styling (new tokens, color changes, component patterns):
+### Specialized
+`security-architect`, `security-auditor`, `memory-specialist`, `performance-engineer`
 
-1. Update `.claude/skills/rootline-glassmorphism/SKILL.md` first (source of truth)
-2. Update `globals.css` tokens if CSS values changed
-3. Update this section of CLAUDE.md if conventions changed
-4. Invoke `/rootline-glassmorphism` skill in future sessions to load the latest spec
+### Swarm Coordination
+`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`
 
-### Required Skills for UI Work
+### GitHub & Repository
+`pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`
 
-When building or modifying any visual component, always invoke:
-- `/rootline-glassmorphism` — project-specific glass tokens and component recipes
-- `/ui-ux-pro-max` — general design intelligence (styles, palettes, UX guidelines)
-- `/frontend-design` — production-grade frontend patterns (when building new pages)
+### SPARC Methodology
+`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`
 
-## Quality Standards
+## Memory Commands Reference
 
-Before completing any feature or change, always run and pass the following checks:
+```bash
+# Store (REQUIRED: --key, --value; OPTIONAL: --namespace, --ttl, --tags)
+npx @claude-flow/cli@latest memory store --key "pattern-auth" --value "JWT with refresh" --namespace patterns
 
-1. **Type checking:** `bunx tsc --noEmit` — must have zero errors
-2. **Linting:** `bun run lint` — must have zero errors (warnings from third-party library incompatibilities like React Hook Form are acceptable)
-3. **Tests:** `bun test` — all tests must pass
-4. **Build:** `bun run build` — must complete successfully
+# Search (REQUIRED: --query; OPTIONAL: --namespace, --limit, --threshold)
+npx @claude-flow/cli@latest memory search --query "authentication patterns"
 
-### Testing Requirements
+# List (OPTIONAL: --namespace, --limit)
+npx @claude-flow/cli@latest memory list --namespace patterns --limit 10
 
-- Write meaningful tests for new server actions and utility functions
-- Frontend components that contain logic (not just presentation) should have tests
-- Tests go in `__tests__/` directories colocated with the code they test, or in a top-level `tests/` directory
-- Use descriptive test names that explain the expected behavior
+# Retrieve (REQUIRED: --key; OPTIONAL: --namespace)
+npx @claude-flow/cli@latest memory retrieve --key "pattern-auth" --namespace patterns
+```
 
-### Code Quality Rules
+## Quick Setup
 
-- Remove unused imports and variables — do not leave dead code
-- Escape special characters in JSX text (`&apos;` not `'`)
-- Avoid `setState` directly inside `useEffect` bodies — use `useSyncExternalStore` for mount detection
-- Prefer `catch` without binding the error variable if unused (use `catch {` not `catch (error) {`)
-- Do not commit code that introduces new lint errors
+```bash
+claude mcp add claude-flow -- npx -y @claude-flow/cli@latest
+npx @claude-flow/cli@latest daemon start
+npx @claude-flow/cli@latest doctor --fix
+```
+
+## Claude Code vs CLI Tools
+
+- Claude Code's Task tool handles ALL execution: agents, file ops, code generation, git
+- CLI tools handle coordination via Bash: swarm init, memory, hooks, routing
+- NEVER use CLI tools as a substitute for Task tool agents
+
+## Support
+
+- Documentation: https://github.com/ruvnet/claude-flow
+- Issues: https://github.com/ruvnet/claude-flow/issues
