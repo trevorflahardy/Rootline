@@ -27,11 +27,11 @@ export function Header() {
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <header className="glass-card glass-light glass-edge-top sticky top-0 z-50 w-full !rounded-none">
+    <header className="glass-card glass-heavy glass-edge-top sticky top-0 z-50 w-full !rounded-none !border-x-0 !border-t-0">
       <div className="container mx-auto flex h-14 items-center px-4">
         <Link href={isSignedIn ? "/dashboard" : "/"} className="flex items-center gap-2 mr-6">
           <TreePine className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-lg">Rootline</span>
+          <span className="font-semibold text-lg text-white">Rootline</span>
         </Link>
 
         {/* Desktop nav */}
@@ -44,8 +44,8 @@ export function Header() {
                 className={cn(
                   "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                   pathname === link.href
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                    ? "bg-primary/15 text-primary"
+                    : "text-white/50 hover:text-white hover:bg-white/5"
                 )}
               >
                 {link.label}
@@ -82,10 +82,10 @@ export function Header() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-72">
+            <SheetContent side="right" className="w-72 bg-stone-900/95 backdrop-blur-xl border-white/8">
               <SheetTitle className="flex items-center gap-2 mb-6">
                 <TreePine className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Rootline</span>
+                <span className="font-semibold text-white">Rootline</span>
               </SheetTitle>
               <nav className="flex flex-col gap-2">
                 {mounted && isLoaded && (
@@ -97,8 +97,8 @@ export function Header() {
                         className={cn(
                           "px-3 py-2 text-sm font-medium rounded-md transition-colors",
                           pathname === link.href
-                            ? "bg-accent text-accent-foreground"
-                            : "text-muted-foreground hover:text-foreground"
+                            ? "bg-primary/15 text-primary"
+                            : "text-white/50 hover:text-white"
                         )}
                       >
                         {link.label}

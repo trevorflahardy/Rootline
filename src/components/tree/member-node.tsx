@@ -89,21 +89,21 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <p className="text-sm font-semibold truncate">
+              <p className="text-sm font-semibold truncate text-white">
                 {data.first_name}
                 {data.last_name ? ` ${data.last_name}` : ""}
               </p>
               {data.isOwnerNode && (
-                <Crown className="h-3 w-3 text-chart-5 shrink-0" />
+                <Crown className="h-3 w-3 text-primary shrink-0" />
               )}
             </div>
             {data.maiden_name && (
-              <p className="text-[10px] text-muted-foreground truncate">
+              <p className="text-[10px] text-white/40 truncate">
                 n&eacute;e {data.maiden_name}
               </p>
             )}
             {lifespan && (
-              <p className="text-xs text-muted-foreground">{lifespan}</p>
+              <p className="text-xs text-white/40">{lifespan}</p>
             )}
           </div>
         </div>

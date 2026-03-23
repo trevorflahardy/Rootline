@@ -15,9 +15,9 @@ async function TreeGrid() {
   if (trees.length === 0) {
     return (
       <div className="glass-card glass-edge-top flex flex-col items-center justify-center py-20 text-center rounded-2xl p-8">
-        <TreePine className="h-16 w-16 text-muted-foreground/40 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">No family trees yet</h2>
-        <p className="text-muted-foreground mb-6 max-w-md">
+        <TreePine className="h-16 w-16 text-white/20 mb-4" />
+        <h2 className="text-xl font-semibold mb-2 text-white">No family trees yet</h2>
+        <p className="text-white/50 mb-6 max-w-md">
           Create your first family tree to start mapping your lineage.
         </p>
         <DashboardHeader emptyState />

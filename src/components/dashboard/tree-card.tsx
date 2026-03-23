@@ -14,12 +14,12 @@ export function TreeCard({ tree }: TreeCardProps) {
 
   return (
     <Link href={`/tree/${tree.id}`}>
-      <Card className="h-full glass-card glass-edge-top cursor-pointer hover:scale-[1.02] hover:glass-elevated transition-all duration-300">
+      <Card className="h-full glass-card glass-edge-top cursor-pointer hover:scale-[1.02] hover:glass-elevated transition-all duration-300 !border-white/8">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-2">
               <TreePine className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">{tree.name}</CardTitle>
+              <CardTitle className="text-lg text-white">{tree.name}</CardTitle>
             </div>
             <Badge variant={roleBadgeVariant} className="capitalize text-xs">
               {tree.role}
@@ -28,11 +28,11 @@ export function TreeCard({ tree }: TreeCardProps) {
         </CardHeader>
         <CardContent>
           {tree.description && (
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            <p className="text-sm text-white/50 mb-3 line-clamp-2">
               {tree.description}
             </p>
           )}
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-white/40">
             <div className="flex items-center gap-1">
               <Users className="h-3.5 w-3.5" />
               <span>{tree.member_count} member{tree.member_count !== 1 ? "s" : ""}</span>

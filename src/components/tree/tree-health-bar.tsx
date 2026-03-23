@@ -27,23 +27,23 @@ export function TreeHealthBar({ treeId }: TreeHealthBarProps) {
   return (
     <div className="glass-card glass-edge-top px-4 py-3 flex items-center gap-4 text-sm">
       <div className="flex items-center gap-2 min-w-0">
-        <span className="font-medium text-foreground/80 whitespace-nowrap">
+        <span className="font-medium text-white/70 whitespace-nowrap">
           Tree Health
         </span>
-        <span className="font-semibold text-foreground tabular-nums">
+        <span className="font-semibold text-white tabular-nums">
           {health.percentage}%
         </span>
       </div>
 
       {/* Progress track */}
-      <div className="flex-1 h-2 rounded-full bg-muted/50 overflow-hidden">
+      <div className="flex-1 h-2 rounded-full bg-white/8 overflow-hidden">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
           style={{ width: `${health.percentage}%` }}
         />
       </div>
 
-      <div className="flex items-center gap-3 text-muted-foreground whitespace-nowrap">
+      <div className="flex items-center gap-3 text-white/40 whitespace-nowrap">
         <span className="tabular-nums">
           {health.completeMembers}/{health.totalMembers} complete
         </span>
