@@ -31,7 +31,7 @@ export function Header() {
       <div className="container mx-auto flex h-14 items-center px-4">
         <Link href={isSignedIn ? "/dashboard" : "/"} className="flex items-center gap-2 mr-6">
           <TreePine className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-lg text-foreground">Rootline</span>
+          <span className="font-semibold text-lg text-foreground font-[family-name:var(--font-playfair)]">Rootline</span>
         </Link>
 
         {/* Desktop nav */}
@@ -85,7 +85,7 @@ export function Header() {
             <SheetContent side="right" className="w-72 bg-background/95 backdrop-blur-xl border-border/50">
               <SheetTitle className="flex items-center gap-2 mb-6">
                 <TreePine className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-foreground">Rootline</span>
+                <span className="font-semibold text-foreground font-[family-name:var(--font-playfair)]">Rootline</span>
               </SheetTitle>
               <nav className="flex flex-col gap-2">
                 {mounted && isLoaded && (

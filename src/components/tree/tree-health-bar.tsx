@@ -25,33 +25,36 @@ export function TreeHealthBar({ treeId }: TreeHealthBarProps) {
   if (!health || health.totalMembers === 0) return null;
 
   return (
-    <div className="glass-card glass-edge-top px-4 py-3 flex items-center gap-4 text-sm">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="font-medium text-foreground/70 whitespace-nowrap">
+    <div className="glass-card glass-light px-3 py-2.5 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-foreground/70">
           Tree Health
         </span>
-        <span className="font-semibold text-foreground tabular-nums">
-          {health.percentage}%
-        </span>
-      </div>
-
-      {/* Progress track */}
-      <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
-          style={{ width: `${health.percentage}%` }}
-        />
-      </div>
-
-      <div className="flex items-center gap-3 text-muted-foreground whitespace-nowrap">
-        <span className="tabular-nums">
-          {health.completeMembers}/{health.totalMembers} complete
-        </span>
-        {health.newToday > 0 && (
-          <span className="text-success tabular-nums">
-            +{health.newToday} today
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="tabular-nums">
+            {health.completeMembers}/{health.totalMembers}
           </span>
-        )}
+          {health.newToday > 0 && (
+            <span className="text-success tabular-nums font-medium">
+              +{health.newToday}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar with percentage label */}
+      <div className="space-y-1">
+        <div className="h-2 rounded-full bg-muted/60 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+            style={{ width: `${health.percentage}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>0%</span>
+          <span className="font-semibold text-foreground tabular-nums">{health.percentage}%</span>
+          <span>100%</span>
+        </div>
       </div>
     </div>
   );

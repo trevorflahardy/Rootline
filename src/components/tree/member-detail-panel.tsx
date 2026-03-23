@@ -18,6 +18,7 @@ import {
   Fingerprint,
   Shield,
   FileText,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
-import { getDocumentsByMember } from "@/lib/actions/document";
+import { getDocumentsByMember, uploadDocument } from "@/lib/actions/document";
 import { DocumentTypeBadge } from "@/components/documents/document-type-badge";
 import {
   selfAssignToNode,
@@ -188,6 +189,78 @@ function RelatedMemberCard({
       )}
       <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
     </button>
+  );
+}
+
+function DocumentDropZone({
+  treeId,
+  memberId,
+  onUploaded,
+}: {
+  treeId: string;
+  memberId: string;
+  onUploaded: () => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) node.value = "";
+  }, []);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.set("treeId", treeId);
+      formData.set("memberId", memberId);
+      formData.set("file", file);
+      formData.set("document_type", "other");
+      await uploadDocument(formData);
+      toast.success(`Uploaded ${file.name}`);
+      onUploaded();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleUpload(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleUpload(file);
+  };
+
+  return (
+    <label
+      className={`flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed px-3 py-3 cursor-pointer transition-colors ${
+        dragging
+          ? "border-primary bg-primary/5"
+          : "border-muted-foreground/20 hover:border-muted-foreground/40"
+      } ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={handleDrop}
+    >
+      <Upload className="h-4 w-4 text-muted-foreground" />
+      <span className="text-xs text-muted-foreground text-center">
+        {uploading ? "Uploading..." : "Drop file or click to upload"}
+      </span>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+        onChange={handleFileSelect}
+        disabled={uploading}
+      />
+    </label>
   );
 }
 
@@ -741,7 +814,7 @@ export function MemberDetailPanel({
           {documents.length > 0 ? (
             <div className="space-y-1">
               {documents.slice(0, 3).map((doc) => (
-                <div key={doc.id} className="flex items-center gap-2 text-sm rounded px-2 py-1.5 hover:bg-accent transition-colors">
+                <div key={doc.id} className="flex items-center gap-2 text-sm rounded px-2 py-1.5 hover:bg-accent/30 transition-colors">
                   <FileText className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <span className="truncate flex-1">{doc.file_name}</span>
                   <DocumentTypeBadge documentType={doc.document_type} />
@@ -749,12 +822,24 @@ export function MemberDetailPanel({
               ))}
               {documents.length > 3 && (
                 <p className="text-xs text-muted-foreground px-2">
-                  +{documents.length - 3} more — view all on member page
+                  +{documents.length - 3} more
                 </p>
               )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No documents attached</p>
+          )}
+
+          {/* Drag & drop upload zone */}
+          {memberCanEdit && (
+            <DocumentDropZone
+              treeId={treeId}
+              memberId={member.id}
+              onUploaded={() => {
+                getDocumentsByMember(treeId, member.id).then(setDocuments).catch(() => {});
+                router.refresh();
+              }}
+            />
           )}
         </div>
 
