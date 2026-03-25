@@ -13,6 +13,8 @@ Rootline helps families come together to build, explore, and preserve their fami
 <img width="1489" height="760" alt="image" src="https://github.com/user-attachments/assets/d1365647-cc26-495c-9b9b-84b19dee68b3" />
 <img width="443" height="216" alt="image" src="https://github.com/user-attachments/assets/c0b2e067-94fd-46ae-8d14-c678a3f962a1" />
 <img width="395" height="336" alt="image" src="https://github.com/user-attachments/assets/98b10337-a04e-44b8-b274-f0be6bff6e0e" />
+<img width="1475" height="741" alt="image" src="https://github.com/user-attachments/assets/e81648d2-e1e2-486a-805b-363025abf4ca" />
+<img width="1504" height="699" alt="image" src="https://github.com/user-attachments/assets/c2fa8dc6-af1e-4ffe-a04c-add70d95d04d" />
 
 ## Features
 
