@@ -7,6 +7,9 @@
 
 import type { Gender } from "@/types";
 import type { RelationshipType } from "@/types";
+import { sanitizeText } from "@/lib/sanitize";
+
+const MAX_GEDCOM_BYTES = 10 * 1024 * 1024; // 10 MB
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -312,6 +315,12 @@ function parseFam(recordLines: GedcomLine[]): FamRecord | null {
 
 export function parseGedcom(text: string): GedcomParseResult {
   const errors: string[] = [];
+
+  // Guard: reject files larger than 10 MB to prevent DoS
+  if (Buffer.byteLength(text, 'utf8') > MAX_GEDCOM_BYTES) {
+    throw new Error('GEDCOM file exceeds maximum allowed size of 10 MB');
+  }
+
   const lines = parseLines(text);
 
   if (lines.length === 0) {
@@ -342,18 +351,18 @@ export function parseGedcom(text: string): GedcomParseResult {
     errors.push("No individual records (INDI) found in file");
   }
 
-  // Convert INDI to ParsedMember
+  // Convert INDI to ParsedMember — sanitize all user-supplied string fields
   const members: ParsedMember[] = indiRecords.map((indi) => ({
     gedcom_id: indi.xref,
-    first_name: indi.givenName,
-    last_name: indi.surname || null,
-    maiden_name: indi.maidenName,
+    first_name: sanitizeText(indi.givenName),
+    last_name: indi.surname ? sanitizeText(indi.surname) : null,
+    maiden_name: indi.maidenName ? sanitizeText(indi.maidenName) : null,
     gender: (indi.sex as Gender) ?? null,
     date_of_birth: indi.birthDate,
     date_of_death: indi.deathDate,
-    birth_place: indi.birthPlace,
-    death_place: indi.deathPlace,
-    bio: indi.notes.length > 0 ? indi.notes.join("\n") : null,
+    birth_place: indi.birthPlace ? sanitizeText(indi.birthPlace) : null,
+    death_place: indi.deathPlace ? sanitizeText(indi.deathPlace) : null,
+    bio: indi.notes.length > 0 ? sanitizeText(indi.notes.join("\n")) : null,
     is_deceased: indi.isDeceased,
   }));
 

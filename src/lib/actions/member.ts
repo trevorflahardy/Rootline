@@ -5,6 +5,9 @@ import { getAuthUser } from "@/lib/actions/auth";
 import { createMemberSchema, updateMemberSchema } from "@/lib/validators/member";
 import type { CreateMemberInput, UpdateMemberInput } from "@/lib/validators/member";
 import type { TreeMember } from "@/types";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitizeText } from "@/lib/sanitize";
+import { assertUUID } from "@/lib/validate";
 
 async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, treeId: string, userId: string) {
   const { data } = await supabase
@@ -20,6 +23,7 @@ async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, t
 
 export async function createMember(input: CreateMemberInput): Promise<TreeMember> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'createMember', 30, 60_000);
   const validated = createMemberSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -44,9 +48,9 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
       gender: orNull(validated.gender),
       date_of_birth: orNull(validated.date_of_birth),
       date_of_death: orNull(validated.date_of_death),
-      birth_place: orNull(validated.birth_place),
-      death_place: orNull(validated.death_place),
-      bio: orNull(validated.bio),
+      birth_place: validated.birth_place ? sanitizeText(validated.birth_place) : null,
+      death_place: validated.death_place ? sanitizeText(validated.death_place) : null,
+      bio: validated.bio ? sanitizeText(validated.bio) : null,
       is_deceased: validated.is_deceased ?? false,
       created_by: userId,
     })
@@ -59,6 +63,8 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
 
 export async function updateMember(memberId: string, treeId: string, input: UpdateMemberInput): Promise<TreeMember> {
   const userId = await getAuthUser();
+  assertUUID(memberId, 'memberId');
+  assertUUID(treeId, 'treeId');
   const validated = updateMemberSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -78,7 +84,17 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
   const sanitized = Object.fromEntries(
-    Object.entries(validated).map(([k, v]) => [k, typeof v === "string" && v.trim() === "" ? null : v])
+    Object.entries(validated).map(([k, v]) => {
+      if (typeof v === "string") {
+        const trimmed = v.trim();
+        if (trimmed === "") return [k, null];
+        if (k === "bio" || k === "birth_place" || k === "death_place") {
+          return [k, sanitizeText(trimmed)];
+        }
+        return [k, trimmed];
+      }
+      return [k, v];
+    })
   );
 
   const { data, error } = await supabase
@@ -95,6 +111,8 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
 
 export async function deleteMember(memberId: string, treeId: string) {
   const userId = await getAuthUser();
+  assertUUID(memberId, 'memberId');
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);
@@ -224,6 +242,8 @@ export async function getMembersWithStats(treeId: string): Promise<MemberWithSta
 
 export async function getMemberById(memberId: string, treeId: string): Promise<TreeMember | null> {
   const userId = await getAuthUser();
+  assertUUID(memberId, 'memberId');
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);

@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/actions/auth";
 import { createTreeSchema, updateTreeSchema } from "@/lib/validators/tree";
 import type { CreateTreeInput, UpdateTreeInput } from "@/lib/validators/tree";
 import type { FamilyTree, TreeSummary, TreeMembership } from "@/types";
+import { assertUUID } from "@/lib/validate";
 
 export async function createTree(input: CreateTreeInput) {
   const userId = await getAuthUser();
@@ -91,6 +92,7 @@ export async function getTreesForUser(): Promise<TreeSummary[]> {
 
 export async function getTreeById(treeId: string): Promise<FamilyTree | null> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Check membership
@@ -124,6 +126,7 @@ export async function getTreeById(treeId: string): Promise<FamilyTree | null> {
 
 export async function updateTree(treeId: string, input: UpdateTreeInput) {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const validated = updateTreeSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -231,8 +234,10 @@ export async function removeMembership(membershipId: string, treeId: string) {
 
 export async function deleteTree(treeId: string) {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
+  // Verify both membership role AND owner_id to prevent privilege escalation
   const { data: membership } = await supabase
     .from("tree_memberships")
     .select("role")
@@ -244,10 +249,22 @@ export async function deleteTree(treeId: string) {
     throw new Error("Only the owner can delete a tree");
   }
 
+  // Additional check: confirm the tree's owner_id matches the authenticated user
+  const { data: tree } = await supabase
+    .from("family_trees")
+    .select("owner_id")
+    .eq("id", treeId)
+    .single();
+
+  if (!tree || tree.owner_id !== userId) {
+    throw new Error("Only the owner can delete a tree");
+  }
+
   const { error } = await supabase
     .from("family_trees")
     .delete()
-    .eq("id", treeId);
+    .eq("id", treeId)
+    .eq("owner_id", userId);
 
   if (error) throw new Error(`Failed to delete tree: ${error.message}`);
   revalidatePath("/dashboard");

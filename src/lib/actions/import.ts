@@ -2,6 +2,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitizeText } from "@/lib/sanitize";
+import { assertUUID } from "@/lib/validate";
 import type { ParsedMember, ParsedRelationship } from "@/lib/utils/gedcom-parser";
 import type { TreeMember, Relationship } from "@/types";
 
@@ -11,6 +14,8 @@ export async function importGedcomData(
   relationships: ParsedRelationship[]
 ): Promise<{ members: TreeMember[]; relationships: Relationship[]; errors: string[] }> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'importGedcom', 5, 60_000);
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
   const errors: string[] = [];
 
@@ -45,9 +50,9 @@ export async function importGedcomData(
         gender: orNull(member.gender),
         date_of_birth: orNull(member.date_of_birth),
         date_of_death: orNull(member.date_of_death),
-        birth_place: orNull(member.birth_place),
-        death_place: orNull(member.death_place),
-        bio: orNull(member.bio),
+        birth_place: orNull(member.birth_place ? sanitizeText(member.birth_place) : null),
+        death_place: orNull(member.death_place ? sanitizeText(member.death_place) : null),
+        bio: orNull(member.bio ? sanitizeText(member.bio) : null),
         is_deceased: member.is_deceased,
         created_by: userId,
       })

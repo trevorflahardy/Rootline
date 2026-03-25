@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitizeStoragePath } from "@/lib/sanitize";
 
 export interface Media {
   id: string;
@@ -29,6 +31,7 @@ export async function uploadPhoto(
   isProfilePhoto = false
 ): Promise<Media> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'uploadPhoto', 10, 60_000);
   const supabase = createAdminClient();
 
   // Check tree access
@@ -55,9 +58,11 @@ export async function uploadPhoto(
   }
 
   // Generate unique path
-  const ext = file.name.split(".").pop() ?? "jpg";
+  const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, '');
   const timestamp = Date.now();
-  const storagePath = `${treeId}/${memberId ?? "general"}/${timestamp}.${ext}`;
+  const storagePath = sanitizeStoragePath(
+    `${treeId}/${memberId ?? "general"}/${timestamp}.${ext}`
+  );
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { createInviteSchema, type CreateInviteInput } from "@/lib/validators/invite";
+import { rateLimit } from "@/lib/rate-limit";
 
 export interface Invitation {
   id: string;
@@ -26,6 +27,7 @@ function generateInviteCode(): string {
 
 export async function createInvite(input: CreateInviteInput): Promise<Invitation> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'createInvite', 5, 60_000);
   const validated = createInviteSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -121,6 +123,7 @@ export async function getInviteByCode(code: string): Promise<Invitation | null> 
 
 export async function acceptInvite(inviteCode: string): Promise<{ treeId: string }> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'acceptInvite', 10, 60_000);
   const supabase = createAdminClient();
 
   // Get the invite

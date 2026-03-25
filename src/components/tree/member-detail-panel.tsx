@@ -19,6 +19,7 @@ import {
   Shield,
   FileText,
   Upload,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +29,10 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
 import { getDocumentsByMember, uploadDocument } from "@/lib/actions/document";
+import { getPhotosByMemberId, type Media } from "@/lib/actions/photo";
 import { DocumentTypeBadge } from "@/components/documents/document-type-badge";
+import { PhotoGallery } from "@/components/photos/photo-gallery";
+import { PhotoUpload } from "@/components/photos/photo-upload";
 import {
   selfAssignToNode,
   selfUnassignFromNode,
@@ -256,7 +260,7 @@ function DocumentDropZone({
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+        accept=".pdf,.doc,.docx"
         onChange={handleFileSelect}
         disabled={uploading}
       />
@@ -286,6 +290,8 @@ export function MemberDetailPanel({
   const [nodeMembership, setNodeMembership] = useState<NodeMembership | null>(null);
   const [roleUpdating, setRoleUpdating] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [photos, setPhotos] = useState<Media[]>([]);
+  const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
   const memberMap = useMemo(() => new Map(allMembers.map((m) => [m.id, m])), [allMembers]);
 
   // Check per-member edit permission
@@ -310,11 +316,14 @@ export function MemberDetailPanel({
     getNodeMembership(treeId, member.id).then(setNodeMembership).catch(() => setNodeMembership(null));
   }, [treeId, member.id, permissions?.canEdit]);
 
-  // Fetch documents for this member
+  // Fetch documents and photos for this member
   useEffect(() => {
     getDocumentsByMember(treeId, member.id)
       .then(setDocuments)
       .catch(() => setDocuments([]));
+    getPhotosByMemberId(member.id, treeId)
+      .then(setPhotos)
+      .catch(() => setPhotos([]));
   }, [treeId, member.id]);
 
   // Can user claim this node? Must have a membership, not already linked, and node not claimed
@@ -794,6 +803,40 @@ export function MemberDetailPanel({
            inLaws.length === 0 && guardians.length === 0 && wards.length === 0 && (
             <p className="text-sm text-muted-foreground">No family relationships recorded yet.</p>
           )}
+        </div>
+
+        <Separator />
+
+        {/* Photos */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Camera className="h-3 w-3" />
+              Photos
+              {photos.length > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1 h-4 px-1">
+                  {photos.length}
+                </Badge>
+              )}
+            </p>
+            {memberCanEdit && (
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setPhotoUploadOpen(true)}>
+                <Upload className="h-3 w-3 mr-1" />
+                Add
+              </Button>
+            )}
+          </div>
+          <PhotoGallery photos={photos} treeId={treeId} canEdit={memberCanEdit} />
+          <PhotoUpload
+            open={photoUploadOpen}
+            onOpenChange={setPhotoUploadOpen}
+            treeId={treeId}
+            memberId={member.id}
+            onUploaded={() => {
+              getPhotosByMemberId(member.id, treeId).then(setPhotos).catch(() => {});
+              router.refresh();
+            }}
+          />
         </div>
 
         <Separator />

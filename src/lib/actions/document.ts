@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { canEditMember } from "@/lib/actions/permissions";
+import { rateLimit } from "@/lib/rate-limit";
+import { sanitizeText, sanitizeStoragePath } from "@/lib/sanitize";
 import {
   uploadDocumentSchema,
   updateDocumentSchema,
@@ -16,6 +18,7 @@ const BUCKET = "tree-documents";
 
 export async function uploadDocument(formData: FormData): Promise<Document> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'uploadDocument', 10, 60_000);
   const supabase = createAdminClient();
 
   const treeId = formData.get("treeId") as string;
@@ -67,7 +70,9 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
   // Generate unique storage path
   const uuid = crypto.randomUUID();
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `${treeId}/${memberId}/${uuid}_${sanitizedName}`;
+  const storagePath = sanitizeStoragePath(
+    `${treeId}/${memberId}/${uuid}_${sanitizedName}`
+  );
 
   // Upload to Supabase Storage
   const { error: uploadError } = await supabase.storage
@@ -91,7 +96,7 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
       file_size: file.size,
       mime_type: file.type,
       document_type: metadata.document_type,
-      description: metadata.description ?? null,
+      description: metadata.description ? sanitizeText(metadata.description) : null,
       is_private: metadata.is_private,
     })
     .select()
@@ -218,7 +223,11 @@ export async function updateDocument(
   const userId = await getAuthUser();
   const supabase = createAdminClient();
 
-  const validated = updateDocumentSchema.parse(data);
+  const raw = updateDocumentSchema.parse(data);
+  const validated = {
+    ...raw,
+    ...(raw.description !== undefined ? { description: raw.description ? sanitizeText(raw.description) : null } : {}),
+  };
 
   // Check membership
   const { data: membership } = await supabase
