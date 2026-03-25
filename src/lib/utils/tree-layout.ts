@@ -8,17 +8,67 @@ export interface LayoutNode {
   type: "member";
 }
 
+export interface FamilyArcData {
+  isFamilyArc: true;
+  parent1Id: string;
+  parent2Id: string;
+  childIds: string[];
+  originalRelIds: string[];
+}
+
 export interface LayoutEdge {
   id: string;
   source: string;
   target: string;
-  type: "relationship";
+  type: "relationship" | "family-arc";
   sourceHandle?: string;
   targetHandle?: string;
-  data: {
-    relationship_type: Relationship["relationship_type"];
-    relationship_id: string;
-  };
+  data:
+    | { relationship_type: Relationship["relationship_type"]; relationship_id: string }
+    | FamilyArcData;
+}
+
+interface CoParentGroup {
+  parent1Id: string;
+  parent2Id: string;
+  sharedChildIds: string[];
+  coveredRelIds: string[];
+  arcId: string;
+}
+
+function findCoParentGroups(relationships: Relationship[]): CoParentGroup[] {
+  const groups: CoParentGroup[] = [];
+  const spousePairs = relationships.filter(
+    (r) => r.relationship_type === "spouse" || r.relationship_type === "divorced"
+  );
+  for (const pair of spousePairs) {
+    const p1 = pair.from_member_id;
+    const p2 = pair.to_member_id;
+    const childrenOf = (parentId: string) =>
+      new Set(
+        relationships
+          .filter(
+            (r) =>
+              r.from_member_id === parentId &&
+              (r.relationship_type === "parent_child" || r.relationship_type === "adopted")
+          )
+          .map((r) => r.to_member_id)
+      );
+    const p1Kids = childrenOf(p1);
+    const p2Kids = childrenOf(p2);
+    const shared = [...p1Kids].filter((id) => p2Kids.has(id));
+    if (shared.length === 0) continue;
+    const coveredRelIds = relationships
+      .filter(
+        (r) =>
+          (r.from_member_id === p1 || r.from_member_id === p2) &&
+          shared.includes(r.to_member_id) &&
+          (r.relationship_type === "parent_child" || r.relationship_type === "adopted")
+      )
+      .map((r) => r.id);
+    groups.push({ parent1Id: p1, parent2Id: p2, sharedChildIds: shared, coveredRelIds, arcId: `arc-${pair.id}` });
+  }
+  return groups;
 }
 
 export interface TreeLayout {
@@ -105,22 +155,46 @@ export function computeTreeLayout(
     }
   }
 
-  // Build React Flow edges (include all relationship types)
-  const edges: LayoutEdge[] = relationships.map((rel) => {
+  // Detect co-parent groups and build family-arc edges for shared children
+  const coParentGroups = findCoParentGroups(relationships);
+  const coveredRelIdSet = new Set(coParentGroups.flatMap((g) => g.coveredRelIds));
+
+  const edges: LayoutEdge[] = [];
+
+  // One family-arc edge per co-parent group (replaces N×M individual edges)
+  for (const group of coParentGroups) {
+    edges.push({
+      id: group.arcId,
+      source: group.parent1Id,
+      target: group.sharedChildIds[0], // valid React Flow source/target
+      type: "family-arc",
+      data: {
+        isFamilyArc: true,
+        parent1Id: group.parent1Id,
+        parent2Id: group.parent2Id,
+        childIds: group.sharedChildIds,
+        originalRelIds: group.coveredRelIds,
+      },
+    });
+  }
+
+  // All remaining edges (non-covered parent-child + all other types)
+  for (const rel of relationships) {
+    if (coveredRelIdSet.has(rel.id)) continue;
     const isMarriage = rel.relationship_type === "spouse" || rel.relationship_type === "divorced";
-    return {
+    edges.push({
       id: rel.id,
       source: rel.from_member_id,
       target: rel.to_member_id,
-      type: "relationship" as const,
+      type: "relationship",
       sourceHandle: isMarriage ? "right" : "bottom",
       targetHandle: isMarriage ? "left" : "top",
       data: {
         relationship_type: rel.relationship_type,
         relationship_id: rel.id,
       },
-    };
-  });
+    });
+  }
 
   return { nodes, edges };
 }

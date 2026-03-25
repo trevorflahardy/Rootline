@@ -34,6 +34,7 @@ import { useRealtimeTree } from "@/lib/hooks/use-realtime-tree";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { MemberNode, type MemberNodeData } from "./member-node";
 import { RelationshipEdge, type EdgeHighlightMode, type RelationshipEdgeData } from "./relationship-edge";
+import { FamilyArcEdge, type FamilyArcEdgeData } from "./family-arc-edge";
 import { NodeContextMenu } from "./node-context-menu";
 import { TreeToolbar } from "./tree-toolbar";
 import { MemberDetailPanel } from "./member-detail-panel";
@@ -51,6 +52,7 @@ const nodeTypes: NodeTypes = {
 
 const edgeTypes: EdgeTypes = {
   relationship: RelationshipEdge as unknown as EdgeTypes["relationship"],
+  "family-arc": FamilyArcEdge as unknown as EdgeTypes["family-arc"],
 };
 
 interface TreeCanvasProps {
@@ -173,7 +175,7 @@ function TreeCanvasInner({
       data: {
         ...e.data,
         highlightMode: "none",
-      } as RelationshipEdgeData,
+      },
     }));
   }, [layout.edges]);
 
@@ -334,21 +336,27 @@ function TreeCanvasInner({
     }
 
     setEdges((eds) =>
-      eds.map((e) => ({
-        ...e,
-        data: {
-          ...e.data,
-          highlightMode: (
-            hoverEdgeIds.has(e.id)
-              ? "hover"
-              : highlightedEdges.includes(e.id)
-                ? "path"
-                : selectedDescendantEdgeIds.has(e.id)
-                  ? "descendant"
-                  : "none"
-          ) as EdgeHighlightMode,
-        },
-      }))
+      eds.map((e) => {
+        const arcData = e.data as FamilyArcEdgeData | null;
+        let highlightMode: EdgeHighlightMode;
+        if (arcData?.isFamilyArc) {
+          const relIds: string[] = arcData.originalRelIds ?? [];
+          highlightMode = relIds.some((id) => highlightedEdges.includes(id))
+            ? "path"
+            : relIds.some((id) => selectedDescendantEdgeIds.has(id))
+              ? "descendant"
+              : "none";
+        } else {
+          highlightMode = hoverEdgeIds.has(e.id)
+            ? "hover"
+            : highlightedEdges.includes(e.id)
+              ? "path"
+              : selectedDescendantEdgeIds.has(e.id)
+                ? "descendant"
+                : "none";
+        }
+        return { ...e, data: { ...e.data, highlightMode } };
+      })
     );
   }, [highlightedEdges, hoveredRelMemberId, selectedDescendantEdgeIds, selectedMemberId, relationships, setEdges]);
 
