@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
 import { getDocumentsByMember, uploadDocument } from "@/lib/actions/document";
@@ -146,6 +147,77 @@ function InlineField({
         title={canEdit ? "Click to edit" : undefined}
       >
         {displayValue}
+      </p>
+    </div>
+  );
+}
+
+// Inline editable select field component
+function InlineSelectField({
+  label,
+  value,
+  field,
+  options,
+  canEdit,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  field: string;
+  options: { value: string; label: string }[];
+  canEdit: boolean;
+  onSave: (field: string, value: string) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async (newValue: string) => {
+    setSaving(true);
+    try {
+      await onSave(field, newValue);
+      setEditing(false);
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const displayLabel = options.find((o) => o.value === value)?.label ?? "—";
+  const isEmpty = !value;
+
+  if (editing) {
+    return (
+      <div className="space-y-1">
+        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        <div className="flex items-center gap-1">
+          <Select defaultValue={value ?? undefined} onValueChange={handleChange} disabled={saving}>
+            <SelectTrigger className="h-7 text-sm flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => setEditing(false)}>
+            <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+      <p
+        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
+        onClick={canEdit ? () => setEditing(true) : undefined}
+        title={canEdit ? "Click to edit" : undefined}
+      >
+        {displayLabel}
       </p>
     </div>
   );
@@ -519,7 +591,9 @@ export function MemberDetailPanel({
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {member.is_deceased && <Badge variant="secondary">Deceased</Badge>}
               {member.gender && member.gender !== "unknown" && (
-                <Badge variant="outline" className="capitalize">{member.gender}</Badge>
+                <Badge variant="outline" className="capitalize">
+                  {member.gender === "other" ? "Custom" : member.gender}
+                </Badge>
               )}
             </div>
           </div>
@@ -653,6 +727,19 @@ export function MemberDetailPanel({
             </>
           )}
           <InlineField label="Bio" value={member.bio} field="bio" type="textarea" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineSelectField
+            label="Gender"
+            value={member.gender ?? null}
+            field="gender"
+            options={[
+              { value: "male", label: "Male" },
+              { value: "female", label: "Female" },
+              { value: "other", label: "Custom" },
+              { value: "unknown", label: "Unknown" },
+            ]}
+            canEdit={memberCanEdit}
+            onSave={handleInlineSave}
+          />
         </div>
 
         <Separator />

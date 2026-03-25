@@ -74,7 +74,7 @@ function TreeCanvasInner({
   nodeProfileMap = {},
   permissions,
 }: TreeCanvasProps) {
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView, setCenter, screenToFlowPosition } = useReactFlow();
   const router = useRouter();
 
   const canEditMember = useCallback(
@@ -132,6 +132,8 @@ function TreeCanvasInner({
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref to track latest node positions (avoids setState-in-render)
   const nodesRef = useRef<Node[]>([]);
+  // Viewport center to position new members near the user's current view
+  const pendingViewportCenterRef = useRef<{ x: number; y: number } | null>(null);
 
   // Realtime subscription for live updates
   useRealtimeTree(tree.id);
@@ -212,6 +214,38 @@ function TreeCanvasInner({
       }
     }
 
+    // Also highlight spouses of the selected member and their descendants
+    for (const rel of relationships) {
+      if (
+        (rel.relationship_type === "spouse" || rel.relationship_type === "divorced") &&
+        (rel.from_member_id === selectedMemberId || rel.to_member_id === selectedMemberId)
+      ) {
+        edgeIds.add(rel.id);
+        const spouseId = rel.from_member_id === selectedMemberId ? rel.to_member_id : rel.from_member_id;
+        nodeIds.add(spouseId);
+        // Include the spouse's descendants too (same depth limit)
+        const spouseQueue: Array<{ id: string; depth: number }> = [{ id: spouseId, depth: 0 }];
+        const spouseVisited = new Set<string>([selectedMemberId, spouseId]);
+        while (spouseQueue.length > 0) {
+          const current = spouseQueue.shift()!;
+          if (current.depth >= normalizedDescendantHighlightDepth) continue;
+          for (const r of relationships) {
+            if (
+              r.from_member_id === current.id &&
+              (r.relationship_type === "parent_child" || r.relationship_type === "adopted")
+            ) {
+              edgeIds.add(r.id);
+              nodeIds.add(r.to_member_id);
+              if (!spouseVisited.has(r.to_member_id)) {
+                spouseVisited.add(r.to_member_id);
+                spouseQueue.push({ id: r.to_member_id, depth: current.depth + 1 });
+              }
+            }
+          }
+        }
+      }
+    }
+
     return {
       selectedDescendantNodeIds: nodeIds,
       selectedDescendantEdgeIds: edgeIds,
@@ -233,16 +267,24 @@ function TreeCanvasInner({
   );
 
   // When members/relationships change (new data from server), update nodes
-  // but preserve positions of existing nodes that the user has dragged
+  // but preserve positions of existing nodes. New nodes land at viewport center.
   useEffect(() => {
     setNodes((currentNodes) => {
-      const currentPositions = new Map(
-        currentNodes.map((n) => [n.id, n.position])
-      );
-      return initialNodes.map((n) => ({
-        ...n,
-        position: currentPositions.get(n.id) ?? n.position,
-      }));
+      const currentPositions = new Map(currentNodes.map((n) => [n.id, n.position]));
+      const pendingCenter = pendingViewportCenterRef.current;
+      let usedCenter = false;
+      const result = initialNodes.map((n) => {
+        const existing = currentPositions.get(n.id);
+        if (existing) return { ...n, position: existing };
+        // New node — place at viewport center if we have one
+        if (pendingCenter) {
+          usedCenter = true;
+          return { ...n, position: { x: pendingCenter.x - 100, y: pendingCenter.y - 50 } };
+        }
+        return n;
+      });
+      if (usedCenter) pendingViewportCenterRef.current = null;
+      return result;
     });
   }, [initialNodes, setNodes]);
 
@@ -472,19 +514,19 @@ function TreeCanvasInner({
     setContextMenu(null);
   }, []);
 
-  // Handle drag-to-connect: create a parent_child relationship
+  // Handle drag-to-connect: right/left handles → spouse; bottom/top handles → parent_child
   const handleConnect = useCallback(
     async (connection: Connection) => {
       if (!canEdit || !connection.source || !connection.target) return;
-
+      const isSpouseConnect = connection.sourceHandle === "right" || connection.targetHandle === "left";
       try {
         await createRelationship({
           tree_id: tree.id,
           from_member_id: connection.source,
           to_member_id: connection.target,
-          relationship_type: "parent_child",
+          relationship_type: isSpouseConnect ? "spouse" : "parent_child",
         });
-        toast.success("Relationship created");
+        toast.success(isSpouseConnect ? "Spouse connection created" : "Relationship created");
         router.refresh();
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to create relationship");
@@ -514,8 +556,31 @@ function TreeCanvasInner({
   );
 
   const handleMemberAdded = useCallback(() => {
+    // Capture viewport center so new node appears where the user is looking
+    pendingViewportCenterRef.current = screenToFlowPosition({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+    });
     router.refresh();
-  }, [router]);
+  }, [router, screenToFlowPosition]);
+
+  const handleAutoLayout = useCallback(() => {
+    setNodes((nds) =>
+      nds.map((n) => {
+        const layoutNode = layout.nodes.find((ln) => ln.id === n.id);
+        return layoutNode ? { ...n, position: layoutNode.position } : n;
+      })
+    );
+    saveMemberPositions(
+      tree.id,
+      layout.nodes.map((ln) => ({
+        id: ln.id,
+        position_x: Math.round(ln.position.x),
+        position_y: Math.round(ln.position.y),
+      }))
+    ).catch(() => {});
+    setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 50);
+  }, [layout.nodes, setNodes, tree.id, fitView]);
 
   const handleSelectMemberFromPanel = useCallback(
     (id: string) => {
@@ -603,6 +668,7 @@ function TreeCanvasInner({
           onSearch={() => setShowSearch(true)}
           onImportGedcom={() => setShowImportDialog(true)}
           onLinkMembers={() => setShowAddRelationshipDialog(true)}
+          onAutoLayout={handleAutoLayout}
           treeName={tree.name}
           canEdit={canEdit}
         />

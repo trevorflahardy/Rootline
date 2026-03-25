@@ -3,6 +3,7 @@
 import { memo } from "react";
 import {
   getBezierPath,
+  getStraightPath,
   type EdgeProps,
 } from "@xyflow/react";
 import type { RelationshipType } from "@/types";
@@ -26,17 +27,14 @@ function RelationshipEdgeComponent({
   targetPosition,
   data,
 }: EdgeProps & { data?: RelationshipEdgeData }) {
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-  });
-
   const highlightMode = data?.highlightMode ?? "none";
   const relType = data?.relationship_type ?? "parent_child";
+
+  const isMarriage = relType === "spouse" || relType === "divorced";
+  // Marriage edges use side handles so source/target are always horizontally aligned
+  const [edgePath] = isMarriage
+    ? getStraightPath({ sourceX, sourceY, targetX, targetY })
+    : getBezierPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
 
   const strokeDasharray =
     relType === "spouse"
@@ -85,7 +83,7 @@ function RelationshipEdgeComponent({
         fill="none"
         strokeDasharray={strokeDasharray}
         strokeLinecap="round"
-        markerEnd={`url(#${markerId})`}
+        markerEnd={isMarriage ? undefined : `url(#${markerId})`}
         style={{ stroke: color, strokeWidth: 1.5 }}
       />
     </g>

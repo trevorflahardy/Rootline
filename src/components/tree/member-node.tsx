@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { User, Crown, UserCheck } from "lucide-react";
@@ -18,6 +18,7 @@ export type MemberNodeData = TreeMember & {
 };
 
 function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
+  const [hovered, setHovered] = useState(false);
   const lifespan = formatLifespan(data.date_of_birth, data.date_of_death, data.is_deceased);
   const visualState = data.isSelected
     ? "selected"
@@ -39,13 +40,25 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
   return (
     <>
       <Handle
+        id="top"
         type="target"
         position={Position.Top}
         className="w-1.5! h-1.5! border-0! rounded-full! min-w-0! min-h-0!"
         style={{ background: handleColor }}
       />
+      {/* Left handle — target for incoming spouse connections */}
+      <Handle
+        id="left"
+        type="target"
+        position={Position.Left}
+        className="w-2.5! h-2.5! border-2! border-solid! rounded-full! min-w-0! min-h-0! transition-opacity duration-150"
+        style={{ background: "transparent", borderColor: handleColor, opacity: hovered ? 1 : 0 }}
+        title="Connect as spouse"
+      />
 
       <div
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={cn(
           "glass-card glass-edge-top rounded-2xl px-4 py-3 min-w-40 max-w-50 transition-all duration-200 cursor-pointer hover:bg-(--glass-bg-heavy)",
           data.is_deceased && "opacity-70",
@@ -109,7 +122,17 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         </div>
       </div>
 
+      {/* Right handle — source for outgoing spouse connections */}
       <Handle
+        id="right"
+        type="source"
+        position={Position.Right}
+        className="w-2.5! h-2.5! border-2! border-solid! rounded-full! min-w-0! min-h-0! transition-opacity duration-150"
+        style={{ background: "transparent", borderColor: handleColor, opacity: hovered ? 1 : 0 }}
+        title="Connect as spouse"
+      />
+      <Handle
+        id="bottom"
         type="source"
         position={Position.Bottom}
         className="w-1.5! h-1.5! border-0! rounded-full! min-w-0! min-h-0!"

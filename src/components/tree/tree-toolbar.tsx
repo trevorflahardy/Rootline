@@ -9,6 +9,7 @@ import {
   Search,
   Upload,
   Link2,
+  LayoutGrid,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -26,11 +27,12 @@ interface TreeToolbarProps {
   onSearch: () => void;
   onImportGedcom?: () => void;
   onLinkMembers?: () => void;
+  onAutoLayout?: () => void;
   treeName?: string;
   canEdit: boolean;
 }
 
-export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onLinkMembers, treeName, canEdit }: TreeToolbarProps) {
+export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onLinkMembers, onAutoLayout, treeName, canEdit }: TreeToolbarProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
@@ -61,6 +63,17 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
         </TooltipTrigger>
         <TooltipContent>Fit view</TooltipContent>
       </Tooltip>
+
+      {onAutoLayout && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAutoLayout}>
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Auto-format layout</TooltipContent>
+        </Tooltip>
+      )}
 
       <Separator orientation="vertical" className="h-6 mx-1" />
 

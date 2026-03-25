@@ -13,6 +13,8 @@ export interface LayoutEdge {
   source: string;
   target: string;
   type: "relationship";
+  sourceHandle?: string;
+  targetHandle?: string;
   data: {
     relationship_type: Relationship["relationship_type"];
     relationship_id: string;
@@ -85,17 +87,40 @@ export function computeTreeLayout(
     };
   });
 
+  // Post-process: align spouses/divorced partners to same Y and nudge side-by-side
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+  for (const rel of relationships) {
+    if (rel.relationship_type !== "spouse" && rel.relationship_type !== "divorced") continue;
+    const nodeA = nodeMap.get(rel.from_member_id);
+    const nodeB = nodeMap.get(rel.to_member_id);
+    if (!nodeA || !nodeB) continue;
+    // Align to the deeper Y so spouses sit at the correct generation level
+    const targetY = Math.max(nodeA.position.y, nodeB.position.y);
+    nodeA.position = { ...nodeA.position, y: targetY };
+    nodeB.position = { ...nodeB.position, y: targetY };
+    // If they are far apart horizontally, place B immediately to the right of A
+    const xDist = Math.abs(nodeA.position.x - nodeB.position.x);
+    if (xDist > NODE_WIDTH * 2 + 60) {
+      nodeB.position = { x: nodeA.position.x + NODE_WIDTH + 60, y: targetY };
+    }
+  }
+
   // Build React Flow edges (include all relationship types)
-  const edges: LayoutEdge[] = relationships.map((rel) => ({
-    id: rel.id,
-    source: rel.from_member_id,
-    target: rel.to_member_id,
-    type: "relationship" as const,
-    data: {
-      relationship_type: rel.relationship_type,
-      relationship_id: rel.id,
-    },
-  }));
+  const edges: LayoutEdge[] = relationships.map((rel) => {
+    const isMarriage = rel.relationship_type === "spouse" || rel.relationship_type === "divorced";
+    return {
+      id: rel.id,
+      source: rel.from_member_id,
+      target: rel.to_member_id,
+      type: "relationship" as const,
+      sourceHandle: isMarriage ? "right" : "bottom",
+      targetHandle: isMarriage ? "left" : "top",
+      data: {
+        relationship_type: rel.relationship_type,
+        relationship_id: rel.id,
+      },
+    };
+  });
 
   return { nodes, edges };
 }

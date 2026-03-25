@@ -920,6 +920,28 @@ Analytics panel showing tree completeness and interesting facts.
 
 ---
 
+### Stream 37: Gender Editing & Horizontal Marriage Connections
+
+**Status**: ✅ COMPLETE
+
+Two UX fixes: inline gender editing in the member panel, and proper horizontal marriage edge rendering in the tree.
+
+#### 37a: Gender Editing in Member Panel
+
+- [x] Add `InlineSelectField` component to `member-detail-panel.tsx` — select-based inline edit (click-to-edit, saves via `handleInlineSave`)
+- [x] Add Gender field to the panel's details section using `InlineSelectField` (Male / Female / Custom / Unknown)
+- [x] Rename "Other" → "Custom" across all gender selects: `add-member-dialog.tsx`, `edit-member-dialog.tsx`
+- [x] Update gender Badge display in panel header: shows "Custom" for stored value `"other"`
+- [x] Import `Select`, `SelectContent`, `SelectItem`, `SelectTrigger`, `SelectValue` into `member-detail-panel.tsx`
+
+#### 37b: Horizontal Marriage Connections
+
+- [x] `tree-layout.ts` — post-process spouse/divorced pairs after dagre layout: align both nodes to same Y (deeper of the two), nudge B adjacent to A if they're more than `2×NODE_WIDTH + 60px` apart
+- [x] `relationship-edge.tsx` — import `getStraightPath`; use straight path for spouse/divorced edges when `|sourceY − targetY| < 20px` (horizontal marriage line)
+- [x] Remove arrowhead (`markerEnd`) from marriage edges — marriage lines are bidirectional and traditionally arrow-free
+
+---
+
 ### Stream 34: Birthday Reminders (Feature E)
 
 **Status**: 🔴 TODO
