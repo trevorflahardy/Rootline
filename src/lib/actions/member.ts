@@ -48,6 +48,12 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
       gender: orNull(validated.gender),
       date_of_birth: orNull(validated.date_of_birth),
       date_of_death: orNull(validated.date_of_death),
+      birth_year: validated.birth_year ?? null,
+      birth_month: validated.birth_month ?? null,
+      birth_day: validated.birth_day ?? null,
+      death_year: validated.death_year ?? null,
+      death_month: validated.death_month ?? null,
+      death_day: validated.death_day ?? null,
       birth_place: validated.birth_place ? sanitizeText(validated.birth_place) : null,
       death_place: validated.death_place ? sanitizeText(validated.death_place) : null,
       bio: validated.bio ? sanitizeText(validated.bio) : null,
@@ -226,10 +232,11 @@ export async function getMembersWithStats(treeId: string): Promise<MemberWithSta
 
   return (membersResult.data as TreeMember[]).map((m) => {
     const relCount = relCounts.get(m.id) ?? 0;
-    const filledFields = [m.first_name, m.last_name, m.date_of_birth].filter(Boolean).length;
+    const hasBirthValue = Boolean(m.date_of_birth || m.birth_year);
+    const filledFields = [m.first_name, m.last_name, hasBirthValue ? "1" : ""].filter(Boolean).length;
     const completeness: MemberWithStats["completeness"] =
       filledFields === 3 && relCount > 0 ? "complete" :
-      filledFields > 0 || relCount > 0 ? "partial" : "empty";
+        filledFields > 0 || relCount > 0 ? "partial" : "empty";
     return {
       ...m,
       relationship_count: relCount,

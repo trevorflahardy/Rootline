@@ -2,6 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -20,6 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { updateMember } from "@/lib/actions/member";
 import { updateMemberSchema, type UpdateMemberInput } from "@/lib/validators/member";
 import type { TreeMember } from "@/types";
+
+type UpdateMemberFormValues = z.input<typeof updateMemberSchema>;
 
 interface EditMemberDialogProps {
   open: boolean;
@@ -42,7 +45,7 @@ export function EditMemberDialog({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<UpdateMemberInput>({
+  } = useForm<UpdateMemberFormValues>({
     resolver: zodResolver(updateMemberSchema),
     defaultValues: {
       first_name: member.first_name,
@@ -60,9 +63,10 @@ export function EditMemberDialog({
 
   const isDeceased = watch("is_deceased");
 
-  async function onSubmit(data: UpdateMemberInput) {
+  async function onSubmit(data: UpdateMemberFormValues) {
     try {
-      await updateMember(member.id, treeId, data);
+      const validatedData: UpdateMemberInput = updateMemberSchema.parse(data);
+      await updateMember(member.id, treeId, validatedData);
       toast.success("Member updated");
       onOpenChange(false);
       onUpdated();
@@ -105,7 +109,7 @@ export function EditMemberDialog({
               <Label>Gender</Label>
               <Select
                 defaultValue={member.gender ?? undefined}
-                onValueChange={(v) => setValue("gender", v as UpdateMemberInput["gender"])}
+                onValueChange={(v) => setValue("gender", v as UpdateMemberFormValues["gender"])}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select..." />

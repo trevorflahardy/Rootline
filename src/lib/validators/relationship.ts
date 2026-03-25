@@ -26,4 +26,18 @@ export const createRelationshipSchema = z
     path: ["to_member_id"],
   });
 
+export const updateRelationshipSchema = z
+  .object({
+    relationship_id: z.uuid(),
+    tree_id: z.uuid(),
+    from_member_id: z.uuid(),
+    to_member_id: z.uuid(),
+    relationship_type: relationshipTypeEnum,
+  })
+  .refine((d) => d.from_member_id !== d.to_member_id, {
+    message: "A member cannot have a relationship with themselves",
+    path: ["to_member_id"],
+  });
+
 export type CreateRelationshipInput = z.infer<typeof createRelationshipSchema>;
+export type UpdateRelationshipInput = z.infer<typeof updateRelationshipSchema>;

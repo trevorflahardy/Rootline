@@ -29,6 +29,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils/date";
 import { updateMember } from "@/lib/actions/member";
+import { deleteRelationship, updateRelationship } from "@/lib/actions/relationship";
 import { getDocumentsByMember, uploadDocument } from "@/lib/actions/document";
 import { getPhotosByMemberId, type Media } from "@/lib/actions/photo";
 import { DocumentTypeBadge } from "@/components/documents/document-type-badge";
@@ -44,7 +45,18 @@ import {
   type NodeProfileLink,
   type NodeMembership,
 } from "@/lib/actions/permissions";
-import type { TreeMember, Relationship, Document } from "@/types";
+import type { TreeMember, Relationship, Document, RelationshipType } from "@/types";
+
+type RelationshipListDirection = "incoming" | "outgoing" | "peer";
+
+interface RelatedRelationshipItem {
+  member: TreeMember;
+  type: RelationshipType;
+  relationshipId: string;
+  fromMemberId: string;
+  toMemberId: string;
+  direction: RelationshipListDirection;
+}
 
 interface MemberDetailPanelProps {
   member: TreeMember;
@@ -227,44 +239,144 @@ function InlineSelectField({
 function RelatedMemberCard({
   member,
   badge,
+  relationshipType,
+  relationshipId,
+  fromMemberId,
+  toMemberId,
+  direction,
+  canManage,
+  onDeleteRelationship,
+  onChangeRelationshipType,
   onSelect,
   onHover,
 }: {
   member: TreeMember;
   badge?: string;
+  relationshipType?: RelationshipType;
+  relationshipId?: string;
+  fromMemberId?: string;
+  toMemberId?: string;
+  direction?: RelationshipListDirection;
+  canManage?: boolean;
+  onDeleteRelationship?: (relationshipId: string) => Promise<void>;
+  onChangeRelationshipType?: (input: {
+    relationshipId: string;
+    nextType: RelationshipType;
+    relatedMemberId: string;
+    currentType: RelationshipType;
+    fromMemberId: string;
+    toMemberId: string;
+    direction: RelationshipListDirection;
+  }) => Promise<void>;
   onSelect: () => void;
   onHover?: (hovering: boolean) => void;
 }) {
+  const [updatingType, setUpdatingType] = useState(false);
+  const [deletingRelationship, setDeletingRelationship] = useState(false);
+
+  const canEditRelationship =
+    !!canManage &&
+    !!relationshipType &&
+    !!relationshipId &&
+    !!fromMemberId &&
+    !!toMemberId &&
+    !!direction;
+
   return (
-    <button
-      onClick={onSelect}
+    <div
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
-      className="flex items-center gap-2.5 w-full rounded-lg px-2 py-2 text-sm glass-card glass-light hover:bg-foreground/10 dark:hover:bg-foreground/10 transition-colors text-left group"
+      className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm glass-card glass-light hover:bg-foreground/10 dark:hover:bg-foreground/10 transition-colors"
     >
-      <div className="h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
-        {member.avatar_url ? (
-          <Image src={member.avatar_url} alt={member.first_name} className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
-        ) : (
-          <User className="h-4 w-4" />
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">
-          {member.first_name} {member.last_name}
-        </p>
-        {member.date_of_birth && (
-          <p className="text-[10px] text-muted-foreground">
-            {member.date_of_birth.substring(0, 4)}
-            {member.is_deceased && member.date_of_death ? ` – ${member.date_of_death.substring(0, 4)}` : ""}
+      <button onClick={onSelect} className="flex items-center gap-2.5 min-w-0 flex-1 text-left">
+        <div className="h-8 w-8 rounded-full shrink-0 flex items-center justify-center bg-primary/10 text-primary overflow-hidden">
+          {member.avatar_url ? (
+            <Image src={member.avatar_url} alt={member.first_name} className="h-8 w-8 rounded-full object-cover" width={32} height={32} />
+          ) : (
+            <User className="h-4 w-4" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate">
+            {member.first_name} {member.last_name}
           </p>
-        )}
-      </div>
+          {member.date_of_birth && (
+            <p className="text-[10px] text-muted-foreground">
+              {member.date_of_birth.substring(0, 4)}
+              {member.is_deceased && member.date_of_death ? ` – ${member.date_of_death.substring(0, 4)}` : ""}
+            </p>
+          )}
+        </div>
+      </button>
+
       {badge && (
-        <Badge variant="outline" className="text-[10px] ml-auto flex-shrink-0">{badge}</Badge>
+        <Badge variant="outline" className="text-[10px] shrink-0">{badge}</Badge>
       )}
-      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-    </button>
+
+      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+
+      {canEditRelationship && onChangeRelationshipType && relationshipType && relationshipId && fromMemberId && toMemberId && direction && (
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0" onClick={(e) => e.stopPropagation()}>
+          <Select
+            value={relationshipType}
+            disabled={updatingType || deletingRelationship}
+            onValueChange={async (nextType) => {
+              if (nextType === relationshipType) return;
+              setUpdatingType(true);
+              try {
+                await onChangeRelationshipType({
+                  relationshipId,
+                  nextType: nextType as RelationshipType,
+                  relatedMemberId: member.id,
+                  currentType: relationshipType,
+                  fromMemberId,
+                  toMemberId,
+                  direction,
+                });
+              } finally {
+                setUpdatingType(false);
+              }
+            }}
+          >
+            <SelectTrigger className="h-7 w-[120px] text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="parent_child">Parent/Child</SelectItem>
+              <SelectItem value="adopted">Adopted</SelectItem>
+              <SelectItem value="spouse">Spouse</SelectItem>
+              <SelectItem value="divorced">Divorced</SelectItem>
+              <SelectItem value="sibling">Sibling</SelectItem>
+              <SelectItem value="step_parent">Step-Parent</SelectItem>
+              <SelectItem value="step_child">Step-Child</SelectItem>
+              <SelectItem value="in_law">In-Law</SelectItem>
+              <SelectItem value="guardian">Guardian</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {canEditRelationship && onDeleteRelationship && relationshipId && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+          disabled={deletingRelationship || updatingType}
+          onClick={async (e) => {
+            e.stopPropagation();
+            setDeletingRelationship(true);
+            try {
+              await onDeleteRelationship(relationshipId);
+            } finally {
+              setDeletingRelationship(false);
+            }
+          }}
+          title="Delete relationship"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -361,6 +473,7 @@ export function MemberDetailPanel({
   const [editCheckLoading, setEditCheckLoading] = useState(true);
   const [nodeMembership, setNodeMembership] = useState<NodeMembership | null>(null);
   const [roleUpdating, setRoleUpdating] = useState(false);
+  const [relationshipMutationLoading, setRelationshipMutationLoading] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [photos, setPhotos] = useState<Media[]>([]);
   const [photoUploadOpen, setPhotoUploadOpen] = useState(false);
@@ -448,15 +561,29 @@ export function MemberDetailPanel({
   // Find parents, children, spouses, and extended relationships
   const parents = relationships
     .filter((r) => r.to_member_id === member.id && (r.relationship_type === "parent_child" || r.relationship_type === "adopted"))
-    .map((r) => ({ member: memberMap.get(r.from_member_id), type: r.relationship_type }))
-    .filter((p) => p.member) as Array<{ member: TreeMember; type: string }>;
+    .map((r) => ({
+      member: memberMap.get(r.from_member_id),
+      type: r.relationship_type,
+      relationshipId: r.id,
+      fromMemberId: r.from_member_id,
+      toMemberId: r.to_member_id,
+      direction: "incoming" as RelationshipListDirection,
+    }))
+    .filter((p) => p.member) as RelatedRelationshipItem[];
 
   const children = relationships
     .filter((r) => r.from_member_id === member.id && (r.relationship_type === "parent_child" || r.relationship_type === "adopted"))
-    .map((r) => ({ member: memberMap.get(r.to_member_id), type: r.relationship_type }))
-    .filter((c) => c.member) as Array<{ member: TreeMember; type: string }>;
+    .map((r) => ({
+      member: memberMap.get(r.to_member_id),
+      type: r.relationship_type,
+      relationshipId: r.id,
+      fromMemberId: r.from_member_id,
+      toMemberId: r.to_member_id,
+      direction: "outgoing" as RelationshipListDirection,
+    }))
+    .filter((c) => c.member) as RelatedRelationshipItem[];
 
-  const spouseMap = new Map<string, { member: TreeMember; type: string; relationshipId: string }>();
+  const spouseMap = new Map<string, RelatedRelationshipItem>();
   for (const rel of relationships) {
     if (rel.relationship_type !== "spouse" && rel.relationship_type !== "divorced") continue;
     if (rel.from_member_id !== member.id && rel.to_member_id !== member.id) continue;
@@ -472,6 +599,9 @@ export function MemberDetailPanel({
         member: otherMember,
         type: rel.relationship_type,
         relationshipId: rel.id,
+        fromMemberId: rel.from_member_id,
+        toMemberId: rel.to_member_id,
+        direction: "peer",
       });
     }
   }
@@ -485,9 +615,16 @@ export function MemberDetailPanel({
     )
     .map((r) => {
       const otherId = r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
-      return { member: memberMap.get(otherId), type: r.relationship_type };
+      return {
+        member: memberMap.get(otherId),
+        type: r.relationship_type,
+        relationshipId: r.id,
+        fromMemberId: r.from_member_id,
+        toMemberId: r.to_member_id,
+        direction: "peer" as RelationshipListDirection,
+      };
     })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+    .filter((s) => s.member) as RelatedRelationshipItem[];
 
   const stepParents = relationships
     .filter(
@@ -497,9 +634,16 @@ export function MemberDetailPanel({
     )
     .map((r) => {
       const parentId = r.relationship_type === "step_parent" ? r.from_member_id : r.to_member_id;
-      return { member: memberMap.get(parentId), type: r.relationship_type };
+      return {
+        member: memberMap.get(parentId),
+        type: r.relationship_type,
+        relationshipId: r.id,
+        fromMemberId: r.from_member_id,
+        toMemberId: r.to_member_id,
+        direction: "incoming" as RelationshipListDirection,
+      };
     })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+    .filter((s) => s.member) as RelatedRelationshipItem[];
 
   const stepChildren = relationships
     .filter(
@@ -509,9 +653,16 @@ export function MemberDetailPanel({
     )
     .map((r) => {
       const childId = r.relationship_type === "step_parent" ? r.to_member_id : r.from_member_id;
-      return { member: memberMap.get(childId), type: r.relationship_type };
+      return {
+        member: memberMap.get(childId),
+        type: r.relationship_type,
+        relationshipId: r.id,
+        fromMemberId: r.from_member_id,
+        toMemberId: r.to_member_id,
+        direction: "outgoing" as RelationshipListDirection,
+      };
     })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+    .filter((s) => s.member) as RelatedRelationshipItem[];
 
   const inLaws = relationships
     .filter(
@@ -521,19 +672,120 @@ export function MemberDetailPanel({
     )
     .map((r) => {
       const otherId = r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
-      return { member: memberMap.get(otherId), type: r.relationship_type };
+      return {
+        member: memberMap.get(otherId),
+        type: r.relationship_type,
+        relationshipId: r.id,
+        fromMemberId: r.from_member_id,
+        toMemberId: r.to_member_id,
+        direction: "peer" as RelationshipListDirection,
+      };
     })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+    .filter((s) => s.member) as RelatedRelationshipItem[];
 
   const guardians = relationships
     .filter((r) => r.to_member_id === member.id && r.relationship_type === "guardian")
-    .map((r) => ({ member: memberMap.get(r.from_member_id), type: r.relationship_type }))
-    .filter((g) => g.member) as Array<{ member: TreeMember; type: string }>;
+    .map((r) => ({
+      member: memberMap.get(r.from_member_id),
+      type: r.relationship_type,
+      relationshipId: r.id,
+      fromMemberId: r.from_member_id,
+      toMemberId: r.to_member_id,
+      direction: "incoming" as RelationshipListDirection,
+    }))
+    .filter((g) => g.member) as RelatedRelationshipItem[];
 
   const wards = relationships
     .filter((r) => r.from_member_id === member.id && r.relationship_type === "guardian")
-    .map((r) => ({ member: memberMap.get(r.to_member_id), type: r.relationship_type }))
-    .filter((w) => w.member) as Array<{ member: TreeMember; type: string }>;
+    .map((r) => ({
+      member: memberMap.get(r.to_member_id),
+      type: r.relationship_type,
+      relationshipId: r.id,
+      fromMemberId: r.from_member_id,
+      toMemberId: r.to_member_id,
+      direction: "outgoing" as RelationshipListDirection,
+    }))
+    .filter((w) => w.member) as RelatedRelationshipItem[];
+
+  const handleDeleteRelationship = useCallback(
+    async (relationshipId: string) => {
+      setRelationshipMutationLoading(true);
+      try {
+        await deleteRelationship(relationshipId, treeId);
+        toast.success("Relationship deleted");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to delete relationship");
+      } finally {
+        setRelationshipMutationLoading(false);
+      }
+    },
+    [router, treeId]
+  );
+
+  const handleChangeRelationshipType = useCallback(
+    async ({
+      relationshipId,
+      nextType,
+      relatedMemberId,
+      fromMemberId,
+      toMemberId,
+      direction,
+    }: {
+      relationshipId: string;
+      nextType: RelationshipType;
+      relatedMemberId: string;
+      currentType: RelationshipType;
+      fromMemberId: string;
+      toMemberId: string;
+      direction: RelationshipListDirection;
+    }) => {
+      const directedTypes: RelationshipType[] = ["parent_child", "adopted", "step_parent", "guardian", "step_child"];
+      const isDirectedType = directedTypes.includes(nextType);
+
+      let nextFrom = fromMemberId;
+      let nextTo = toMemberId;
+
+      if (!isDirectedType) {
+        nextFrom = member.id;
+        nextTo = relatedMemberId;
+      } else if (nextType === "step_child") {
+        if (direction === "incoming") {
+          nextFrom = member.id;
+          nextTo = relatedMemberId;
+        } else if (direction === "outgoing") {
+          nextFrom = relatedMemberId;
+          nextTo = member.id;
+        }
+      } else {
+        if (direction === "incoming") {
+          nextFrom = relatedMemberId;
+          nextTo = member.id;
+        } else if (direction === "outgoing") {
+          nextFrom = member.id;
+          nextTo = relatedMemberId;
+        }
+      }
+
+      setRelationshipMutationLoading(true);
+      try {
+        await updateRelationship({
+          relationship_id: relationshipId,
+          tree_id: treeId,
+          from_member_id: nextFrom,
+          to_member_id: nextTo,
+          relationship_type: nextType,
+        });
+        toast.success("Relationship updated");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to update relationship");
+      } finally {
+        setRelationshipMutationLoading(false);
+      }
+    },
+    [member.id, router, treeId]
+  );
 
   const handleInlineSave = useCallback(
     async (field: string, value: string) => {
@@ -764,6 +1016,14 @@ export function MemberDetailPanel({
                     key={p.member.id}
                     member={p.member}
                     badge={p.type === "adopted" ? "Adopted" : undefined}
+                    relationshipType={p.type}
+                    relationshipId={p.relationshipId}
+                    fromMemberId={p.fromMemberId}
+                    toMemberId={p.toMemberId}
+                    direction={p.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(p.member.id)}
                     onHover={(h) => onHoverMember?.(h ? p.member.id : null)}
                   />
@@ -781,6 +1041,14 @@ export function MemberDetailPanel({
                     key={s.relationshipId}
                     member={s.member}
                     badge={s.type === "divorced" ? "Divorced" : undefined}
+                    relationshipType={s.type}
+                    relationshipId={s.relationshipId}
+                    fromMemberId={s.fromMemberId}
+                    toMemberId={s.toMemberId}
+                    direction={s.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(s.member.id)}
                     onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
                   />
@@ -798,6 +1066,14 @@ export function MemberDetailPanel({
                     key={c.member.id}
                     member={c.member}
                     badge={c.type === "adopted" ? "Adopted" : undefined}
+                    relationshipType={c.type}
+                    relationshipId={c.relationshipId}
+                    fromMemberId={c.fromMemberId}
+                    toMemberId={c.toMemberId}
+                    direction={c.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(c.member.id)}
                     onHover={(h) => onHoverMember?.(h ? c.member.id : null)}
                   />
@@ -814,6 +1090,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={s.member.id}
                     member={s.member}
+                    relationshipType={s.type}
+                    relationshipId={s.relationshipId}
+                    fromMemberId={s.fromMemberId}
+                    toMemberId={s.toMemberId}
+                    direction={s.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(s.member.id)}
                     onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
                   />
@@ -830,6 +1114,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={s.member.id}
                     member={s.member}
+                    relationshipType={s.type}
+                    relationshipId={s.relationshipId}
+                    fromMemberId={s.fromMemberId}
+                    toMemberId={s.toMemberId}
+                    direction={s.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(s.member.id)}
                     onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
                   />
@@ -846,6 +1138,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={s.member.id}
                     member={s.member}
+                    relationshipType={s.type}
+                    relationshipId={s.relationshipId}
+                    fromMemberId={s.fromMemberId}
+                    toMemberId={s.toMemberId}
+                    direction={s.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(s.member.id)}
                     onHover={(h) => onHoverMember?.(h ? s.member.id : null)}
                   />
@@ -862,6 +1162,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={il.member.id}
                     member={il.member}
+                    relationshipType={il.type}
+                    relationshipId={il.relationshipId}
+                    fromMemberId={il.fromMemberId}
+                    toMemberId={il.toMemberId}
+                    direction={il.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(il.member.id)}
                     onHover={(h) => onHoverMember?.(h ? il.member.id : null)}
                   />
@@ -878,6 +1186,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={g.member.id}
                     member={g.member}
+                    relationshipType={g.type}
+                    relationshipId={g.relationshipId}
+                    fromMemberId={g.fromMemberId}
+                    toMemberId={g.toMemberId}
+                    direction={g.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(g.member.id)}
                     onHover={(h) => onHoverMember?.(h ? g.member.id : null)}
                   />
@@ -894,6 +1210,14 @@ export function MemberDetailPanel({
                   <RelatedMemberCard
                     key={w.member.id}
                     member={w.member}
+                    relationshipType={w.type}
+                    relationshipId={w.relationshipId}
+                    fromMemberId={w.fromMemberId}
+                    toMemberId={w.toMemberId}
+                    direction={w.direction}
+                    canManage={memberCanEdit && !relationshipMutationLoading}
+                    onDeleteRelationship={handleDeleteRelationship}
+                    onChangeRelationshipType={handleChangeRelationshipType}
                     onSelect={() => onSelectMember(w.member.id)}
                     onHover={(h) => onHoverMember?.(h ? w.member.id : null)}
                   />

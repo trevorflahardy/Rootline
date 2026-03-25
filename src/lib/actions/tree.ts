@@ -13,6 +13,8 @@ export async function createTree(input: CreateTreeInput) {
   const validated = createTreeSchema.parse(input);
   const supabase = createAdminClient();
 
+  await supabase.rpc("set_request_user_id", { user_id: userId });
+
   // Create the tree
   const { data: tree, error: treeError } = await supabase
     .from("family_trees")
@@ -142,6 +144,8 @@ export async function updateTree(treeId: string, input: UpdateTreeInput) {
     throw new Error("Only the owner can update tree settings");
   }
 
+  await supabase.rpc("set_request_user_id", { user_id: userId });
+
   const { data, error } = await supabase
     .from("family_trees")
     .update(validated)
@@ -201,6 +205,8 @@ export async function updateMembership(membershipId: string, treeId: string, rol
     throw new Error("Only the owner can change roles");
   }
 
+  await supabase.rpc("set_request_user_id", { user_id: userId });
+
   const { error } = await supabase
     .from("tree_memberships")
     .update({ role })
@@ -223,6 +229,8 @@ export async function removeMembership(membershipId: string, treeId: string) {
   if (!membership || membership.role !== "owner") {
     throw new Error("Only the owner can remove members");
   }
+
+  await supabase.rpc("set_request_user_id", { user_id: userId });
 
   const { error } = await supabase
     .from("tree_memberships")
@@ -259,6 +267,8 @@ export async function deleteTree(treeId: string) {
   if (!tree || tree.owner_id !== userId) {
     throw new Error("Only the owner can delete a tree");
   }
+
+  await supabase.rpc("set_request_user_id", { user_id: userId });
 
   const { error } = await supabase
     .from("family_trees")

@@ -43,6 +43,8 @@ export async function createInvite(input: CreateInviteInput): Promise<Invitation
     throw new Error("Only tree owners can create invites");
   }
 
+  await supabase.rpc("set_request_user_id", { user_id: userId });
+
   // Check if target node already has a linked user
   if (validated.target_node_id) {
     const { data: existingLink } = await supabase
@@ -157,6 +159,8 @@ export async function acceptInvite(inviteCode: string): Promise<{ treeId: string
     return { treeId: invite.tree_id };
   }
 
+  await supabase.rpc("set_request_user_id", { user_id: userId });
+
   // Create membership
   const { error: membershipError } = await supabase
     .from("tree_memberships")
@@ -193,6 +197,8 @@ export async function revokeInvite(inviteId: string, treeId: string): Promise<vo
   if (!membership || membership.role !== "owner") {
     throw new Error("Only owners can revoke invites");
   }
+
+  await supabase.rpc("set_request_user_id", { user_id: userId });
 
   const { error } = await supabase
     .from("invitations")

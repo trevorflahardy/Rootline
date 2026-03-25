@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod/v4";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -27,6 +28,8 @@ import { createMember } from "@/lib/actions/member";
 import { createRelationship } from "@/lib/actions/relationship";
 import { createMemberSchema, type CreateMemberInput } from "@/lib/validators/member";
 import type { TreeMember, RelationshipType } from "@/types";
+
+type CreateMemberFormValues = z.input<typeof createMemberSchema>;
 
 interface AddMemberDialogProps {
   open: boolean;
@@ -58,7 +61,7 @@ export function AddMemberDialog({
     setValue,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<CreateMemberInput>({
+  } = useForm<CreateMemberFormValues>({
     resolver: zodResolver(createMemberSchema),
     defaultValues: {
       tree_id: treeId,
@@ -75,9 +78,10 @@ export function AddMemberDialog({
     setMemberSearchOpen(false);
   }, [defaultRelatedMemberId, defaultRelationshipDirection, open]);
 
-  async function onSubmit(data: CreateMemberInput) {
+  async function onSubmit(data: CreateMemberFormValues) {
     try {
-      const member = await createMember(data);
+      const validatedData: CreateMemberInput = createMemberSchema.parse(data);
+      const member = await createMember(validatedData);
 
       // Create relationship if a related member was selected
       if (relatedMemberId) {
@@ -93,7 +97,7 @@ export function AddMemberDialog({
         });
       }
 
-      toast.success(`${data.first_name} added to the tree`);
+      toast.success(`${validatedData.first_name} added to the tree`);
       onOpenChange(false);
       reset({ tree_id: treeId, is_deceased: false });
       setRelatedMemberId("");
@@ -135,7 +139,7 @@ export function AddMemberDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Gender</Label>
-              <Select onValueChange={(v) => setValue("gender", v as CreateMemberInput["gender"])}>
+              <Select onValueChange={(v) => setValue("gender", v as CreateMemberFormValues["gender"])}>
                 <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,42 @@ import {
   markAllAsRead,
   type Notification,
 } from "@/lib/actions/notification";
+
+function PersonPill({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl?: string | null;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full glass-card glass-light px-2.5 py-1 text-[11px] font-medium">
+      {avatarUrl ? (
+        <Image
+          src={avatarUrl}
+          alt={name}
+          width={16}
+          height={16}
+          className="h-4 w-4 rounded-full object-cover"
+        />
+      ) : (
+        <span className="h-4 w-4 rounded-full bg-primary/15 flex items-center justify-center text-[9px] text-primary">
+          {name.charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className="truncate max-w-[120px]">{name}</span>
+    </span>
+  );
+}
+
+function notificationVerb(type: string): string {
+  if (type === "member_added") return "was added";
+  if (type === "member_updated") return "was updated";
+  if (type === "member_removed") return "was removed";
+  if (type === "relationship_added") return "relationship added";
+  if (type === "relationship_removed") return "relationship removed";
+  return "changed";
+}
 
 export function NotificationBell() {
   const router = useRouter();
@@ -120,7 +157,31 @@ export function NotificationBell() {
                     <span className="mt-1.5 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm leading-snug">{n.message}</p>
+                    {n.subject_members.length > 0 || n.actor ? (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {n.subject_members.map((member) => (
+                            <PersonPill key={member.id} name={member.name} avatarUrl={member.avatar_url} />
+                          ))}
+                          <span className="text-xs text-muted-foreground">{notificationVerb(n.type)}</span>
+                        </div>
+
+                        {n.actor && (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-[11px] text-muted-foreground">by</span>
+                            <PersonPill name={n.actor.display_name} avatarUrl={n.actor.avatar_url} />
+                          </div>
+                        )}
+
+                        {n.relationship_type && (
+                          <p className="text-[11px] text-muted-foreground capitalize">
+                            Type: {n.relationship_type.replace(/_/g, " ")}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-snug">{n.message}</p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {formatRelativeTime(n.created_at)}
                     </p>

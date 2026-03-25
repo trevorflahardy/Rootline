@@ -9,6 +9,12 @@ export interface TreeMember {
   gender: Gender | null;
   date_of_birth: string | null;
   date_of_death: string | null;
+  birth_year: number | null;
+  birth_month: number | null;
+  birth_day: number | null;
+  death_year: number | null;
+  death_month: number | null;
+  death_day: number | null;
   birth_place: string | null;
   death_place: string | null;
   bio: string | null;
@@ -28,6 +34,12 @@ export interface MemberFormData {
   gender?: Gender;
   date_of_birth?: string;
   date_of_death?: string;
+  birth_year?: number;
+  birth_month?: number;
+  birth_day?: number;
+  death_year?: number;
+  death_month?: number;
+  death_day?: number;
   birth_place?: string;
   death_place?: string;
   bio?: string;

@@ -14,6 +14,27 @@ export interface AuditLogEntry {
   old_data: Record<string, unknown> | null;
   new_data: Record<string, unknown> | null;
   created_at: string;
+  actor: {
+    clerk_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  subject_profile: {
+    clerk_id: string;
+    display_name: string;
+    avatar_url: string | null;
+  } | null;
+  subject_member: {
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  } | null;
+  related_members: Array<{
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    role: "from" | "to";
+  }>;
 }
 
 export interface TreeSnapshot {
@@ -82,7 +103,104 @@ export async function getAuditLog(
   const { data, error, count } = await query;
 
   if (error) throw new Error(`Failed to fetch audit log: ${error.message}`);
-  return { entries: (data ?? []) as AuditLogEntry[], total: count ?? 0 };
+
+  const rows = (data ?? []) as Array<{
+    id: string;
+    tree_id: string;
+    user_id: string | null;
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    old_data: Record<string, unknown> | null;
+    new_data: Record<string, unknown> | null;
+    created_at: string;
+  }>;
+
+  if (rows.length === 0) {
+    return { entries: [], total: count ?? 0 };
+  }
+
+  const profileIds = new Set<string>();
+  const memberIds = new Set<string>();
+
+  for (const row of rows) {
+    if (row.user_id) profileIds.add(row.user_id);
+
+    const payload = (row.new_data ?? row.old_data) as Record<string, unknown> | null;
+    const affectedUserId = typeof payload?.user_id === "string" ? payload.user_id : null;
+    if (affectedUserId) profileIds.add(affectedUserId);
+
+    const fromMemberId = typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
+    const toMemberId = typeof payload?.to_member_id === "string" ? payload.to_member_id : null;
+    if (fromMemberId) memberIds.add(fromMemberId);
+    if (toMemberId) memberIds.add(toMemberId);
+
+    if (row.entity_type === "tree_member" && row.entity_id) {
+      memberIds.add(row.entity_id);
+    }
+  }
+
+  const [profilesResult, membersResult] = await Promise.all([
+    profileIds.size > 0
+      ? supabase
+        .from("profiles")
+        .select("clerk_id, display_name, avatar_url")
+        .in("clerk_id", Array.from(profileIds))
+      : Promise.resolve({ data: [], error: null }),
+    memberIds.size > 0
+      ? supabase
+        .from("tree_members")
+        .select("id, first_name, last_name, avatar_url")
+        .in("id", Array.from(memberIds))
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const profileMap = new Map(
+    ((profilesResult.data ?? []) as Array<{ clerk_id: string; display_name: string; avatar_url: string | null }>).map((profile) => [profile.clerk_id, profile])
+  );
+
+  const memberMap = new Map(
+    ((membersResult.data ?? []) as Array<{ id: string; first_name: string; last_name: string | null; avatar_url: string | null }>).map((member) => [
+      member.id,
+      {
+        id: member.id,
+        name: `${member.first_name}${member.last_name ? ` ${member.last_name}` : ""}`,
+        avatar_url: member.avatar_url,
+      },
+    ])
+  );
+
+  const enriched: AuditLogEntry[] = rows.map((row) => {
+    const payload = (row.new_data ?? row.old_data) as Record<string, unknown> | null;
+    const affectedUserId = typeof payload?.user_id === "string" ? payload.user_id : null;
+    const fromMemberId = typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
+    const toMemberId = typeof payload?.to_member_id === "string" ? payload.to_member_id : null;
+
+    const relatedMembers: Array<{ id: string; name: string; avatar_url: string | null; role: "from" | "to" }> = [];
+    if (fromMemberId) {
+      const member = memberMap.get(fromMemberId);
+      if (member) relatedMembers.push({ ...member, role: "from" });
+    }
+    if (toMemberId) {
+      const member = memberMap.get(toMemberId);
+      if (member) relatedMembers.push({ ...member, role: "to" });
+    }
+
+    const subjectMember =
+      row.entity_type === "tree_member" && row.entity_id
+        ? memberMap.get(row.entity_id) ?? null
+        : null;
+
+    return {
+      ...row,
+      actor: row.user_id ? profileMap.get(row.user_id) ?? null : null,
+      subject_profile: affectedUserId ? profileMap.get(affectedUserId) ?? null : null,
+      subject_member: subjectMember,
+      related_members: relatedMembers,
+    };
+  });
+
+  return { entries: enriched, total: count ?? 0 };
 }
 
 export async function createSnapshot(

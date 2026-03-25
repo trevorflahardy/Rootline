@@ -567,16 +567,21 @@ function TreeCanvasInner({
       if (connectionState.toNode) return;
       if (!members.some((member) => member.id === start.nodeId)) return;
 
-      const sourceNode = nodesRef.current.find((node) => node.id === start.nodeId);
-      const sourceCenterY = sourceNode ? sourceNode.position.y + 50 : null;
-      const pointerY = connectionState.pointer?.y ?? null;
-
       let relationshipDirection: "parent" | "child" | "spouse" = "child";
 
       if (start.handleId === "right" || start.handleId === "left") {
         relationshipDirection = "spouse";
-      } else if (sourceCenterY != null && pointerY != null) {
-        relationshipDirection = pointerY < sourceCenterY ? "parent" : "child";
+      } else if (start.handleId === "top") {
+        relationshipDirection = "parent";
+      } else if (start.handleId === "bottom") {
+        relationshipDirection = "child";
+      } else {
+        const sourceNode = nodesRef.current.find((node) => node.id === start.nodeId);
+        const sourceCenterY = sourceNode ? sourceNode.position.y + 50 : null;
+        const pointerY = connectionState.pointer?.y ?? null;
+        if (sourceCenterY != null && pointerY != null) {
+          relationshipDirection = pointerY < sourceCenterY ? "parent" : "child";
+        }
       }
 
       setAddMemberDefaults({
