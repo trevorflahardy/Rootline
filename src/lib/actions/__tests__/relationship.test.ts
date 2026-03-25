@@ -245,6 +245,55 @@ describe("createRelationship", () => {
     expect(result.relationship_type).toBe("parent_child");
     expect(result.id).toBe("rel-1");
   });
+
+  it("rejects duplicate spouse relationship for same pair", async () => {
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "tree_memberships") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: { role: "editor" },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+
+      if (table === "relationships") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                or: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { id: "existing-spouse" },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+
+      return {};
+    });
+
+    await expect(
+      createRelationship({
+        tree_id: validUuid,
+        from_member_id: validUuid2,
+        to_member_id: validUuid3,
+        relationship_type: "spouse",
+      })
+    ).rejects.toThrow("A spouse relationship between these members already exists");
+  });
 });
 
 describe("deleteRelationship", () => {

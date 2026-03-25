@@ -567,7 +567,17 @@ function TreeCanvasInner({
       if (connectionState.toNode) return;
       if (!members.some((member) => member.id === start.nodeId)) return;
 
-      const relationshipDirection = start.handleId === "right" ? "spouse" : "child";
+      const sourceNode = nodesRef.current.find((node) => node.id === start.nodeId);
+      const sourceCenterY = sourceNode ? sourceNode.position.y + 50 : null;
+      const pointerY = connectionState.pointer?.y ?? null;
+
+      let relationshipDirection: "parent" | "child" | "spouse" = "child";
+
+      if (start.handleId === "right" || start.handleId === "left") {
+        relationshipDirection = "spouse";
+      } else if (sourceCenterY != null && pointerY != null) {
+        relationshipDirection = pointerY < sourceCenterY ? "parent" : "child";
+      }
 
       setAddMemberDefaults({
         relatedMemberId: start.nodeId,
@@ -604,6 +614,49 @@ function TreeCanvasInner({
     },
     [canEdit, tree.id]
   );
+
+  // Keep spouse edges horizontal by dynamically choosing left node as source and right node as target.
+  useEffect(() => {
+    setEdges((currentEdges) => {
+      const nodeX = new Map(nodes.map((node) => [node.id, node.position.x]));
+      let hasChanges = false;
+
+      const updatedEdges = currentEdges.map((edge) => {
+        if (edge.type !== "relationship") return edge;
+
+        const relData = edge.data as RelationshipEdgeData | undefined;
+        if (relData?.relationship_type !== "spouse") return edge;
+
+        const sourceX = nodeX.get(edge.source);
+        const targetX = nodeX.get(edge.target);
+        if (sourceX == null || targetX == null) return edge;
+
+        if (sourceX > targetX) {
+          hasChanges = true;
+          return {
+            ...edge,
+            source: edge.target,
+            target: edge.source,
+            sourceHandle: "right",
+            targetHandle: "left",
+          };
+        }
+
+        if (edge.sourceHandle !== "right" || edge.targetHandle !== "left") {
+          hasChanges = true;
+          return {
+            ...edge,
+            sourceHandle: "right",
+            targetHandle: "left",
+          };
+        }
+
+        return edge;
+      });
+
+      return hasChanges ? updatedEdges : currentEdges;
+    });
+  }, [nodes, setEdges]);
 
   const handleMemberAdded = useCallback(() => {
     // Capture viewport center so new node appears where the user is looking

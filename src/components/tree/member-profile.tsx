@@ -139,18 +139,25 @@ export function MemberProfile({
     .map((r) => memberMap.get(r.to_member_id))
     .filter(Boolean) as TreeMember[];
 
-  const spouses = relationships
-    .filter(
-      (r) =>
-        (r.from_member_id === member.id || r.to_member_id === member.id) &&
-        (r.relationship_type === "spouse" || r.relationship_type === "divorced")
-    )
-    .map((r) => {
-      const otherId =
-        r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
-      return { member: memberMap.get(otherId), type: r.relationship_type };
-    })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+  const spouseMap = new Map<string, { member: TreeMember; type: string; relationshipId: string }>();
+  for (const rel of relationships) {
+    if (rel.relationship_type !== "spouse" && rel.relationship_type !== "divorced") continue;
+    if (rel.from_member_id !== member.id && rel.to_member_id !== member.id) continue;
+
+    const otherId = rel.from_member_id === member.id ? rel.to_member_id : rel.from_member_id;
+    const otherMember = memberMap.get(otherId);
+    if (!otherMember) continue;
+
+    const existing = spouseMap.get(otherId);
+    if (!existing || (existing.type === "divorced" && rel.relationship_type === "spouse")) {
+      spouseMap.set(otherId, {
+        member: otherMember,
+        type: rel.relationship_type,
+        relationshipId: rel.id,
+      });
+    }
+  }
+  const spouses = Array.from(spouseMap.values());
 
   async function handleDelete() {
     setDeleting(true);
@@ -371,7 +378,7 @@ export function MemberProfile({
                   Spouse
                 </p>
                 {spouses.map((s) => (
-                  <div key={s.member.id} className="flex items-center">
+                  <div key={s.relationshipId} className="flex items-center">
                     <RelatedMemberLink m={s.member} />
                     {s.type === "divorced" && (
                       <Badge variant="outline" className="text-[10px] ml-1">

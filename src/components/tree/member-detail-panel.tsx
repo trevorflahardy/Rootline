@@ -456,17 +456,26 @@ export function MemberDetailPanel({
     .map((r) => ({ member: memberMap.get(r.to_member_id), type: r.relationship_type }))
     .filter((c) => c.member) as Array<{ member: TreeMember; type: string }>;
 
-  const spouses = relationships
-    .filter(
-      (r) =>
-        (r.from_member_id === member.id || r.to_member_id === member.id) &&
-        (r.relationship_type === "spouse" || r.relationship_type === "divorced")
-    )
-    .map((r) => {
-      const otherId = r.from_member_id === member.id ? r.to_member_id : r.from_member_id;
-      return { member: memberMap.get(otherId), type: r.relationship_type };
-    })
-    .filter((s) => s.member) as Array<{ member: TreeMember; type: string }>;
+  const spouseMap = new Map<string, { member: TreeMember; type: string; relationshipId: string }>();
+  for (const rel of relationships) {
+    if (rel.relationship_type !== "spouse" && rel.relationship_type !== "divorced") continue;
+    if (rel.from_member_id !== member.id && rel.to_member_id !== member.id) continue;
+
+    const otherId = rel.from_member_id === member.id ? rel.to_member_id : rel.from_member_id;
+    const otherMember = memberMap.get(otherId);
+    if (!otherMember) continue;
+
+    const existing = spouseMap.get(otherId);
+    // Prefer active spouse label when both spouse and divorced records exist.
+    if (!existing || (existing.type === "divorced" && rel.relationship_type === "spouse")) {
+      spouseMap.set(otherId, {
+        member: otherMember,
+        type: rel.relationship_type,
+        relationshipId: rel.id,
+      });
+    }
+  }
+  const spouses = Array.from(spouseMap.values());
 
   const siblings = relationships
     .filter(
@@ -769,7 +778,7 @@ export function MemberDetailPanel({
               <div className="space-y-0.5">
                 {spouses.map((s) => (
                   <RelatedMemberCard
-                    key={s.member.id}
+                    key={s.relationshipId}
                     member={s.member}
                     badge={s.type === "divorced" ? "Divorced" : undefined}
                     onSelect={() => onSelectMember(s.member.id)}

@@ -44,6 +44,27 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
     }
   }
 
+  if (validated.relationship_type === "spouse") {
+    const { data: existingSpouse, error: spouseCheckError } = await supabase
+      .from("relationships")
+      .select("id")
+      .eq("tree_id", validated.tree_id)
+      .eq("relationship_type", "spouse")
+      .or(
+        `and(from_member_id.eq.${validated.from_member_id},to_member_id.eq.${validated.to_member_id}),and(from_member_id.eq.${validated.to_member_id},to_member_id.eq.${validated.from_member_id})`
+      )
+      .limit(1)
+      .maybeSingle();
+
+    if (spouseCheckError) {
+      throw new Error(`Failed to check existing spouse relationship: ${spouseCheckError.message}`);
+    }
+
+    if (existingSpouse) {
+      throw new Error("A spouse relationship between these members already exists");
+    }
+  }
+
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
   const { data, error } = await supabase
