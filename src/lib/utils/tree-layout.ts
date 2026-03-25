@@ -10,6 +10,7 @@ export interface LayoutNode {
 
 export interface FamilyArcData {
   isFamilyArc: true;
+  arcId: string;
   parent1Id: string;
   parent2Id: string;
   childIds: string[];
@@ -28,7 +29,7 @@ export interface LayoutEdge {
     | FamilyArcData;
 }
 
-interface CoParentGroup {
+export interface CoParentGroup {
   parent1Id: string;
   parent2Id: string;
   sharedChildIds: string[];
@@ -57,15 +58,17 @@ function findCoParentGroups(relationships: Relationship[]): CoParentGroup[] {
     const p1Kids = childrenOf(p1);
     const p2Kids = childrenOf(p2);
     const shared = [...p1Kids].filter((id) => p2Kids.has(id));
-    if (shared.length === 0) continue;
-    const coveredRelIds = relationships
-      .filter(
-        (r) =>
-          (r.from_member_id === p1 || r.from_member_id === p2) &&
-          shared.includes(r.to_member_id) &&
-          (r.relationship_type === "parent_child" || r.relationship_type === "adopted")
-      )
-      .map((r) => r.id);
+    const coveredRelIds = shared.length > 0
+      ? relationships
+          .filter(
+            (r) =>
+              (r.from_member_id === p1 || r.from_member_id === p2) &&
+              shared.includes(r.to_member_id) &&
+              (r.relationship_type === "parent_child" || r.relationship_type === "adopted")
+          )
+          .map((r) => r.id)
+      : [];
+    // Include ALL spouse/divorced pairs — even without shared children — so every couple gets a block node
     groups.push({ parent1Id: p1, parent2Id: p2, sharedChildIds: shared, coveredRelIds, arcId: `arc-${pair.id}` });
   }
   return groups;
@@ -74,6 +77,7 @@ function findCoParentGroups(relationships: Relationship[]): CoParentGroup[] {
 export interface TreeLayout {
   nodes: LayoutNode[];
   edges: LayoutEdge[];
+  coParentGroups: CoParentGroup[];
 }
 
 const NODE_WIDTH = 200;
@@ -85,7 +89,8 @@ const NODE_HEIGHT = 100;
  */
 export function computeTreeLayout(
   members: TreeMember[],
-  relationships: Relationship[]
+  relationships: Relationship[],
+  joinEnabledMap?: Map<string, boolean>
 ): TreeLayout {
   const g = new dagre.graphlib.Graph();
 
@@ -157,12 +162,19 @@ export function computeTreeLayout(
 
   // Detect co-parent groups and build family-arc edges for shared children
   const coParentGroups = findCoParentGroups(relationships);
-  const coveredRelIdSet = new Set(coParentGroups.flatMap((g) => g.coveredRelIds));
+  // Only cover rel IDs for groups where join is enabled (default: true)
+  const coveredRelIdSet = new Set(
+    coParentGroups
+      .filter((g) => joinEnabledMap?.get(g.arcId) !== false)
+      .flatMap((g) => g.coveredRelIds)
+  );
 
   const edges: LayoutEdge[] = [];
 
-  // One family-arc edge per co-parent group (replaces N×M individual edges)
+  // One family-arc edge per co-parent group — skip if no shared children or join is disabled
   for (const group of coParentGroups) {
+    if (group.sharedChildIds.length === 0) continue;
+    if (joinEnabledMap?.get(group.arcId) === false) continue;
     edges.push({
       id: group.arcId,
       source: group.parent1Id,
@@ -170,6 +182,7 @@ export function computeTreeLayout(
       type: "family-arc",
       data: {
         isFamilyArc: true,
+        arcId: group.arcId,
         parent1Id: group.parent1Id,
         parent2Id: group.parent2Id,
         childIds: group.sharedChildIds,
@@ -196,7 +209,7 @@ export function computeTreeLayout(
     });
   }
 
-  return { nodes, edges };
+  return { nodes, edges, coParentGroups };
 }
 
 export { NODE_WIDTH, NODE_HEIGHT };

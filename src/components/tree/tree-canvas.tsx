@@ -28,7 +28,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { computeTreeLayout } from "@/lib/utils/tree-layout";
+import { computeTreeLayout, NODE_WIDTH, NODE_HEIGHT, type CoParentGroup } from "@/lib/utils/tree-layout";
 import { findPath, getPathRelationshipIds } from "@/lib/utils/path-finder";
 import { calculateRelationship } from "@/lib/utils/relationship-calculator";
 import { deleteMember, saveMemberPositions } from "@/lib/actions/member";
@@ -38,6 +38,7 @@ import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { MemberNode, type MemberNodeData } from "./member-node";
 import { RelationshipEdge, type EdgeHighlightMode, type RelationshipEdgeData } from "./relationship-edge";
 import { FamilyArcEdge, type FamilyArcEdgeData } from "./family-arc-edge";
+import { CoupleBlockNode, type CoupleBlockNodeData } from "./couple-block-node";
 import { NodeContextMenu } from "./node-context-menu";
 import { TreeToolbar } from "./tree-toolbar";
 import { MemberDetailPanel } from "./member-detail-panel";
@@ -51,6 +52,7 @@ import { canEditMember as checkCanEditMember, type NodeProfileLink, type TreePer
 
 const nodeTypes: NodeTypes = {
   member: MemberNode as unknown as NodeTypes["member"],
+  coupleBlock: CoupleBlockNode as unknown as NodeTypes["coupleBlock"],
 };
 
 const edgeTypes: EdgeTypes = {
@@ -110,6 +112,42 @@ function colorFromUserId(userId: string): string {
   return palette[Math.abs(hash) % palette.length];
 }
 
+const BLOCK_PADDING = 18;
+
+function buildCoupleBlockNode(
+  group: CoParentGroup,
+  p1: Node,
+  p2: Node,
+  joinEnabled: boolean,
+  onToggle: (arcId: string) => void
+): Node {
+  const p1W = (p1.measured as { width?: number } | undefined)?.width ?? NODE_WIDTH;
+  const p1H = (p1.measured as { height?: number } | undefined)?.height ?? NODE_HEIGHT;
+  const p2W = (p2.measured as { width?: number } | undefined)?.width ?? NODE_WIDTH;
+  const p2H = (p2.measured as { height?: number } | undefined)?.height ?? NODE_HEIGHT;
+  const left = Math.min(p1.position.x, p2.position.x) - BLOCK_PADDING;
+  const top = Math.min(p1.position.y, p2.position.y) - BLOCK_PADDING;
+  const right = Math.max(p1.position.x + p1W, p2.position.x + p2W) + BLOCK_PADDING;
+  const bottom = Math.max(p1.position.y + p1H, p2.position.y + p2H) + BLOCK_PADDING;
+  return {
+    id: `block-${group.arcId}`,
+    type: "coupleBlock",
+    position: { x: left, y: top },
+    width: right - left,
+    height: bottom - top,
+    zIndex: -1,
+    selectable: false,
+    draggable: false,
+    data: {
+      parent1Id: group.parent1Id,
+      parent2Id: group.parent2Id,
+      arcId: group.arcId,
+      joinEnabled,
+      onToggle,
+    } as CoupleBlockNodeData,
+  };
+}
+
 function TreeCanvasInner({
   tree,
   members: initialMembers,
@@ -166,6 +204,17 @@ function TreeCanvasInner({
   const [remoteCursors, setRemoteCursors] = useState<Record<string, CollaboratorCursor>>({});
   const [activeEditLock, setActiveEditLock] = useState<CollaboratorLock | null>(null);
 
+  // Per-arc join toggle: true = show merged family-arc, false = show individual edges
+  const [joinEnabledMap, setJoinEnabledMap] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = localStorage.getItem(`rootline-join-${tree.id}`);
+      return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
+    } catch {
+      return {};
+    }
+  });
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     memberId: string;
@@ -191,6 +240,10 @@ function TreeCanvasInner({
   const pendingViewportCenterRef = useRef<{ x: number; y: number } | null>(null);
   // Track connection start to support quick-add when a drag misses a target
   const pendingConnectStartRef = useRef<{ nodeId: string | null; handleId: string | null } | null>(null);
+  // When couple-bottom drag-to-empty fires, store the second parent so we auto-link after member is created
+  const pendingSecondParentRef = useRef<string | null>(null);
+  // Prevents infinite loop in couple-block sync effect
+  const prevMemberSigRef = useRef<string>("");
   // Realtime collaboration channel
   const collaborationChannelRef = useRef<ReturnType<ReturnType<typeof createBrowserClient>["channel"]> | null>(null);
   const cursorSentAtRef = useRef(0);
@@ -199,8 +252,8 @@ function TreeCanvasInner({
 
   // Compute layout from dagre
   const layout = useMemo(
-    () => computeTreeLayout(members, relationships),
-    [members, relationships]
+    () => computeTreeLayout(members, relationships, new Map(Object.entries(joinEnabledMap))),
+    [members, relationships, joinEnabledMap]
   );
 
   // No default marker — each edge renders its own color-matched arrow
@@ -338,6 +391,17 @@ function TreeCanvasInner({
           if (payload.eventType === "INSERT") {
             setMembers((prev) => {
               if (prev.some((member) => member.id === row.id)) return prev;
+              // If a couple-bottom drag-to-empty fired, auto-link the second parent
+              const secondParentId = pendingSecondParentRef.current;
+              if (secondParentId) {
+                pendingSecondParentRef.current = null;
+                createRelationship({
+                  tree_id: tree.id,
+                  from_member_id: secondParentId,
+                  to_member_id: row.id,
+                  relationship_type: "parent_child",
+                }).then(() => router.refresh()).catch(() => {});
+              }
               return [...prev, row];
             });
             return;
@@ -480,11 +544,65 @@ function TreeCanvasInner({
     [onNodesChange]
   );
 
+  const handleToggleJoin = useCallback(
+    (arcId: string) => {
+      setJoinEnabledMap((prev) => {
+        const next = { ...prev, [arcId]: !(prev[arcId] ?? true) };
+        try { localStorage.setItem(`rootline-join-${tree.id}`, JSON.stringify(next)); } catch { /* ignore */ }
+        return next;
+      });
+    },
+    [tree.id]
+  );
+
+  // Sync couple-block node positions whenever member positions or join state changes
+  useEffect(() => {
+    if (layout.coParentGroups.length === 0) {
+      setNodes((nds) => {
+        if (!nds.some((n) => n.type === "coupleBlock")) return nds;
+        return nds.filter((n) => n.type !== "coupleBlock");
+      });
+      prevMemberSigRef.current = "";
+      return;
+    }
+
+    const sig =
+      nodes
+        .filter((n) => n.type === "member")
+        .map((n) => `${n.id}:${Math.round(n.position.x)}:${Math.round(n.position.y)}`)
+        .sort()
+        .join("|") +
+      "||" +
+      layout.coParentGroups
+        .map((g) => `${g.arcId}:${joinEnabledMap[g.arcId] ?? true}`)
+        .join("|");
+
+    if (sig === prevMemberSigRef.current) return;
+    prevMemberSigRef.current = sig;
+
+    setNodes((nds) => {
+      const memberMap = new Map(nds.filter((n) => n.type === "member").map((n) => [n.id, n]));
+      const newBlocks = layout.coParentGroups
+        .map((group) => {
+          const p1 = memberMap.get(group.parent1Id);
+          const p2 = memberMap.get(group.parent2Id);
+          if (!p1 || !p2) return null;
+          return buildCoupleBlockNode(group, p1, p2, joinEnabledMap[group.arcId] ?? true, handleToggleJoin);
+        })
+        .filter((b): b is Node => b !== null);
+      return [...nds.filter((n) => n.type !== "coupleBlock"), ...newBlocks];
+    });
+  }, [nodes, layout.coParentGroups, joinEnabledMap, handleToggleJoin, setNodes]);
+
   // When members/relationships change (new data from server), update nodes
   // but preserve positions of existing nodes. New nodes land at viewport center.
   useEffect(() => {
     setNodes((currentNodes) => {
-      const currentPositions = new Map(currentNodes.map((n) => [n.id, n.position]));
+      const currentPositions = new Map(
+        currentNodes.filter((n) => n.type === "member").map((n) => [n.id, n.position])
+      );
+      // Preserve couple-block nodes — they are re-synced by the separate effect
+      const coupleBlocks = currentNodes.filter((n) => n.type === "coupleBlock");
       const pendingCenter = pendingViewportCenterRef.current;
       let usedCenter = false;
       const result = initialNodes.map((n) => {
@@ -498,7 +616,7 @@ function TreeCanvasInner({
         return n;
       });
       if (usedCenter) pendingViewportCenterRef.current = null;
-      return result;
+      return [...result, ...coupleBlocks];
     });
   }, [initialNodes, setNodes]);
 
@@ -531,19 +649,22 @@ function TreeCanvasInner({
     }
 
     setNodes((nds) =>
-      nds.map((n) => ({
-        ...n,
-        data: {
-          ...n.data,
-          isSelected: n.id === selectedMemberId,
-          highlightVariant: highlightedPath.includes(n.id)
-            ? "path"
-            : selectedDescendantNodeIds.has(n.id)
-              ? "descendant"
-              : "none",
-          remoteSelection: remoteSelectionByNode.get(n.id) ?? null,
-        },
-      }))
+      nds.map((n) => {
+        if (n.type === "coupleBlock") return n;
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isSelected: n.id === selectedMemberId,
+            highlightVariant: highlightedPath.includes(n.id)
+              ? "path"
+              : selectedDescendantNodeIds.has(n.id)
+                ? "descendant"
+                : "none",
+            remoteSelection: remoteSelectionByNode.get(n.id) ?? null,
+          },
+        };
+      })
     );
   }, [selectedMemberId, highlightedPath, remoteCollaborators, selectedDescendantNodeIds, setNodes]);
 
@@ -683,6 +804,7 @@ function TreeCanvasInner({
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
+      if (node.type === "coupleBlock") return;
       const memberId = node.id;
 
       // Close context menu on any click
@@ -732,6 +854,7 @@ function TreeCanvasInner({
   const handleNodeContextMenu: NodeMouseHandler = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
+      if (node.type === "coupleBlock") return;
       setContextMenu({
         memberId: node.id,
         x: event.clientX,
@@ -789,9 +912,28 @@ function TreeCanvasInner({
   }, [currentUserId]);
 
   // Handle drag-to-connect: right/left handles → spouse; bottom/top handles → parent_child
+  // couple-bottom handle → parent_child from BOTH parents to target
   const handleConnect = useCallback(
     async (connection: Connection) => {
       if (!canEdit || !connection.source || !connection.target) return;
+
+      if (connection.sourceHandle === "couple-bottom") {
+        const blockNode = nodesRef.current.find((n) => n.id === connection.source);
+        if (!blockNode) return;
+        const blockData = blockNode.data as CoupleBlockNodeData;
+        try {
+          await Promise.all([
+            createRelationship({ tree_id: tree.id, from_member_id: blockData.parent1Id, to_member_id: connection.target, relationship_type: "parent_child" }),
+            createRelationship({ tree_id: tree.id, from_member_id: blockData.parent2Id, to_member_id: connection.target, relationship_type: "parent_child" }),
+          ]);
+          toast.success("Child linked to both parents");
+          router.refresh();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Failed to link child");
+        }
+        return;
+      }
+
       const isSpouseConnect = connection.sourceHandle === "right" || connection.targetHandle === "left";
       try {
         await createRelationship({
@@ -823,6 +965,18 @@ function TreeCanvasInner({
 
       if (!canEdit || !start?.nodeId) return;
       if (connectionState.toNode) return;
+
+      // Couple-bottom drag to empty: open add-member for parent1, auto-link parent2 after creation
+      if (start.handleId === "couple-bottom") {
+        const blockNode = nodesRef.current.find((n) => n.id === start.nodeId);
+        if (!blockNode) return;
+        const blockData = blockNode.data as CoupleBlockNodeData;
+        pendingSecondParentRef.current = blockData.parent2Id;
+        setAddMemberDefaults({ relatedMemberId: blockData.parent1Id, relationshipDirection: "child" });
+        setShowAddDialog(true);
+        return;
+      }
+
       if (!members.some((member) => member.id === start.nodeId)) return;
 
       let relationshipDirection: "parent" | "child" | "spouse" = "child";
@@ -855,6 +1009,7 @@ function TreeCanvasInner({
     setShowAddDialog(open);
     if (!open) {
       setAddMemberDefaults(null);
+      pendingSecondParentRef.current = null;
     }
   }, []);
 
@@ -865,11 +1020,13 @@ function TreeCanvasInner({
 
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
-        const positions = nodesRef.current.map((n) => ({
-          id: n.id,
-          position_x: Math.round(n.position.x),
-          position_y: Math.round(n.position.y),
-        }));
+        const positions = nodesRef.current
+          .filter((n) => n.type === "member")
+          .map((n) => ({
+            id: n.id,
+            position_x: Math.round(n.position.x),
+            position_y: Math.round(n.position.y),
+          }));
         saveMemberPositions(tree.id, positions).catch(() => {
           // Silent fail — positions will be re-computed next load
         });

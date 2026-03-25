@@ -82,7 +82,21 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to create relationship: ${error.message}`);
+  if (error) {
+    // Duplicate relationship — return the existing row (idempotent for non-spouse types)
+    if (error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("relationships")
+        .select()
+        .eq("tree_id", validated.tree_id)
+        .eq("from_member_id", validated.from_member_id)
+        .eq("to_member_id", validated.to_member_id)
+        .eq("relationship_type", validated.relationship_type)
+        .maybeSingle();
+      if (existing) return existing as Relationship;
+    }
+    throw new Error(`Failed to create relationship: ${error.message}`);
+  }
   return data as Relationship;
 }
 

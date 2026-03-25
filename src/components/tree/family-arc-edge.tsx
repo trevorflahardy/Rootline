@@ -3,6 +3,7 @@
 import { memo } from "react";
 import { useNodes, type EdgeProps } from "@xyflow/react";
 import { NODE_WIDTH, NODE_HEIGHT } from "@/lib/utils/tree-layout";
+import type { EdgeHighlightMode } from "./relationship-edge";
 
 // Use measured dimensions when available (React Flow sets these after first render)
 function nodeW(n: { measured?: { width?: number } }) {
@@ -11,10 +12,10 @@ function nodeW(n: { measured?: { width?: number } }) {
 function nodeH(n: { measured?: { height?: number } }) {
   return n.measured?.height ?? NODE_HEIGHT;
 }
-import type { EdgeHighlightMode } from "./relationship-edge";
 
 export interface FamilyArcEdgeData {
   isFamilyArc: true;
+  arcId: string;
   parent1Id: string;
   parent2Id: string;
   childIds: string[];
@@ -23,7 +24,7 @@ export interface FamilyArcEdgeData {
   [key: string]: unknown;
 }
 
-const JUNCTION_OFFSET = 28; // px below the lower parent's bottom edge
+const JUNCTION_OFFSET = 28; // px below the block's bottom edge
 const ARROW = 5;
 
 function FamilyArcEdgeComponent({ data }: EdgeProps & { data?: FamilyArcEdgeData }) {
@@ -31,13 +32,13 @@ function FamilyArcEdgeComponent({ data }: EdgeProps & { data?: FamilyArcEdgeData
 
   if (!data?.isFamilyArc) return null;
 
-  const p1 = nodes.find((n) => n.id === data.parent1Id);
-  const p2 = nodes.find((n) => n.id === data.parent2Id);
+  // Source: the couple-block node for this arc
+  const blockNode = nodes.find((n) => n.id === `block-${data.arcId}`);
   const children = data.childIds
     .map((id) => nodes.find((n) => n.id === id))
     .filter((n): n is NonNullable<typeof n> => n != null);
 
-  if (!p1 || !p2 || children.length === 0) return null;
+  if (!blockNode || children.length === 0) return null;
 
   const color =
     data.highlightMode === "hover" || data.highlightMode === "path"
@@ -46,55 +47,40 @@ function FamilyArcEdgeComponent({ data }: EdgeProps & { data?: FamilyArcEdgeData
         ? "oklch(0.62 0.12 210)"
         : "oklch(0.55 0 0 / 0.6)";
 
-  const p1CX = p1.position.x + nodeW(p1) / 2;
-  const p1BY = p1.position.y + nodeH(p1);
-  const p2CX = p2.position.x + nodeW(p2) / 2;
-  const p2BY = p2.position.y + nodeH(p2);
+  const blockW = (blockNode.width as number | undefined) ?? nodeW(blockNode);
+  const blockH = (blockNode.height as number | undefined) ?? nodeH(blockNode);
 
-  // Junction sits below the lower parent, horizontally centred between them
-  const jY = Math.max(p1BY, p2BY) + JUNCTION_OFFSET;
-  const jX = (p1CX + p2CX) / 2;
+  // Source point: bottom-center of the couple-block (where the Handle sits)
+  const srcX = blockNode.position.x + blockW / 2;
+  const srcY = blockNode.position.y + blockH;
 
-  // Cubic bezier helper: vertical exit from parent, horizontal entry into junction
-  const parentToJunction = (px: number, py: number) => {
-    const midY = (py + jY) / 2;
-    return `M ${px} ${py} C ${px} ${midY}, ${jX} ${midY}, ${jX} ${jY}`;
-  };
-
-  // Cubic bezier: leave junction horizontally, arrive at child vertically
-  const junctionToChild = (cX: number, cY: number) => {
-    const midY = (jY + cY) / 2;
-    return `M ${jX} ${jY} C ${jX} ${midY}, ${cX} ${midY}, ${cX} ${cY}`;
-  };
+  // Junction sits just below the block bottom, horizontally centred
+  const jX = srcX;
+  const jY = srcY + JUNCTION_OFFSET;
 
   return (
     <g>
-      {/* parent1 → junction */}
+      {/* Block bottom → junction */}
       <path
-        d={parentToJunction(p1CX, p1BY)}
+        d={`M ${srcX} ${srcY} L ${jX} ${jY}`}
         fill="none"
         stroke={color}
         strokeWidth={1.5}
         strokeLinecap="round"
       />
-      {/* parent2 → junction */}
-      <path
-        d={parentToJunction(p2CX, p2BY)}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-      />
-      {/* junction dot */}
-      <circle cx={jX} cy={jY} r={3} fill={color} />
-      {/* junction → each child */}
+      {/* Junction dot (only meaningful when there are multiple children) */}
+      {children.length > 1 && (
+        <circle cx={jX} cy={jY} r={3} fill={color} />
+      )}
+      {/* Junction → each child */}
       {children.map((child) => {
         const cX = child.position.x + nodeW(child) / 2;
         const cY = child.position.y;
+        const midY = (jY + cY) / 2;
         return (
           <g key={child.id}>
             <path
-              d={junctionToChild(cX, cY)}
+              d={`M ${jX} ${jY} C ${jX} ${midY}, ${cX} ${midY}, ${cX} ${cY}`}
               fill="none"
               stroke={color}
               strokeWidth={1.5}
