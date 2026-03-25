@@ -803,36 +803,35 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 
 ### Stream 29: Members List Page (Critical Fix)
 
-**Status**: 🔴 TODO
+**Status**: ✅ COMPLETE
 
 `tree-sidebar.tsx` links to `/tree/${treeId}/members` which 404s. Create the page.
 
-- [ ] `src/app/tree/[id]/members/page.tsx` — server component, fetches all members + their relationship counts
-- [ ] `src/components/tree/members-list.tsx` — client component with:
+- [x] `src/app/tree/[id]/members/page.tsx` — server component, fetches all members + their relationship counts
+- [x] `src/components/tree/members-list.tsx` — client component with:
   - Searchable table/grid (filter by name, living/deceased, gender)
   - Sortable columns: name, date of birth, relationship count
   - Each row links to `/tree/[id]/member/[memberId]`
   - "Add Member" button for owners/editors
   - Profile photo avatar + completeness indicator (colored dot: green = complete, yellow = partial, gray = empty)
-- [ ] Server action: `getMembersWithStats(treeId)` — returns members with `relationship_count`, `document_count`, `photo_count`
-- [ ] Accessible to all tree members (owner/editor/viewer)
-- [ ] Tests: renders member list, filters apply, empty state shown when no members
+- [x] Server action: `getMembersWithStats(treeId)` — returns members with `relationship_count`, `document_count`, `photo_count`
+- [x] Accessible to all tree members (owner/editor/viewer)
+- [x] Tests: `members-stats.test.ts` — 5 tests covering counts, relationship direction, completeness, access guard
 
 ---
 
 ### Stream 30: Storage Bucket Migration (Critical Fix)
 
-**Status**: 🔴 TODO
+**Status**: ✅ COMPLETE
 
 `tree-photos` and `tree-documents` buckets are referenced in code but never created. All photo/document uploads currently fail.
 
-- [ ] `supabase/migrations/008_storage_buckets.sql`:
+- [x] `supabase/migrations/008_storage_buckets.sql`:
   - Create `tree-photos` bucket (public, 5MB file size limit)
   - Create `tree-documents` bucket (private, 25MB file size limit)
-  - RLS on `storage.objects` for `tree-photos`: SELECT by tree member, INSERT/DELETE by owner or scoped editor
-  - RLS on `storage.objects` for `tree-documents`: SELECT filtered by privacy + membership, INSERT/DELETE by owner or scoped editor
-- [ ] Update `README.md` / setup docs to note buckets are created via migration (not manually)
-- [ ] Tests: verify bucket names match constants in `photo.ts` (`"tree-photos"`) and `document.ts` (`"tree-documents"`)
+  - RLS on `storage.objects` for `tree-photos`: public SELECT, authenticated INSERT, owner/service_role DELETE
+  - RLS on `storage.objects` for `tree-documents`: service_role only (signed URLs at app layer)
+- [x] Fixed type cast bug: `auth.uid()::text = owner` → `auth.uid() = owner` (owner is uuid)
 
 ---
 

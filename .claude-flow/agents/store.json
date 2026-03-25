@@ -107,7 +107,8 @@
       },
       "createdAt": "2026-03-25T12:31:50.589Z",
       "model": "haiku",
-      "modelRoutedBy": "explicit"
+      "modelRoutedBy": "explicit",
+      "swarmId": "swarm-1774441906884-3icr71"
     },
     "p7-security": {
       "agentId": "p7-security",
@@ -121,7 +122,53 @@
       },
       "createdAt": "2026-03-25T12:31:52.224Z",
       "model": "haiku",
-      "modelRoutedBy": "explicit"
+      "modelRoutedBy": "explicit",
+      "swarmId": "swarm-1774441906884-3icr71"
+    },
+    "s29-coder": {
+      "agentId": "s29-coder",
+      "agentType": "coder",
+      "status": "active",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "swarmId": "swarm-1774441906884-3icr71",
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-25T12:39:38.496Z",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit",
+      "swarmId": "swarm-1774441906884-3icr71"
+    },
+    "s30-coder": {
+      "agentId": "s30-coder",
+      "agentType": "coder",
+      "status": "active",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "swarmId": "swarm-1774441906884-3icr71",
+        "model": "sonnet"
+      },
+      "createdAt": "2026-03-25T12:39:40.023Z",
+      "model": "sonnet",
+      "modelRoutedBy": "explicit",
+      "swarmId": "swarm-1774441906884-3icr71"
+    },
+    "s29-tester": {
+      "agentId": "s29-tester",
+      "agentType": "tester",
+      "status": "idle",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "swarmId": "swarm-1774441906884-3icr71",
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T12:39:41.058Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit",
+      "swarmId": "swarm-1774441906884-3icr71"
     }
   },
   "version": "3.0.0"

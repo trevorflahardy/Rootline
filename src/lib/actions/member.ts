@@ -168,6 +168,60 @@ export async function saveMemberPositions(
   }
 }
 
+export interface MemberWithStats extends TreeMember {
+  relationship_count: number;
+  photo_count: number;
+  document_count: number;
+  completeness: "complete" | "partial" | "empty";
+}
+
+export async function getMembersWithStats(treeId: string): Promise<MemberWithStats[]> {
+  const userId = await getAuthUser();
+  const supabase = createAdminClient();
+
+  await checkTreeAccess(supabase, treeId, userId);
+
+  const [membersResult, relsResult, photosResult, docsResult] = await Promise.all([
+    supabase.from("tree_members").select("*").eq("tree_id", treeId).order("first_name"),
+    supabase.from("relationships").select("from_member_id, to_member_id").eq("tree_id", treeId),
+    supabase.from("media").select("member_id").eq("tree_id", treeId),
+    supabase.from("documents").select("member_id").eq("tree_id", treeId),
+  ]);
+
+  if (membersResult.error) throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
+
+  const relCounts = new Map<string, number>();
+  for (const rel of relsResult.data ?? []) {
+    relCounts.set(rel.from_member_id, (relCounts.get(rel.from_member_id) ?? 0) + 1);
+    relCounts.set(rel.to_member_id, (relCounts.get(rel.to_member_id) ?? 0) + 1);
+  }
+
+  const photoCounts = new Map<string, number>();
+  for (const p of photosResult.data ?? []) {
+    if (p.member_id) photoCounts.set(p.member_id, (photoCounts.get(p.member_id) ?? 0) + 1);
+  }
+
+  const docCounts = new Map<string, number>();
+  for (const d of docsResult.data ?? []) {
+    if (d.member_id) docCounts.set(d.member_id, (docCounts.get(d.member_id) ?? 0) + 1);
+  }
+
+  return (membersResult.data as TreeMember[]).map((m) => {
+    const relCount = relCounts.get(m.id) ?? 0;
+    const filledFields = [m.first_name, m.last_name, m.date_of_birth].filter(Boolean).length;
+    const completeness: MemberWithStats["completeness"] =
+      filledFields === 3 && relCount > 0 ? "complete" :
+      filledFields > 0 || relCount > 0 ? "partial" : "empty";
+    return {
+      ...m,
+      relationship_count: relCount,
+      photo_count: photoCounts.get(m.id) ?? 0,
+      document_count: docCounts.get(m.id) ?? 0,
+      completeness,
+    };
+  });
+}
+
 export async function getMemberById(memberId: string, treeId: string): Promise<TreeMember | null> {
   const userId = await getAuthUser();
   const supabase = createAdminClient();

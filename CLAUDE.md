@@ -62,7 +62,7 @@ npm run lint
 - NEVER commit .env files or any file containing secrets
 - Always validate user input at system boundaries
 - Always sanitize file paths to prevent directory traversal
-- Run `npx @ruflo/cli@latest security scan` after security-related changes
+- Run `ruflo security scan` after security-related changes
 
 ## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
 
@@ -145,7 +145,7 @@ TodoWrite { todos: [...] }
 - Keep shared memory namespace for all agents
 
 ```bash
-npx @ruflo/cli@latest swarm init --topology hierarchical --max-agents 8 --strategy specialized
+ruflo swarm init --topology hierarchical --max-agents 8 --strategy specialized
 ```
 
 ## Swarm Execution Rules
@@ -178,11 +178,11 @@ npx @ruflo/cli@latest swarm init --topology hierarchical --max-agents 8 --strate
 ### Quick CLI Examples
 
 ```bash
-npx @ruflo/cli@latest init --wizard
-npx @ruflo/cli@latest agent spawn -t coder --name my-coder
-npx @ruflo/cli@latest swarm init --v3-mode
-npx @ruflo/cli@latest memory search --query "authentication patterns"
-npx @ruflo/cli@latest doctor --fix
+ruflo init --wizard
+ruflo agent spawn -t coder --name my-coder
+ruflo swarm init --v3-mode
+ruflo memory search --query "authentication patterns"
+ruflo doctor --fix
 ```
 
 ## Available Agents (60+ Types)
@@ -211,24 +211,24 @@ npx @ruflo/cli@latest doctor --fix
 
 ```bash
 # Store (REQUIRED: --key, --value; OPTIONAL: --namespace, --ttl, --tags)
-npx @ruflo/cli@latest memory store --key "pattern-auth" --value "JWT with refresh" --namespace patterns
+ruflo memory store --key "pattern-auth" --value "JWT with refresh" --namespace patterns
 
 # Search (REQUIRED: --query; OPTIONAL: --namespace, --limit, --threshold)
-npx @ruflo/cli@latest memory search --query "authentication patterns"
+ruflo memory search --query "authentication patterns"
 
 # List (OPTIONAL: --namespace, --limit)
-npx @ruflo/cli@latest memory list --namespace patterns --limit 10
+ruflo memory list --namespace patterns --limit 10
 
 # Retrieve (REQUIRED: --key; OPTIONAL: --namespace)
-npx @ruflo/cli@latest memory retrieve --key "pattern-auth" --namespace patterns
+ruflo memory retrieve --key "pattern-auth" --namespace patterns
 ```
 
 ## Quick Setup
 
 ```bash
-claude mcp add ruflo -- npx -y @ruflo/cli@latest
-npx @ruflo/cli@latest daemon start
-npx @ruflo/cli@latest doctor --fix
+claude mcp add ruflo -- ruflo mcp start
+ruflo daemon start
+ruflo doctor --fix
 ```
 
 ## Claude Code vs ruflo MCP vs CLI Tools
@@ -246,7 +246,7 @@ npx @ruflo/cli@latest doctor --fix
   - Use `mode: "bypassPermissions"` for automated swarm execution
   - Use `isolation: "worktree"` for isolated parallel file edits
 - **Claude Code direct tools** (Edit/Read/Bash/Grep/Glob) — for simple tasks not needing a swarm
-- **CLI tools** (via Bash) — memory, hooks, routing: `npx @ruflo/cli@latest ...`
+- **CLI tools** (via Bash) — memory, hooks, routing: `ruflo ...`
 
 ## Support
 
