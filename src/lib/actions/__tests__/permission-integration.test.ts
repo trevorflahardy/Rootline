@@ -147,11 +147,11 @@ describe("Permission Integration Tests", () => {
         }),
       }),
     });
-    // First rpc call: set user, second and third: is_descendant_of (from = true, to = true)
+    // Promise.all calls is_descendant_of for from + to first, then set_request_user_id after
     mockClient.rpc
-      .mockResolvedValueOnce({ data: null, error: null }) // set_request_user_id — but actually it's called after checks
       .mockResolvedValueOnce({ data: true, error: null }) // from is descendant
-      .mockResolvedValueOnce({ data: true, error: null }); // to is descendant
+      .mockResolvedValueOnce({ data: true, error: null }) // to is descendant
+      .mockResolvedValueOnce({ data: null, error: null }); // set_request_user_id
 
     const result = await createRelationship({
       tree_id: validTreeId,

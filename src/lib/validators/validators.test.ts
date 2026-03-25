@@ -64,12 +64,13 @@ describe("createMemberSchema", () => {
 
 describe("createRelationshipSchema", () => {
   const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+  const otherUuid = "660e8400-e29b-41d4-a716-446655440001";
 
   it("validates valid relationship", () => {
     const result = createRelationshipSchema.safeParse({
       tree_id: validUuid,
       from_member_id: validUuid,
-      to_member_id: validUuid,
+      to_member_id: otherUuid,
       relationship_type: "parent_child",
     });
     expect(result.success).toBe(true);

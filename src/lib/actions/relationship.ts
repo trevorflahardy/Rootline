@@ -36,7 +36,7 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
         p_ancestor_id: membership.linked_node_id,
       }),
     ]);
-    if (!fromResult.data && !toResult.data) {
+    if (!fromResult.data || !toResult.data) {
       throw new Error("You can only create relationships within your branch");
     }
   }

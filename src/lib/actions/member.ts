@@ -146,6 +146,18 @@ export async function saveMemberPositions(
   const membership = await checkTreeAccess(supabase, treeId, userId);
   if (membership.role === "viewer") return;
 
+  // Scoped editors can only reposition nodes within their branch
+  if (membership.role === "editor" && membership.linked_node_id) {
+    for (const pos of positions) {
+      const { data: inScope } = await supabase.rpc("is_descendant_of", {
+        p_tree_id: treeId,
+        p_node_id: pos.id,
+        p_ancestor_id: membership.linked_node_id,
+      });
+      if (!inScope) throw new Error("You can only reposition members in your branch");
+    }
+  }
+
   // Batch update positions
   for (const pos of positions) {
     await supabase

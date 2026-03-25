@@ -703,6 +703,94 @@ Final integration pass — all tests pass, build succeeds, types clean.
 
 ---
 
+## Phase 6: Permission Invariant Testing & Bug Fixes
+
+**Goal**: Expose and fix real permission boundary violations with a realistic mock family tree fixture. Scoped editors must be fully contained to their branch — no cross-branch member edits, no cross-branch relationship creation, no unrestricted position saves.
+
+> **Last Updated**: 2026-03-25
+> **Status**: ✅ COMPLETE (352 tests passing)
+
+### Bugs Identified (Pre-Phase)
+
+| # | Location | Bug | Severity |
+|---|----------|-----|----------|
+| **BUG-001** | `relationship.ts:39` | `!fromResult.data && !toResult.data` — uses `&&` so scoped editor can link their branch node to any out-of-scope node as long as one endpoint is in-scope | 🔴 Critical |
+| **BUG-002** | `member.ts:saveMemberPositions` | No `linked_node_id` scope check — scoped editors can reposition any node in the tree | 🟡 Medium |
+
+### Stream 27: Comprehensive Permission Boundary Tests
+
+**Status**: ✅ COMPLETE
+
+**Family Tree Fixture** ("The Hartwell family"):
+
+```
+Grandparent: Harold (GP)
+├── Parent A: Alice (PA)     ← scoped editor "Eve" is linked here (scope = Alice's branch)
+│   ├── Child A: David (CA)
+│   │   └── Grandchild A: Fiona (GCA)
+│   └── Child B: Eve (CB)    ← Eve is the scoped editor herself
+└── Parent B: Bob (PB)
+    └── Child C: Carol (CC)  ← "cousin" — should be unreachable by Eve
+        └── Grandchild C: George (GCC)
+```
+
+Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's descendants: David, Fiona, Eve. She must NOT be able to touch Harold, Bob, Carol, George.
+
+#### Tests to Write
+
+**Member attribute edits:**
+- [ ] Eve updates `first_name` on David (descendant) → **succeeds**
+- [ ] Eve updates `first_name` on Carol (cousin — out of scope) → **blocked**
+- [ ] Eve updates `first_name` on Harold (grandparent — out of scope) → **blocked**
+- [ ] Eve deletes David (in scope) → **succeeds**
+- [ ] Eve deletes Carol (out of scope) → **blocked**
+
+**Relationship creation (cross-branch attack):**
+- [ ] Eve creates `parent_child` between David (in-scope) and Carol (out-of-scope) → **blocked** ← BUG-001
+- [ ] Eve creates `spouse` between Fiona (in-scope) and George (out-of-scope) → **blocked** ← BUG-001
+- [ ] Eve creates `sibling` between David and Fiona (both in-scope) → **succeeds**
+- [ ] Eve creates `parent_child` between Carol and George (both out-of-scope) → **blocked**
+
+**Position save scope:**
+- [ ] Eve saves position for David (in-scope) → **succeeds** ← BUG-002
+- [ ] Eve saves position for Carol (out-of-scope) → **blocked** ← BUG-002
+
+**Data integrity invariants:**
+- [ ] Create relationship where `from_member_id === to_member_id` (self-reference) → **blocked**
+- [ ] Create `parent_child` A→B then B→A (direct cycle) → **blocked**
+- [ ] Create member with `date_of_death` before `date_of_birth` → **blocked**
+
+**Role boundary:**
+- [ ] Viewer tries to update any member → **blocked**
+- [ ] Editor without `linked_node_id` can edit any member → **succeeds** (unscoped editor)
+- [ ] Scoped editor tries to self-escalate role to owner → **blocked**
+
+#### Files
+
+- [x] `src/lib/actions/__tests__/scoped-editor-family-tree.test.ts` — all above tests with Hartwell fixture
+
+### Stream 28: Bug Fixes
+
+**Status**: ✅ COMPLETE
+
+- [x] **BUG-001**: Fix `createRelationship` — change `&&` to `||` in branch scope check (`relationship.ts:39`)
+- [x] **BUG-002**: Fix `saveMemberPositions` — add `is_descendant_of` check per position when editor has `linked_node_id` (`member.ts`)
+- [x] **BUG-003**: Fix self-referential relationship — add `.refine()` to `createRelationshipSchema` blocking `from_member_id === to_member_id`
+- [x] **FIX**: Corrected broken mock in `permission-integration.test.ts` — `is_descendant_of` runs before `set_request_user_id` (wrong order was masking the `&&` bug)
+- [x] All 20 new tests pass
+- [x] All 352 tests pass (0 regressions)
+
+### Verification Checklist: After Phase 6
+
+- [x] `bun run test` passes all 352 tests (332 original + 20 new)
+- [x] Scoped editor cannot mutate out-of-scope members
+- [x] Scoped editor cannot create cross-branch relationships (BUG-001 fixed)
+- [x] Scoped editor cannot reposition out-of-scope nodes (BUG-002 fixed)
+- [x] Self-referential relationships blocked (BUG-003 fixed)
+- [ ] Temporal invariants enforced at validator level (future)
+
+---
+
 ## Dependencies
 
 ### Production

@@ -68,6 +68,32 @@
       "domain": "frontend",
       "model": "sonnet",
       "modelRoutedBy": "explicit"
+    },
+    "phase6-planner": {
+      "agentId": "phase6-planner",
+      "agentType": "planner",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T12:14:39.675Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "permission-tester": {
+      "agentId": "permission-tester",
+      "agentType": "tester",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T12:14:41.161Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
     }
   },
   "version": "3.0.0"
