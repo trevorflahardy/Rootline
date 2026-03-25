@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +34,8 @@ interface AddMemberDialogProps {
   treeId: string;
   existingMembers: TreeMember[];
   onMemberAdded: () => void;
+  defaultRelatedMemberId?: string;
+  defaultRelationshipDirection?: "parent" | "child" | "spouse";
 }
 
 export function AddMemberDialog({
@@ -42,6 +44,8 @@ export function AddMemberDialog({
   treeId,
   existingMembers,
   onMemberAdded,
+  defaultRelatedMemberId,
+  defaultRelationshipDirection,
 }: AddMemberDialogProps) {
   const [relatedMemberId, setRelatedMemberId] = useState<string>("");
   const [relationshipDirection, setRelationshipDirection] = useState<"parent" | "child" | "spouse">("child");
@@ -63,6 +67,13 @@ export function AddMemberDialog({
   });
 
   const isDeceased = watch("is_deceased");
+
+  useEffect(() => {
+    if (!open) return;
+    setRelatedMemberId(defaultRelatedMemberId ?? "");
+    setRelationshipDirection(defaultRelationshipDirection ?? "child");
+    setMemberSearchOpen(false);
+  }, [defaultRelatedMemberId, defaultRelationshipDirection, open]);
 
   async function onSubmit(data: CreateMemberInput) {
     try {

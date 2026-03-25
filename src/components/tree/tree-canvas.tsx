@@ -14,6 +14,8 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type Connection,
+  type OnConnectStart,
+  type OnConnectEnd,
   type OnNodesChange,
   type NodeMouseHandler,
   ReactFlowProvider,
@@ -105,6 +107,10 @@ function TreeCanvasInner({
   const [relationshipLabel, setRelationshipLabel] = useState<string | null>(null);
 
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addMemberDefaults, setAddMemberDefaults] = useState<{
+    relatedMemberId: string;
+    relationshipDirection: "parent" | "child" | "spouse";
+  } | null>(null);
   const [showAddRelationshipDialog, setShowAddRelationshipDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -136,6 +142,8 @@ function TreeCanvasInner({
   const nodesRef = useRef<Node[]>([]);
   // Viewport center to position new members near the user's current view
   const pendingViewportCenterRef = useRef<{ x: number; y: number } | null>(null);
+  // Track connection start to support quick-add when a drag misses a target
+  const pendingConnectStartRef = useRef<{ nodeId: string | null; handleId: string | null } | null>(null);
 
   // Realtime subscription for live updates
   useRealtimeTree(tree.id);
@@ -543,6 +551,40 @@ function TreeCanvasInner({
     [canEdit, tree.id, router]
   );
 
+  const handleConnectStart = useCallback<OnConnectStart>((_event, params) => {
+    pendingConnectStartRef.current = {
+      nodeId: params.nodeId,
+      handleId: params.handleId,
+    };
+  }, []);
+
+  const handleConnectEnd = useCallback<OnConnectEnd>(
+    (_event, connectionState) => {
+      const start = pendingConnectStartRef.current;
+      pendingConnectStartRef.current = null;
+
+      if (!canEdit || !start?.nodeId) return;
+      if (connectionState.toNode) return;
+      if (!members.some((member) => member.id === start.nodeId)) return;
+
+      const relationshipDirection = start.handleId === "right" ? "spouse" : "child";
+
+      setAddMemberDefaults({
+        relatedMemberId: start.nodeId,
+        relationshipDirection,
+      });
+      setShowAddDialog(true);
+    },
+    [canEdit, members]
+  );
+
+  const handleAddDialogOpenChange = useCallback((open: boolean) => {
+    setShowAddDialog(open);
+    if (!open) {
+      setAddMemberDefaults(null);
+    }
+  }, []);
+
   // Save positions to DB after drag (debounced) — uses ref to avoid setState-in-render
   const handleNodeDragStop = useCallback(
     () => {
@@ -648,6 +690,8 @@ function TreeCanvasInner({
           onPaneClick={handlePaneClick}
           onMoveStart={handleMoveStart}
           onConnect={handleConnect}
+          onConnectStart={handleConnectStart}
+          onConnectEnd={handleConnectEnd}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           defaultEdgeOptions={defaultEdgeOptions}
@@ -806,10 +850,12 @@ function TreeCanvasInner({
         {/* Add member dialog */}
         <AddMemberDialog
           open={showAddDialog}
-          onOpenChange={setShowAddDialog}
+          onOpenChange={handleAddDialogOpenChange}
           treeId={tree.id}
           existingMembers={members}
           onMemberAdded={handleMemberAdded}
+          defaultRelatedMemberId={addMemberDefaults?.relatedMemberId}
+          defaultRelationshipDirection={addMemberDefaults?.relationshipDirection}
         />
 
         {/* Add relationship dialog */}
