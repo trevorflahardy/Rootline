@@ -837,7 +837,7 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 
 ### Stream 31: Security Audit & Hardening
 
-**Status**: 🟡 IN PROGRESS
+**Status**: 🟢 DONE
 
 **Execution**: Ruflo multi-agent security swarm. Agents: `security-architect` (lead), `security-auditor` (scan), `tester` (write attack tests), `reviewer` (sign-off).
 
@@ -875,9 +875,9 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 #### 31e: Dependency & Header Audit
 
 - [x] Run npm audit — 0 high/critical CVEs found
-- [x] Security headers added to next.config.ts: X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin), Permissions-Policy, X-DNS-Prefetch-Control
+- [x] Security headers added to next.config.ts: X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy, Permissions-Policy (camera/mic/geo/payment/usb), Strict-Transport-Security (1yr+includeSubDomains), Cross-Origin-Opener-Policy (same-origin-allow-popups), Cross-Origin-Resource-Policy (same-site), X-DNS-Prefetch-Control
 - [x] SUPABASE_SERVICE_ROLE_KEY not exposed — only NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY (anon key, intentionally public)
-- [ ] Tests: security headers in responses — not yet implemented
+- [x] Tests: 9 header tests in `tests/security/headers.test.ts` — validates all headers, HSTS min age, COOP/CORP values, no X-Powered-By leak
 
 ---
 
