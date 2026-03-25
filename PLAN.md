@@ -837,52 +837,47 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 
 ### Stream 31: Security Audit & Hardening
 
-**Status**: 🔴 TODO
+**Status**: 🟡 IN PROGRESS
 
 **Execution**: Ruflo multi-agent security swarm. Agents: `security-architect` (lead), `security-auditor` (scan), `tester` (write attack tests), `reviewer` (sign-off).
 
 #### 31a: Rate Limiting
 
-- [ ] Add rate limiting to all server actions using an in-memory or Redis-backed token bucket
-  - `createMember`: 30/min per user
-  - `createRelationship`: 30/min per user
-  - `uploadPhoto` / `uploadDocument`: 10/min per user
-  - `createInvite`: 5/min per user
-  - `acceptInvite`: 10/min per user
-- [ ] Clerk webhook endpoint: validate `svix-signature` header (already done — verify it's enforced)
-- [ ] API routes: add `X-RateLimit-*` response headers
-- [ ] Tests: rate limit hit returns 429 with retry-after header
+- [x] Add rate limiting to all server actions (createMember 30/min, createRelationship 30/min, uploadPhoto/uploadDocument 10/min, createInvite 5/min, acceptInvite 10/min) — done via `src/lib/rate-limit.ts` Map-based token bucket
+- [x] Clerk webhook endpoint: validate `svix-signature` header — confirmed enforced in `src/app/api/webhooks/clerk/route.ts`
+- [ ] API routes: add `X-RateLimit-*` response headers — not yet implemented
+- [x] Tests: rate limit function tested in `tests/security/rate-limit.test.ts` (11 tests, including window reset)
 
 #### 31b: Input Sanitization & Injection Prevention
 
-- [ ] Audit all free-text fields (`bio`, `birth_place`, `death_place`, `description`, `caption`) for XSS — sanitize with `DOMPurify` server-side before DB insert
-- [ ] Validate `storage_path` in photo/document actions — prevent path traversal (`../`) attacks
-- [ ] Zod schemas: add `.max()` caps to all string fields that lack them (bio: 2000 chars, place: 200 chars, caption: 500 chars)
-- [ ] GEDCOM parser: limit file size to 10MB, validate all string fields extracted from GEDCOM before inserting
-- [ ] Tests: XSS payloads in member bio rejected/sanitized, path traversal in storage paths rejected
+- [x] Audit all free-text fields (bio, birth_place, death_place, description, caption) — sanitized via `sanitizeText()` in `src/lib/sanitize.ts` before DB insert in member.ts, document.ts, import.ts
+- [x] Validate storage_path in photo/document actions — `sanitizeStoragePath()` applied in photo.ts and document.ts
+- [x] Zod schemas: .max() caps verified present for all string fields
+- [x] GEDCOM parser: 10MB file size limit added; all string fields sanitized via `sanitizeText` before insert
+- [x] Tests: XSS + path traversal tests in `tests/security/sanitize.test.ts` (28 tests)
 
 #### 31c: Prompt Injection Defense (AI Features Guard)
 
-- [ ] Any AI-facing text (member bios, tree names, document descriptions) must be escaped before being passed to any LLM context
-- [ ] Add a `sanitizeForLLM(text)` utility that strips control characters, prompt delimiters, and role-injection patterns
-- [ ] Document the policy in CLAUDE.md: all user-supplied text is untrusted and must be sanitized before AI processing
-- [ ] Tests: common prompt injection patterns (`Ignore previous instructions`, `<|im_start|>system`) are sanitized
+- [x] Add `sanitizeForLLM(text)` utility — implemented in `src/lib/sanitize.ts`
+- [x] Tests: prompt injection patterns tested in `tests/security/sanitize.test.ts`
+- [x] Document the policy in CLAUDE.md — added `## AI Safety Policy (Stream 31c)` section
+- [ ] Apply sanitizeForLLM to AI-facing text — N/A: no AI features exist yet; policy enforced for future additions
 
 #### 31d: Auth & Permission Hardening
 
-- [ ] Verify `getAuthUser()` always throws (never returns null silently) — audit all callers
-- [ ] Add CSRF protection to all mutating server actions (Next.js App Router handles this via `server-only`, verify)
-- [ ] Tree ID and member ID in URLs must be validated as UUIDs before DB queries — add middleware-level check
-- [ ] Audit: no `createAdminClient()` usage in client components (grep for imports)
-- [ ] `deleteTree`: currently only checks `membership.role === "owner"` — add explicit check that `owner_id === userId`
-- [ ] Tests: forged tree IDs, non-UUID IDs, missing auth all return correct errors
+- [x] Verify getAuthUser() always throws — confirmed, never returns null
+- [x] CSRF protection — Next.js App Router server actions enforce same-origin by default; no additional work needed
+- [x] Tree ID and member ID validated as UUIDs — `assertUUID()` in `src/lib/validate.ts`, applied in member.ts, relationship.ts, tree.ts, import.ts
+- [x] Audit: no createAdminClient() in client components — confirmed clean
+- [x] deleteTree: now checks both membership.role === "owner" AND owner_id === userId
+- [x] Tests: UUID validation tests in `tests/security/validate.test.ts` (19 tests including SQL injection strings)
 
 #### 31e: Dependency & Header Audit
 
-- [ ] Run `bun audit` — list and address any high/critical CVEs
-- [ ] Add security headers via `next.config.ts`: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
-- [ ] Ensure `SUPABASE_SERVICE_ROLE_KEY` is never exposed to client (grep for `NEXT_PUBLIC_` misuse)
-- [ ] Tests: security headers present in responses, no secrets in client bundle
+- [x] Run npm audit — 0 high/critical CVEs found
+- [x] Security headers added to next.config.ts: X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin), Permissions-Policy, X-DNS-Prefetch-Control
+- [x] SUPABASE_SERVICE_ROLE_KEY not exposed — only NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY (anon key, intentionally public)
+- [ ] Tests: security headers in responses — not yet implemented
 
 ---
 

@@ -65,6 +65,14 @@ npm run lint
 - Always sanitize file paths to prevent directory traversal
 - Run `ruflo security scan` after security-related changes
 
+## AI Safety Policy (Stream 31c)
+
+- ALL user-supplied text is untrusted and MUST be sanitized before being passed to any LLM context
+- Use `sanitizeForLLM(text)` from `@/lib/sanitize` on any member bio, tree name, document description, or other user text before including it in AI prompts
+- `sanitizeForLLM` strips: control characters, prompt delimiters (`[INST]`, `<|im_start|>`, etc.), and role-injection patterns (`Ignore previous instructions`, `system:`)
+- Never pass raw `formData`, request bodies, or database strings directly into LLM context without sanitization
+- This policy applies even when no AI features are currently active — enforce it proactively as AI features are added
+
 ## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
 
 - All operations MUST be concurrent/parallel in a single message
