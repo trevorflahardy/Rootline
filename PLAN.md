@@ -883,19 +883,20 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 
 ### Stream 32: Timeline View (Feature C)
 
-**Status**: 🔴 TODO
+**Status**: 🟢 DONE
 
 Chronological view of all life events across the tree.
 
-- [ ] `src/app/tree/[id]/timeline/page.tsx` — server component
-- [ ] `src/components/tree/timeline-view.tsx` — vertical timeline sorted by date
-  - Events: births, deaths, marriages, divorces (derived from member dates + relationship dates)
-  - Group by decade with collapsible sections
+- [x] `src/app/tree/[id]/timeline/page.tsx` — server component
+- [x] `src/components/tree/timeline-view.tsx` — vertical timeline sorted by date
+  - Events: births, deaths, marriages (start_date), divorces (end_date) derived from member + relationship dates
+  - Group by decade with collapsible sections (open by default)
   - Each event links to the member profile
-  - Filter: event type, date range
-- [ ] `getTimelineEvents(treeId)` server action — aggregates member dates + relationship dates into sorted event list
-- [ ] Add "Timeline" nav link to tree sidebar
-- [ ] Tests: events sorted correctly, filter reduces results, empty state
+  - Filter: event type chips + decade range select; empty state with clear button
+- [x] `getTimelineEvents(treeId)` server action — aggregates member dates + relationship dates into sorted event list; marriage deduplication via seenMarriages Set
+- [x] `src/types/timeline.ts` — `TimelineEvent` + `TimelineEventType` types exported from barrel
+- [x] Add "Timeline" nav link to tree sidebar (between Tree View and History)
+- [x] Tests: 5 tests in `tests/tree/timeline.test.ts` — sorting, type filter, decade grouping, decade floor math, empty array
 
 ---
 

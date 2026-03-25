@@ -456,8 +456,16 @@ export function MemberDetailPanel({
 
   const handleInlineSave = useCallback(
     async (field: string, value: string) => {
-      await updateMember(member.id, member.tree_id, { [field]: value });
-      router.refresh();
+      try {
+        await updateMember(member.id, member.tree_id, { [field]: value });
+        router.refresh();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (/branch|permission|cannot edit/i.test(msg)) {
+          setMemberCanEdit(false);
+        }
+        throw err;
+      }
     },
     [member.id, member.tree_id, router]
   );

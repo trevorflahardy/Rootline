@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { History, Settings, Users, UserPlus, Menu, X } from "lucide-react";
+import { History, Settings, Users, UserPlus, Menu, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TreeHealthBar } from "./tree-health-bar";
 import { cn } from "@/lib/utils/cn";
@@ -14,6 +14,7 @@ interface TreeSidebarProps {
 
 const getNavItems = (treeId: string) => [
   { href: `/tree/${treeId}`, label: "Tree View", icon: Users },
+  { href: `/tree/${treeId}/timeline`, label: "Timeline", icon: Clock },
   { href: `/tree/${treeId}/history`, label: "History", icon: History },
   { href: `/tree/${treeId}/settings`, label: "Settings", icon: Settings },
   { href: `/tree/${treeId}/members`, label: "Members", icon: Users },

@@ -83,7 +83,7 @@ function TreeCanvasInner({
       if (permissions?.isOwner) return true;
       return checkCanEditMember(tree.id, memberId);
     },
-    [canEdit, permissions?.isOwner, tree.id]
+    [canEdit, permissions?.isOwner, permissions?.linkedNodeId, tree.id]
   );
 
   const [members, setMembers] = useState(initialMembers);
