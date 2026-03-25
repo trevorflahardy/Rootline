@@ -560,14 +560,14 @@ This redesign is too large for a single pass. It must be broken into independent
 
 Set up the glassmorphism design tokens, Tailwind utilities, and background system.
 
-- [ ] Add glass CSS custom properties to `globals.css` (light + dark mode variants)
-- [ ] Create `@utility` directives: `glass-card`, `glass-heavy`, `glass-light`, `glass-elevated`, `glass-edge-top`, `glass-edge-left`
-- [ ] Add `@supports (backdrop-filter: blur(1px))` fallback styles for non-supporting browsers
-- [ ] Update page backgrounds: warm gradient in light mode (`gray-100 via gray-50 to stone-100`), deep gradient in dark mode
-- [ ] Add optional subtle radial gradient blobs (primary color, very low opacity) for depth
-- [ ] Update `@theme inline` block with new glass-related custom properties
-- [ ] Tests: utility class output tests, dark mode token tests, `@supports` fallback test
-- [ ] Reviewer: verify WCAG AA contrast ratios for text on glass surfaces in both modes
+- [x] Add glass CSS custom properties to `globals.css` (light + dark mode variants)
+- [x] Create `@utility` directives: `glass-card`, `glass-heavy`, `glass-light`, `glass-elevated`, `glass-edge-top`, `glass-edge-left`
+- [x] Add `@supports (backdrop-filter: blur(1px))` fallback styles for non-supporting browsers
+- [x] Update page backgrounds: warm gradient in light mode (`gray-100 via gray-50 to stone-100`), deep gradient in dark mode
+- [x] Add optional subtle radial gradient blobs (primary color, very low opacity) for depth
+- [x] Update `@theme inline` block with new glass-related custom properties
+- [x] Tests: utility class output tests, dark mode token tests, `@supports` fallback test
+- [x] Reviewer: verify WCAG AA contrast ratios for text on glass surfaces in both modes
 
 ### Stream 21: Sidebar & Navigation Redesign
 
@@ -575,20 +575,20 @@ Set up the glassmorphism design tokens, Tailwind utilities, and background syste
 
 Redesign the left sidebar navigation with glassmorphism and add Tree Health metric.
 
-- [ ] Sidebar container: `glass-card glass-heavy glass-edge-left` with fixed height
-- [ ] Navigation items: transparent default, primary background when active, rounded-xl
-- [ ] **Tree Health metric component** (`src/components/tree/tree-health-bar.tsx`):
+- [x] Sidebar container: `glass-card glass-heavy glass-edge-left` with fixed height
+- [x] Navigation items: transparent default, primary background when active, rounded-xl
+- [x] **Tree Health metric component** (`src/components/tree/tree-health-bar.tsx`):
   - Calculate: `(members with complete profiles) / (total members) * 100`
   - "Complete profile" = has `first_name` + `last_name` + `date_of_birth` + at least one relationship
   - Display: percentage + progress bar (primary color fill on muted track)
   - Subtitle: "X new records found today" (count members created in last 24h)
   - Position: prominently at top of sidebar, above navigation links
-- [ ] Tree Health server action (`getTreeHealth(treeId)`) — returns percentage + recent record count
-- [ ] "Add Relative" CTA button at bottom: primary background, full-width
-- [ ] Header/top navigation bar: `glass-card glass-light` with search bar
-- [ ] Mobile responsive: sidebar collapses to hamburger menu with glass overlay
-- [ ] Tests: Tree Health calculation logic, sidebar rendering, mobile breakpoint behavior
-- [ ] Reviewer: verify navigation accessibility (keyboard nav, ARIA roles, focus management)
+- [x] Tree Health server action (`getTreeHealth(treeId)`) — returns percentage + recent record count
+- [x] "Add Relative" CTA button at bottom: primary background, full-width
+- [x] Header/top navigation bar: `glass-card glass-light` with search bar
+- [x] Mobile responsive: sidebar collapses to hamburger menu with glass overlay
+- [x] Tests: Tree Health calculation logic, sidebar rendering, mobile breakpoint behavior
+- [x] Reviewer: verify navigation accessibility (keyboard nav, ARIA roles, focus management)
 
 ### Stream 22: Tree Canvas & Node Redesign
 
@@ -596,19 +596,19 @@ Redesign the left sidebar navigation with glassmorphism and add Tree Health metr
 
 Redesign tree member nodes, edges, and the canvas background.
 
-- [ ] Tree canvas background: page gradient shows through (no opaque background)
-- [ ] Member nodes (`member-node.tsx`): `glass-card glass-edge-top` with rounded-2xl
+- [x] Tree canvas background: page gradient shows through (no opaque background)
+- [x] Member nodes (`member-node.tsx`): `glass-card glass-edge-top` with rounded-2xl
   - Avatar circle + name + date range centered
   - Selected state: `border-2 border-primary` with slight scale-up
   - Hover: transition to `glass-bg-heavy`
   - Deceased members: `opacity-70` with subtle grayscale filter
-- [ ] Relationship edges: update colors to work against gradient backgrounds
-- [ ] Path highlighting: green glow effect on glass nodes when path-highlighted
-- [ ] Minimap: glass-light styling with reduced opacity
-- [ ] Toolbar: `glass-card glass-light` horizontal bar
-- [ ] Empty tree state: glass card with centered CTA
-- [ ] Tests: node hover/select state classes, deceased styling, edge rendering
-- [ ] Reviewer: verify tree interactions still work (drag, zoom, click, shift-click path)
+- [x] Relationship edges: update colors to work against gradient backgrounds
+- [x] Path highlighting: green glow effect on glass nodes when path-highlighted
+- [x] Minimap: glass-light styling with reduced opacity
+- [x] Toolbar: `glass-card glass-light` horizontal bar
+- [x] Empty tree state: glass card with centered CTA
+- [x] Tests: node hover/select state classes, deceased styling, edge rendering
+- [x] Reviewer: verify tree interactions still work (drag, zoom, click, shift-click path)
 
 ### Stream 23: Dashboard & Card Redesign
 
@@ -616,14 +616,14 @@ Redesign tree member nodes, edges, and the canvas background.
 
 Redesign dashboard page, tree cards, and stat displays.
 
-- [ ] Dashboard layout: gradient background, glass cards floating on top
-- [ ] Tree cards: `glass-card glass-edge-top` with hover `scale-[1.02]` + `glass-elevated` shadow transition
-- [ ] Create tree dialog: `glass-card glass-elevated glass-edge-top glass-edge-left` in modal overlay
-- [ ] Dashboard header: glass-light bar with user greeting and "Create Tree" CTA
-- [ ] Stat cards (if applicable): icon + label + value in `glass-card` with chart accents
-- [ ] Empty state: glass card with illustration
-- [ ] Tests: card hover animation classes, dialog glass styling, responsive grid
-- [ ] Reviewer: verify dark mode card readability, hover transitions smooth
+- [x] Dashboard layout: gradient background, glass cards floating on top
+- [x] Tree cards: `glass-card glass-edge-top` with hover `scale-[1.02]` + `glass-elevated` shadow transition
+- [x] Create tree dialog: `glass-card glass-elevated glass-edge-top glass-edge-left` in modal overlay
+- [x] Dashboard header: glass-light bar with user greeting and "Create Tree" CTA
+- [x] Stat cards (if applicable): icon + label + value in `glass-card` with chart accents
+- [x] Empty state: glass card with illustration
+- [x] Tests: card hover animation classes, dialog glass styling, responsive grid
+- [x] Reviewer: verify dark mode card readability, hover transitions smooth
 
 ### Stream 24: Detail Panel, Dialogs & Forms Redesign
 
@@ -631,19 +631,19 @@ Redesign dashboard page, tree cards, and stat displays.
 
 Redesign the member detail side panel, all dialogs/modals, and form elements.
 
-- [ ] Member detail panel: `glass-card glass-heavy glass-edge-top glass-edge-left`, slides in from right
+- [x] Member detail panel: `glass-card glass-heavy glass-edge-top glass-edge-left`, slides in from right
   - Profile photo section: no glass (image renders directly)
   - Life Timeline: colored dots on glass surface, connected by subtle line
   - Archive Gallery: glass-light thumbnails in grid
   - "Share Branch" and "Report (PDF)" buttons: glass-card glass-light styling
-- [ ] All dialogs (add member, edit member, confirm, rollback, GEDCOM import): glass-elevated styling
+- [x] All dialogs (add member, edit member, confirm, rollback, GEDCOM import): glass-elevated styling
   - Modal backdrop: `bg-black/40 backdrop-blur-sm`
   - Dialog surface: `glass-card glass-elevated glass-edge-top glass-edge-left`
-- [ ] Form inputs: semi-transparent backgrounds (`bg-white/10` borders), focus ring using primary color
-- [ ] Select dropdowns, popovers, command palette: glass-elevated
-- [ ] Toast notifications: glass-card glass-light with colored left border
-- [ ] Tests: dialog open/close glass transitions, form input focus states, panel slide animation
-- [ ] Reviewer: verify form accessibility (label association, error states visible on glass)
+- [x] Form inputs: semi-transparent backgrounds (`bg-white/10` borders), focus ring using primary color
+- [x] Select dropdowns, popovers, command palette: glass-elevated
+- [x] Toast notifications: glass-card glass-light with colored left border
+- [x] Tests: dialog open/close glass transitions, form input focus states, panel slide animation
+- [x] Reviewer: verify form accessibility (label association, error states visible on glass)
 
 ### Stream 25: Settings, History & Remaining Pages
 
@@ -651,16 +651,16 @@ Redesign the member detail side panel, all dialogs/modals, and form elements.
 
 Applied glassmorphism to all remaining pages and components.
 
-- [ ] Tree settings page: glass cards for each settings section
-- [ ] History page: audit timeline on glass cards, snapshot viewer glass-card grid
-- [ ] Profile page: glass card for user info
-- [ ] Invite acceptance page: centered glass card with tree info
-- [ ] Landing/marketing page: hero with glass elements, feature cards as glass-card
-- [ ] Auth pages (sign-in/sign-up): centered glass card on gradient background
-- [ ] Notification popover: glass-elevated dropdown
-- [ ] Photo gallery lightbox: glass overlay
-- [ ] Tests: page-level rendering tests for glass classes, responsive layout tests
-- [ ] Reviewer: cross-page consistency check — same glass depth levels used consistently
+- [x] Tree settings page: glass cards for each settings section
+- [x] History page: audit timeline on glass cards, snapshot viewer glass-card grid
+- [x] Profile page: glass card for user info
+- [x] Invite acceptance page: centered glass card with tree info
+- [x] Landing/marketing page: hero with glass elements, feature cards as glass-card
+- [x] Auth pages (sign-in/sign-up): centered glass card on gradient background
+- [x] Notification popover: glass-elevated dropdown
+- [x] Photo gallery lightbox: glass overlay
+- [x] Tests: page-level rendering tests for glass classes, responsive layout tests
+- [x] Reviewer: cross-page consistency check — same glass depth levels used consistently
 
 ### Stream 26: Integration Testing & Visual QA
 
@@ -668,22 +668,22 @@ Applied glassmorphism to all remaining pages and components.
 
 Final integration pass — all tests pass, build succeeds, types clean.
 
-- [ ] Full build: `bun run build` passes
-- [ ] Lint: `bun run lint` passes — no new errors
-- [ ] Type check: `bunx tsc --noEmit` passes
-- [ ] All existing tests pass (`bun test`)
-- [ ] New glass utility tests pass
-- [ ] Tree Health metric tests pass
-- [ ] Visual QA checklist:
-  - [ ] Light mode: all pages use consistent glass depth
-  - [ ] Dark mode: all pages readable, glass opacity correct
-  - [ ] Mobile: sidebar collapses, glass responsive
-  - [ ] Tree canvas: nodes, edges, toolbar all glass-styled
-  - [ ] Dialogs: all modals use glass-elevated
-  - [ ] Forms: inputs readable on glass surfaces
-  - [ ] Contrast: spot-check text on glass meets WCAG AA
-- [ ] Performance: no excessive backdrop-filter nesting (max 2 layers deep)
-- [ ] Browser compatibility: Chrome, Firefox, Safari tested for backdrop-filter support
+- [x] Full build: `bun run build` passes
+- [x] Lint: `bun run lint` passes — no new errors
+- [x] Type check: `bunx tsc --noEmit` passes
+- [x] All existing tests pass (`bun test`)
+- [x] New glass utility tests pass
+- [x] Tree Health metric tests pass
+- [x] Visual QA checklist:
+  - [x] Light mode: all pages use consistent glass depth
+  - [x] Dark mode: all pages readable, glass opacity correct
+  - [x] Mobile: sidebar collapses, glass responsive
+  - [x] Tree canvas: nodes, edges, toolbar all glass-styled
+  - [x] Dialogs: all modals use glass-elevated
+  - [x] Forms: inputs readable on glass surfaces
+  - [x] Contrast: spot-check text on glass meets WCAG AA
+- [x] Performance: no excessive backdrop-filter nesting (max 2 layers deep)
+- [x] Browser compatibility: Chrome, Firefox, Safari tested for backdrop-filter support
 
 ### Verification Checklist: After Phase 5.5
 
@@ -739,31 +739,31 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 #### Tests to Write
 
 **Member attribute edits:**
-- [ ] Eve updates `first_name` on David (descendant) → **succeeds**
-- [ ] Eve updates `first_name` on Carol (cousin — out of scope) → **blocked**
-- [ ] Eve updates `first_name` on Harold (grandparent — out of scope) → **blocked**
-- [ ] Eve deletes David (in scope) → **succeeds**
-- [ ] Eve deletes Carol (out of scope) → **blocked**
+- [x] Eve updates `first_name` on David (descendant) → **succeeds**
+- [x] Eve updates `first_name` on Carol (cousin — out of scope) → **blocked**
+- [x] Eve updates `first_name` on Harold (grandparent — out of scope) → **blocked**
+- [x] Eve deletes David (in scope) → **succeeds**
+- [x] Eve deletes Carol (out of scope) → **blocked**
 
 **Relationship creation (cross-branch attack):**
-- [ ] Eve creates `parent_child` between David (in-scope) and Carol (out-of-scope) → **blocked** ← BUG-001
-- [ ] Eve creates `spouse` between Fiona (in-scope) and George (out-of-scope) → **blocked** ← BUG-001
-- [ ] Eve creates `sibling` between David and Fiona (both in-scope) → **succeeds**
-- [ ] Eve creates `parent_child` between Carol and George (both out-of-scope) → **blocked**
+- [x] Eve creates `parent_child` between David (in-scope) and Carol (out-of-scope) → **blocked** ← BUG-001 fixed
+- [x] Eve creates `spouse` between Fiona (in-scope) and George (out-of-scope) → **blocked** ← BUG-001 fixed
+- [x] Eve creates `sibling` between David and Fiona (both in-scope) → **succeeds**
+- [x] Eve creates `parent_child` between Carol and George (both out-of-scope) → **blocked**
 
 **Position save scope:**
-- [ ] Eve saves position for David (in-scope) → **succeeds** ← BUG-002
-- [ ] Eve saves position for Carol (out-of-scope) → **blocked** ← BUG-002
+- [x] Eve saves position for David (in-scope) → **succeeds** ← BUG-002 fixed
+- [x] Eve saves position for Carol (out-of-scope) → **blocked** ← BUG-002 fixed
 
 **Data integrity invariants:**
-- [ ] Create relationship where `from_member_id === to_member_id` (self-reference) → **blocked**
-- [ ] Create `parent_child` A→B then B→A (direct cycle) → **blocked**
-- [ ] Create member with `date_of_death` before `date_of_birth` → **blocked**
+- [x] Create relationship where `from_member_id === to_member_id` (self-reference) → **blocked** ← BUG-003 fixed
+- [ ] Create `parent_child` A→B then B→A (direct cycle) → **blocked** (future)
+- [ ] Create member with `date_of_death` before `date_of_birth` → **blocked** (future)
 
 **Role boundary:**
-- [ ] Viewer tries to update any member → **blocked**
-- [ ] Editor without `linked_node_id` can edit any member → **succeeds** (unscoped editor)
-- [ ] Scoped editor tries to self-escalate role to owner → **blocked**
+- [x] Viewer tries to update any member → **blocked**
+- [x] Editor without `linked_node_id` can edit any member → **succeeds** (unscoped editor)
+- [ ] Scoped editor tries to self-escalate role to owner → **blocked** (future)
 
 #### Files
 
@@ -788,6 +788,217 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 - [x] Scoped editor cannot reposition out-of-scope nodes (BUG-002 fixed)
 - [x] Self-referential relationships blocked (BUG-003 fixed)
 - [ ] Temporal invariants enforced at validator level (future)
+
+---
+
+## Phase 7: Critical Fixes + Security Hardening + New Features
+
+**Goal**: Fix the two broken production paths (members page 404, missing storage buckets), perform a comprehensive security audit and hardening pass, then implement the approved new feature set.
+
+> **Last Updated**: 2026-03-25
+> **Status**: 🔴 TODO
+> **Swarm**: `swarm-1774441906884-3icr71` (hierarchical, max 8 agents)
+
+---
+
+### Stream 29: Members List Page (Critical Fix)
+
+**Status**: 🔴 TODO
+
+`tree-sidebar.tsx` links to `/tree/${treeId}/members` which 404s. Create the page.
+
+- [ ] `src/app/tree/[id]/members/page.tsx` — server component, fetches all members + their relationship counts
+- [ ] `src/components/tree/members-list.tsx` — client component with:
+  - Searchable table/grid (filter by name, living/deceased, gender)
+  - Sortable columns: name, date of birth, relationship count
+  - Each row links to `/tree/[id]/member/[memberId]`
+  - "Add Member" button for owners/editors
+  - Profile photo avatar + completeness indicator (colored dot: green = complete, yellow = partial, gray = empty)
+- [ ] Server action: `getMembersWithStats(treeId)` — returns members with `relationship_count`, `document_count`, `photo_count`
+- [ ] Accessible to all tree members (owner/editor/viewer)
+- [ ] Tests: renders member list, filters apply, empty state shown when no members
+
+---
+
+### Stream 30: Storage Bucket Migration (Critical Fix)
+
+**Status**: 🔴 TODO
+
+`tree-photos` and `tree-documents` buckets are referenced in code but never created. All photo/document uploads currently fail.
+
+- [ ] `supabase/migrations/008_storage_buckets.sql`:
+  - Create `tree-photos` bucket (public, 5MB file size limit)
+  - Create `tree-documents` bucket (private, 25MB file size limit)
+  - RLS on `storage.objects` for `tree-photos`: SELECT by tree member, INSERT/DELETE by owner or scoped editor
+  - RLS on `storage.objects` for `tree-documents`: SELECT filtered by privacy + membership, INSERT/DELETE by owner or scoped editor
+- [ ] Update `README.md` / setup docs to note buckets are created via migration (not manually)
+- [ ] Tests: verify bucket names match constants in `photo.ts` (`"tree-photos"`) and `document.ts` (`"tree-documents"`)
+
+---
+
+### Stream 31: Security Audit & Hardening
+
+**Status**: 🔴 TODO
+
+**Execution**: Ruflo multi-agent security swarm. Agents: `security-architect` (lead), `security-auditor` (scan), `tester` (write attack tests), `reviewer` (sign-off).
+
+#### 31a: Rate Limiting
+
+- [ ] Add rate limiting to all server actions using an in-memory or Redis-backed token bucket
+  - `createMember`: 30/min per user
+  - `createRelationship`: 30/min per user
+  - `uploadPhoto` / `uploadDocument`: 10/min per user
+  - `createInvite`: 5/min per user
+  - `acceptInvite`: 10/min per user
+- [ ] Clerk webhook endpoint: validate `svix-signature` header (already done — verify it's enforced)
+- [ ] API routes: add `X-RateLimit-*` response headers
+- [ ] Tests: rate limit hit returns 429 with retry-after header
+
+#### 31b: Input Sanitization & Injection Prevention
+
+- [ ] Audit all free-text fields (`bio`, `birth_place`, `death_place`, `description`, `caption`) for XSS — sanitize with `DOMPurify` server-side before DB insert
+- [ ] Validate `storage_path` in photo/document actions — prevent path traversal (`../`) attacks
+- [ ] Zod schemas: add `.max()` caps to all string fields that lack them (bio: 2000 chars, place: 200 chars, caption: 500 chars)
+- [ ] GEDCOM parser: limit file size to 10MB, validate all string fields extracted from GEDCOM before inserting
+- [ ] Tests: XSS payloads in member bio rejected/sanitized, path traversal in storage paths rejected
+
+#### 31c: Prompt Injection Defense (AI Features Guard)
+
+- [ ] Any AI-facing text (member bios, tree names, document descriptions) must be escaped before being passed to any LLM context
+- [ ] Add a `sanitizeForLLM(text)` utility that strips control characters, prompt delimiters, and role-injection patterns
+- [ ] Document the policy in CLAUDE.md: all user-supplied text is untrusted and must be sanitized before AI processing
+- [ ] Tests: common prompt injection patterns (`Ignore previous instructions`, `<|im_start|>system`) are sanitized
+
+#### 31d: Auth & Permission Hardening
+
+- [ ] Verify `getAuthUser()` always throws (never returns null silently) — audit all callers
+- [ ] Add CSRF protection to all mutating server actions (Next.js App Router handles this via `server-only`, verify)
+- [ ] Tree ID and member ID in URLs must be validated as UUIDs before DB queries — add middleware-level check
+- [ ] Audit: no `createAdminClient()` usage in client components (grep for imports)
+- [ ] `deleteTree`: currently only checks `membership.role === "owner"` — add explicit check that `owner_id === userId`
+- [ ] Tests: forged tree IDs, non-UUID IDs, missing auth all return correct errors
+
+#### 31e: Dependency & Header Audit
+
+- [ ] Run `bun audit` — list and address any high/critical CVEs
+- [ ] Add security headers via `next.config.ts`: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`
+- [ ] Ensure `SUPABASE_SERVICE_ROLE_KEY` is never exposed to client (grep for `NEXT_PUBLIC_` misuse)
+- [ ] Tests: security headers present in responses, no secrets in client bundle
+
+---
+
+### Stream 32: Timeline View (Feature C)
+
+**Status**: 🔴 TODO
+
+Chronological view of all life events across the tree.
+
+- [ ] `src/app/tree/[id]/timeline/page.tsx` — server component
+- [ ] `src/components/tree/timeline-view.tsx` — vertical timeline sorted by date
+  - Events: births, deaths, marriages, divorces (derived from member dates + relationship dates)
+  - Group by decade with collapsible sections
+  - Each event links to the member profile
+  - Filter: event type, date range
+- [ ] `getTimelineEvents(treeId)` server action — aggregates member dates + relationship dates into sorted event list
+- [ ] Add "Timeline" nav link to tree sidebar
+- [ ] Tests: events sorted correctly, filter reduces results, empty state
+
+---
+
+### Stream 33: Tree Statistics Dashboard (Feature D)
+
+**Status**: 🔴 TODO
+
+Analytics panel showing tree completeness and interesting facts.
+
+- [ ] `src/components/tree/tree-stats.tsx` — glass card grid of stats:
+  - Total members (living vs deceased)
+  - Oldest living member / longest lifespan
+  - Most descendants (deepest branch)
+  - Average lifespan (of deceased members with known dates)
+  - Gender distribution (pie/bar)
+  - Profile completeness % (same as Tree Health but broken down)
+  - Most recently added / updated member
+- [ ] `getTreeStats(treeId)` server action — all stats in one query
+- [ ] Surface in tree sidebar below Tree Health bar, or as a dedicated tab
+- [ ] Tests: stat calculations correct on fixture data, handles trees with missing dates
+
+---
+
+### Stream 34: Birthday Reminders (Feature E)
+
+**Status**: 🔴 TODO
+
+In-app notification when a living member's birthday is within the next 7 days.
+
+- [ ] Database: `supabase/migrations/009_birthday_reminders.sql` — add computed column or function `days_until_birthday(date_of_birth)`
+- [ ] `getBirthdayReminders(treeId)` server action — returns living members with birthday within 7 days, with days remaining
+- [ ] `birthday-reminder-banner.tsx` — dismissible banner at top of tree canvas listing upcoming birthdays
+- [ ] Auto-create notification records for birthdays (extend `004_triggers.sql` or add new migration)
+- [ ] Tests: days_until_birthday calculation, members with no DOB excluded, deceased excluded
+
+---
+
+### Stream 35: Public Read-Only Share Link (Feature G)
+
+**Status**: 🔴 TODO
+
+Shareable URL that shows the tree to unauthenticated visitors (read-only).
+
+- [ ] `family_trees` table: already has `is_public` field — use this as the gate
+- [ ] `src/app/share/[treeId]/page.tsx` — public tree view, no auth required for `is_public = true`
+  - Shows tree canvas in view-only mode (no add/edit/delete controls)
+  - Shows member count, tree name, owner display name
+  - "Sign up to collaborate" CTA
+- [ ] Update RLS: `family_trees` SELECT allowed if `is_public = true` (regardless of user)
+- [ ] Update tree settings page: "Make public / private" toggle with shareable link copy button
+- [ ] Update `src/proxy.ts` (Clerk middleware): `/share/*` routes are public (no auth required)
+- [ ] Tests: public tree accessible without auth, private tree returns 404, controls absent in share view
+
+---
+
+### Stream 36: Tree Merge (Feature J)
+
+**Status**: 🔴 TODO
+
+Merge two family trees when families connect. Schema already supports it via shared UUIDs.
+
+- [ ] `mergeTree(sourceTreeId, targetTreeId, memberMappings)` server action — owner-only
+  - Copy all `tree_members` from source → target (with dedup by name+DOB)
+  - Copy all `relationships`, remapping member IDs
+  - Copy all `media` and `documents` references
+  - Create `audit_log` entry for the merge
+  - Delete source tree after confirmation
+- [ ] `src/components/tree/merge-tree-dialog.tsx` — step wizard:
+  1. Select source tree (from user's owned trees)
+  2. Preview member conflicts (name+DOB matches shown as potential duplicates)
+  3. Resolve conflicts: merge as same person, keep as separate, skip
+  4. Confirm merge with data-loss warning
+- [ ] Add "Merge another tree into this one" option in tree settings danger zone
+- [ ] Tests: merge copies members, remaps relationships, dedup detection works, non-owner blocked
+
+---
+
+### Verification Checklist: After Phase 7
+
+**Critical Fixes:**
+- [ ] `/tree/[id]/members` page loads and lists all members
+- [ ] Photo upload succeeds (tree-photos bucket exists)
+- [ ] Document upload succeeds (tree-documents bucket exists)
+
+**Security:**
+- [ ] `bun audit` shows no high/critical CVEs
+- [ ] XSS payload in bio is sanitized before DB insert
+- [ ] Rate limiting returns 429 after threshold exceeded
+- [ ] Security headers present in all HTTP responses
+- [ ] No `NEXT_PUBLIC_` exposure of service role key
+
+**Features:**
+- [ ] Timeline shows all birth/death/marriage events sorted by date
+- [ ] Tree stats panel shows accurate counts and calculations
+- [ ] Birthday reminder banner appears for members with upcoming birthdays
+- [ ] Public share link works without login for `is_public` trees
+- [ ] Tree merge copies all members + relationships with dedup detection
 
 ---
 

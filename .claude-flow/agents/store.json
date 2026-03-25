@@ -94,6 +94,34 @@
       "createdAt": "2026-03-25T12:14:41.161Z",
       "model": "haiku",
       "modelRoutedBy": "explicit"
+    },
+    "p7-coordinator": {
+      "agentId": "p7-coordinator",
+      "agentType": "planner",
+      "status": "active",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "swarmId": "swarm-1774441906884-3icr71",
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T12:31:50.589Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "p7-security": {
+      "agentId": "p7-security",
+      "agentType": "security-architect",
+      "status": "active",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "swarmId": "swarm-1774441906884-3icr71",
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T12:31:52.224Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
     }
   },
   "version": "3.0.0"

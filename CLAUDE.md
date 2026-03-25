@@ -32,11 +32,13 @@
 
 ### Project Config
 
-- **Topology**: hierarchical-mesh
-- **Max Agents**: 15
+- **Topology**: hierarchical
+- **Max Agents**: 8
+- **Strategy**: specialized
 - **Memory**: hybrid
 - **HNSW**: Enabled
 - **Neural**: Enabled
+- **Canonical Swarm ID**: `swarm-1774441906884-3icr71` ← ALWAYS reuse this, never create a new one
 
 ## Build & Test
 
@@ -65,17 +67,62 @@ npm run lint
 ## Concurrency: 1 MESSAGE = ALL RELATED OPERATIONS
 
 - All operations MUST be concurrent/parallel in a single message
-- NEVER use Claude Code's Agent/Task tool to spawn subagents — use ruflo MCP exclusively
 - ALWAYS batch ALL file reads/writes/edits in ONE message
 - ALWAYS batch ALL Bash commands in ONE message
 
-## Swarm Orchestration
+## Swarm Orchestration — Correct 4-Step Pattern
 
-- MUST initialize swarm via `mcp__ruflo__swarm_init` before spawning agents
-- MUST spawn ALL agents via `mcp__ruflo__agent_spawn` — NEVER via Claude Code's Task/Agent tool
-- MUST call `swarm_init` AND all `agent_spawn` calls in ONE message for parallel startup
-- Use `mcp__ruflo__agent_update` to track agent status (active → completed)
-- Use `mcp__ruflo__swarm_status` and `mcp__ruflo__agent_list` to monitor progress
+The swarm has two layers that MUST both be used: **MCP (coordination)** + **Task tool (execution)**.
+Agents DO write code — but only via the Task tool spawning real Claude subprocesses.
+
+### How the two layers work
+
+| Layer | Tools | Purpose |
+|---|---|---|
+| **Coordination** | `mcp__ruflo__swarm_init`, `agent_spawn`, `coordination_orchestrate`, `task_create` | Registers roles, routes tasks, tracks ownership, stores memory |
+| **Execution** | Claude Code **`Agent` / `Task` tool** | Spawns real Claude subprocesses with `Edit`/`Write`/`Bash` — **actually writes code** |
+
+> *Per Ruflo docs: "CLI coordinates, Task tool agents do the actual work."*
+> *"MCP tools are strictly for coordination... rely on the Claude Code Task tool for all real-world execution."*
+
+### The Correct Pattern (ALL in ONE message)
+
+```
+// ── Coordination layer (MCP) ──────────────────────────────────
+mcp__ruflo__swarm_init          { topology: "hierarchical", maxAgents: 8, strategy: "specialized" }
+mcp__ruflo__agent_spawn         { agentType: "coder",    agentId: "coder-1",    model: "sonnet" }
+mcp__ruflo__agent_spawn         { agentType: "tester",   agentId: "tester-1",   model: "haiku"  }
+mcp__ruflo__agent_spawn         { agentType: "reviewer", agentId: "reviewer-1", model: "haiku"  }
+mcp__ruflo__coordination_orchestrate { task: "...", strategy: "parallel" }
+mcp__ruflo__task_create         { title: "Implement X", agentId: "coder-1", priority: "high" }
+
+// ── Execution layer (Task/Agent tool — real Claude subprocesses) ──
+Agent { subagent_type: "coder",    prompt: "Implement X in src/...", mode: "bypassPermissions" }
+Agent { subagent_type: "tester",   prompt: "Write tests for X",      mode: "bypassPermissions" }
+Agent { subagent_type: "reviewer", prompt: "Review the implementation" }
+
+// ── Tracking ──────────────────────────────────────────────────
+TodoWrite { todos: [...] }
+```
+
+### Step-by-Step
+
+1. **`swarm_init`** — creates coordination namespace and swarm ID
+2. **`agent_spawn` × N** — registers role metadata (does NOT execute code)
+3. **`coordination_orchestrate` + `task_create`** — assigns work ownership
+4. **`Agent` tool × N** — spawns real Claude subprocesses that edit files, run bash, write tests
+5. **`agent_update`** — mark `active` when starting, `completed` when done
+
+### Role Division
+
+| Responsibility | MCP (coordination) | Agent/Task tool (execution) |
+|---|---|---|
+| Register agent roles | ✅ | ❌ |
+| Track task ownership | ✅ | ❌ |
+| Cross-session memory | ✅ | ❌ |
+| Read / write files | ❌ | ✅ |
+| Run bash commands | ❌ | ✅ |
+| Generate + edit code | ❌ | ✅ |
 
 ### 3-Tier Model Routing (ADR-026)
 
@@ -103,11 +150,15 @@ npx @ruflo/cli@latest swarm init --topology hierarchical --max-agents 8 --strate
 
 ## Swarm Execution Rules
 
-- ALWAYS call `mcp__ruflo__swarm_init` + ALL `mcp__ruflo__agent_spawn` calls in ONE message
-- After spawning, STOP — do NOT add more tool calls or poll status
-- Use `mcp__ruflo__agent_update` to mark agents completed when results are received
-- When all agents complete, review results then proceed with next steps
-- Direct file edits (Edit tool) are done by Claude itself, NOT delegated to subagents
+- **ALWAYS reuse the canonical swarm** (`swarm-1774441906884-3icr71`) — NEVER call `swarm_init` again unless it is shut down
+- Check swarm is running first: `mcp__ruflo__swarm_status` — if `status: "running"` skip init entirely
+- ALWAYS call all `agent_spawn` + `coordination_orchestrate` + all `Agent` tool spawns in ONE message
+- NEVER stop after `agent_spawn` alone — without the `Agent` tool calls, no code executes
+- Use `mcp__ruflo__task_create` to register what each agent owns before spawning it
+- Use `mcp__ruflo__agent_update` to mark agents `active` when starting, `completed` when done
+- NEVER poll swarm status in a loop — check once after orchestration, then proceed
+- For simple single-file tasks: skip the swarm, use Edit/Read/Bash directly (faster)
+- Use swarms only for multi-file, multi-role tasks where parallel execution adds value
 
 ## V3 CLI Commands
 
@@ -182,10 +233,20 @@ npx @ruflo/cli@latest doctor --fix
 
 ## Claude Code vs ruflo MCP vs CLI Tools
 
-- **ruflo MCP** handles ALL agent spawning and swarm coordination (`mcp__ruflo__swarm_init`, `mcp__ruflo__agent_spawn`)
-- **Claude Code** (Edit/Read/Bash/Grep/Glob) handles direct file operations, builds, and tests
-- **CLI tools** (via Bash) handle memory, hooks, and routing: `npx @ruflo/cli@latest ...`
-- NEVER use Claude Code's Agent or Task tool to spawn subagents — ruflo MCP only
+- **ruflo MCP** — coordination only:
+  - `mcp__ruflo__swarm_init` → create swarm namespace
+  - `mcp__ruflo__agent_spawn` → register role metadata (no execution)
+  - `mcp__ruflo__coordination_orchestrate` → assign task ownership
+  - `mcp__ruflo__task_create` / `mcp__ruflo__task_assign` → route work to agents
+  - `mcp__ruflo__agent_update` → lifecycle tracking (active → completed)
+  - `mcp__ruflo__memory_store` / `mcp__ruflo__memory_retrieve` → cross-session memory
+- **Claude Code `Agent` tool** — real execution (spawns Claude subprocesses):
+  - Pass `subagent_type` matching the spawned role (`coder`, `tester`, `reviewer`, etc.)
+  - Subagent has its own context and can call Edit/Write/Read/Bash independently
+  - Use `mode: "bypassPermissions"` for automated swarm execution
+  - Use `isolation: "worktree"` for isolated parallel file edits
+- **Claude Code direct tools** (Edit/Read/Bash/Grep/Glob) — for simple tasks not needing a swarm
+- **CLI tools** (via Bash) — memory, hooks, routing: `npx @ruflo/cli@latest ...`
 
 ## Support
 
