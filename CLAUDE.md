@@ -38,7 +38,8 @@
 - **Memory**: hybrid
 - **HNSW**: Enabled
 - **Neural**: Enabled
-- **Canonical Swarm ID**: `swarm-1774444665371-r306rx` ← ALWAYS reuse this, never create a new one
+- **Coordination**: hive-mind (persistent, survives restarts)
+- **Canonical Hive Queen**: `rootline-queen` ← ALWAYS reuse this queen ID
 
 ## Build & Test
 
@@ -72,31 +73,31 @@ npm run lint
 
 ## Swarm Orchestration — Correct 4-Step Pattern
 
-The swarm has two layers that MUST both be used: **MCP (coordination)** + **Task tool (execution)**.
-Agents DO write code — but only via the Task tool spawning real Claude subprocesses.
+Two layers MUST both be used: **MCP hive-mind (coordination)** + **Agent tool (execution)**.
+
+### Why hive-mind over swarm
+- `hive-mind` persists across restarts (project-wide SQLite memory)
+- `hive-mind_status` shows real agent counts via MCP — `swarm status` always shows 0 for MCP-spawned agents
+- `swarm` is session-only (state lost on restart)
 
 ### How the two layers work
 
 | Layer | Tools | Purpose |
 |---|---|---|
-| **Coordination** | `mcp__ruflo__swarm_init`, `agent_spawn`, `coordination_orchestrate`, `task_create` | Registers roles, routes tasks, tracks ownership, stores memory |
-| **Execution** | Claude Code **`Agent` / `Task` tool** | Spawns real Claude subprocesses with `Edit`/`Write`/`Bash` — **actually writes code** |
-
-> *Per Ruflo docs: "CLI coordinates, Task tool agents do the actual work."*
-> *"MCP tools are strictly for coordination... rely on the Claude Code Task tool for all real-world execution."*
+| **Coordination** | `mcp__ruflo__hive-mind_init`, `hive-mind_spawn`, `agent_spawn`, `task_create` | Registers roles, tracks workers, stores persistent memory |
+| **Execution** | Claude Code **`Agent` tool** | Spawns real Claude subprocesses with `Edit`/`Write`/`Bash` — **actually writes code** |
 
 ### The Correct Pattern (ALL in ONE message)
 
 ```
-// ── Coordination layer (MCP) ──────────────────────────────────
-mcp__ruflo__swarm_init          { topology: "hierarchical", maxAgents: 8, strategy: "specialized" }
-mcp__ruflo__agent_spawn         { agentType: "coder",    agentId: "coder-1",    model: "sonnet" }
-mcp__ruflo__agent_spawn         { agentType: "tester",   agentId: "tester-1",   model: "haiku"  }
-mcp__ruflo__agent_spawn         { agentType: "reviewer", agentId: "reviewer-1", model: "haiku"  }
-mcp__ruflo__coordination_orchestrate { task: "...", strategy: "parallel" }
+// ── Coordination layer (MCP hive-mind) ────────────────────────
+mcp__ruflo__hive-mind_init      { topology: "hierarchical", queenId: "rootline-queen" }
+mcp__ruflo__hive-mind_spawn     { agentType: "coder",    prefix: "coder",    count: 1, role: "specialist" }
+mcp__ruflo__hive-mind_spawn     { agentType: "tester",   prefix: "tester",   count: 1, role: "specialist" }
+mcp__ruflo__hive-mind_spawn     { agentType: "reviewer", prefix: "reviewer", count: 1, role: "specialist" }
 mcp__ruflo__task_create         { title: "Implement X", agentId: "coder-1", priority: "high" }
 
-// ── Execution layer (Task/Agent tool — real Claude subprocesses) ──
+// ── Execution layer (Agent tool — real Claude subprocesses) ───
 Agent { subagent_type: "coder",    prompt: "Implement X in src/...", mode: "bypassPermissions" }
 Agent { subagent_type: "tester",   prompt: "Write tests for X",      mode: "bypassPermissions" }
 Agent { subagent_type: "reviewer", prompt: "Review the implementation" }
@@ -107,9 +108,9 @@ TodoWrite { todos: [...] }
 
 ### Step-by-Step
 
-1. **`swarm_init`** — creates coordination namespace and swarm ID
-2. **`agent_spawn` × N** — registers role metadata (does NOT execute code)
-3. **`coordination_orchestrate` + `task_create`** — assigns work ownership
+1. **`hive-mind_init`** — check `hive-mind_status` first; only init if not already active
+2. **`hive-mind_spawn` × N** — spawns workers AND joins them to hive (visible in `hive-mind_status`)
+3. **`task_create`** — assigns work ownership
 4. **`Agent` tool × N** — spawns real Claude subprocesses that edit files, run bash, write tests
 5. **`agent_update`** — mark `active` when starting, `completed` when done
 
@@ -135,30 +136,30 @@ TodoWrite { todos: [...] }
 - Always check for `[AGENT_BOOSTER_AVAILABLE]` or `[TASK_MODEL_RECOMMENDATION]` before spawning agents
 - Use Edit tool directly when `[AGENT_BOOSTER_AVAILABLE]`
 
-## Swarm Configuration & Anti-Drift
+## Hive-Mind Configuration
 
-- ALWAYS use hierarchical topology for coding swarms
-- Keep maxAgents at 6-8 for tight coordination
-- Use specialized strategy for clear role boundaries
-- Use `raft` consensus for hive-mind (leader maintains authoritative state)
+- ALWAYS use hierarchical topology
+- Use Byzantine consensus (default) — fault-tolerant across restarts
+- Queen ID: `rootline-queen` — reuse across sessions, persistent SQLite memory
 - Run frequent checkpoints via `post-task` hooks
-- Keep shared memory namespace for all agents
 
 ```bash
-ruflo swarm init --topology hierarchical --max-agents 8 --strategy specialized
+ruflo hive-mind status          # check before init — reuse if active
+ruflo hive-mind wizard          # interactive setup for new projects
 ```
 
-## Swarm Execution Rules
+## Hive-Mind Execution Rules
 
-- **ALWAYS reuse the canonical swarm** (`swarm-1774444665371-r306rx`) — NEVER call `swarm_init` again unless it is shut down
-- Check swarm is running first: `mcp__ruflo__swarm_status` — if `status: "running"` skip init entirely
-- ALWAYS call all `agent_spawn` + `coordination_orchestrate` + all `Agent` tool spawns in ONE message
-- NEVER stop after `agent_spawn` alone — without the `Agent` tool calls, no code executes
+- **Check `hive-mind_status` first** — only call `hive-mind_init` if NOT already active
+- **ALWAYS reuse queen** `rootline-queen` — hive-mind persists across restarts unlike swarm
+- **Health check via MCP**: `mcp__ruflo__hive-mind_status` (shows real worker counts) — NOT `ruflo swarm status` (always 0 for MCP agents)
+- ALWAYS call all `hive-mind_spawn` + `task_create` + all `Agent` tool spawns in ONE message
+- NEVER stop after `hive-mind_spawn` alone — without the `Agent` tool calls, no code executes
 - Use `mcp__ruflo__task_create` to register what each agent owns before spawning it
 - Use `mcp__ruflo__agent_update` to mark agents `active` when starting, `completed` when done
-- NEVER poll swarm status in a loop — check once after orchestration, then proceed
-- For simple single-file tasks: skip the swarm, use Edit/Read/Bash directly (faster)
-- Use swarms only for multi-file, multi-role tasks where parallel execution adds value
+- NEVER poll status in a loop — check once after orchestration, then proceed
+- For simple single-file tasks: skip the hive-mind, use Edit/Read/Bash directly (faster)
+- Use hive-mind only for multi-file, multi-role tasks where parallel execution adds value
 
 ## V3 CLI Commands
 
