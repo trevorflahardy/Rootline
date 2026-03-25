@@ -10,37 +10,37 @@
   --card-foreground: oklch(0.18 0.01 60);
   --popover: oklch(0.98 0.004 75);
   --popover-foreground: oklch(0.18 0.01 60);
-  --primary: oklch(0.35 0.10 160);
+  --primary: oklch(0.35 0.1 160);
   --primary-foreground: oklch(0.98 0.005 85);
   --secondary: oklch(0.93 0.006 65);
   --secondary-foreground: oklch(0.25 0.01 60);
   --muted: oklch(0.92 0.005 70);
   --muted-foreground: oklch(0.48 0.01 60);
-  --accent: oklch(0.35 0.10 160);
+  --accent: oklch(0.35 0.1 160);
   --accent-foreground: oklch(0.98 0.005 85);
-  --destructive: oklch(0.50 0.20 27);
+  --destructive: oklch(0.5 0.2 27);
   --destructive-foreground: oklch(0.98 0.005 85);
   --border: oklch(0.89 0.006 65);
   --input: oklch(0.91 0.005 70);
-  --ring: oklch(0.35 0.10 160);
+  --ring: oklch(0.35 0.1 160);
   --success: oklch(0.45 0.16 155);
   --success-foreground: oklch(0.98 0.005 85);
-  --chart-1: oklch(0.35 0.10 160);
+  --chart-1: oklch(0.35 0.1 160);
   --chart-2: oklch(0.52 0.15 30);
   --chart-3: oklch(0.48 0.12 250);
   --chart-4: oklch(0.55 0.15 340);
-  --chart-5: oklch(0.60 0.12 80);
+  --chart-5: oklch(0.6 0.12 80);
   --sidebar-background: oklch(0.96 0.005 70);
   --sidebar-foreground: oklch(0.25 0.01 60);
-  --sidebar-primary: oklch(0.35 0.10 160);
+  --sidebar-primary: oklch(0.35 0.1 160);
   --sidebar-primary-foreground: oklch(0.98 0.005 85);
   --sidebar-accent: oklch(0.93 0.006 65);
   --sidebar-accent-foreground: oklch(0.25 0.01 60);
   --sidebar-border: oklch(0.89 0.006 65);
-  --sidebar-ring: oklch(0.35 0.10 160);
+  --sidebar-ring: oklch(0.35 0.1 160);
 
   /* Glass Design System — Apple frosted glass (light) */
-  --glass-bg: rgba(255, 255, 255, 0.60);
+  --glass-bg: rgba(255, 255, 255, 0.6);
   --glass-bg-heavy: rgba(255, 255, 255, 0.82);
   --glass-bg-light: rgba(255, 255, 255, 0.45);
   --glass-border: rgba(0, 0, 0, 0.08);
@@ -67,13 +67,13 @@
   --popover-foreground: oklch(0.95 0.005 85);
   --primary: oklch(0.55 0.12 160);
   --primary-foreground: oklch(0.15 0.01 60);
-  --secondary: oklch(0.30 0.01 60);
-  --secondary-foreground: oklch(0.90 0.005 85);
+  --secondary: oklch(0.3 0.01 60);
+  --secondary-foreground: oklch(0.9 0.005 85);
   --muted: oklch(0.28 0.01 60);
   --muted-foreground: oklch(0.65 0.01 80);
   --accent: oklch(0.55 0.12 160);
   --accent-foreground: oklch(0.15 0.01 60);
-  --destructive: oklch(0.60 0.20 27);
+  --destructive: oklch(0.6 0.2 27);
   --destructive-foreground: oklch(0.98 0.005 85);
   --border: oklch(0.35 0.01 60);
   --input: oklch(0.32 0.01 60);
@@ -82,15 +82,15 @@
   --success-foreground: oklch(0.15 0.01 60);
   --chart-1: oklch(0.55 0.12 160);
   --chart-2: oklch(0.65 0.15 30);
-  --chart-3: oklch(0.60 0.12 250);
+  --chart-3: oklch(0.6 0.12 250);
   --chart-4: oklch(0.68 0.15 340);
   --chart-5: oklch(0.75 0.12 80);
-  --sidebar-background: oklch(0.20 0.01 60);
+  --sidebar-background: oklch(0.2 0.01 60);
   --sidebar-foreground: oklch(0.85 0.005 85);
   --sidebar-primary: oklch(0.55 0.12 160);
   --sidebar-primary-foreground: oklch(0.15 0.01 60);
   --sidebar-accent: oklch(0.28 0.01 60);
-  --sidebar-accent-foreground: oklch(0.90 0.005 85);
+  --sidebar-accent-foreground: oklch(0.9 0.005 85);
   --sidebar-border: oklch(0.32 0.01 60);
   --sidebar-ring: oklch(0.55 0.12 160);
 
@@ -156,6 +156,50 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+/* Theme switch ripple from the toggle point */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+.theme-transition-active::view-transition-old(root) {
+  z-index: 0;
+}
+
+.theme-transition-active::view-transition-new(root) {
+  z-index: 1;
+  transform-origin: var(--theme-transition-x) var(--theme-transition-y);
+  clip-path: circle(0 at var(--theme-transition-x) var(--theme-transition-y));
+  animation: theme-droplet-reveal 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes theme-droplet-reveal {
+  from {
+    clip-path: circle(0 at var(--theme-transition-x) var(--theme-transition-y));
+    filter: saturate(0.92) contrast(0.98);
+  }
+  72% {
+    clip-path: circle(
+      calc(var(--theme-transition-radius) * 1.04) at var(--theme-transition-x)
+        var(--theme-transition-y)
+    );
+    filter: saturate(1.02) contrast(1.01);
+  }
+  to {
+    clip-path: circle(
+      var(--theme-transition-radius) at var(--theme-transition-x)
+        var(--theme-transition-y)
+    );
+    filter: saturate(1) contrast(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition-active::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 /* ===== Glass Design System Utilities ===== */
 
 @utility glass-card {
@@ -164,7 +208,9 @@ body {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border-radius: var(--glass-radius);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow), var(--glass-inset-highlight), var(--glass-inset-bottom), var(--glass-inner-glow);
+  box-shadow:
+    var(--glass-shadow), var(--glass-inset-highlight),
+    var(--glass-inset-bottom), var(--glass-inner-glow);
   position: relative;
   overflow: hidden;
 }
@@ -182,38 +228,60 @@ body {
 }
 
 @utility glass-elevated {
-  box-shadow: var(--glass-shadow-elevated), var(--glass-inset-highlight), var(--glass-inset-bottom), var(--glass-inner-glow);
+  box-shadow:
+    var(--glass-shadow-elevated), var(--glass-inset-highlight),
+    var(--glass-inset-bottom), var(--glass-inner-glow);
 }
 
 @utility glass-edge-top {
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(0, 0, 0, 0.08),
+      transparent
+    );
     pointer-events: none;
   }
   :is(.dark *) &::before {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent
+    );
   }
 }
 
 @utility glass-edge-left {
   &::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 1px;
     height: 100%;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent, rgba(0, 0, 0, 0.04));
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.08),
+      transparent,
+      rgba(0, 0, 0, 0.04)
+    );
     pointer-events: none;
   }
   :is(.dark *) &::after {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), transparent, rgba(255, 255, 255, 0.06));
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.15),
+      transparent,
+      rgba(255, 255, 255, 0.06)
+    );
   }
 }
 
@@ -229,15 +297,28 @@ body {
 
 /* Glass-friendly page backgrounds */
 .glass-bg-light {
-  background: linear-gradient(135deg, oklch(0.97 0.008 70), oklch(0.96 0.006 60), oklch(0.98 0.004 80));
+  background: linear-gradient(
+    135deg,
+    oklch(0.97 0.008 70),
+    oklch(0.96 0.006 60),
+    oklch(0.98 0.004 80)
+  );
 }
 .dark .glass-bg-light,
 .glass-bg-dark {
-  background: linear-gradient(135deg, oklch(0.22 0.015 50), oklch(0.20 0.01 65), oklch(0.18 0.008 75));
+  background: linear-gradient(
+    135deg,
+    oklch(0.22 0.015 50),
+    oklch(0.2 0.01 65),
+    oklch(0.18 0.008 75)
+  );
 }
 
 /* Glass-friendly form inputs — scoped to glass containers */
-.glass-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.glass-card
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+    [type="hidden"]
+  ),
 .glass-card textarea,
 .glass-card select {
   background: rgba(0, 0, 0, 0.04);
@@ -245,13 +326,20 @@ body {
   border-radius: var(--glass-radius-sm);
   color: rgba(0, 0, 0, 0.85);
 }
-.dark .glass-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+.dark
+  .glass-card
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+    [type="hidden"]
+  ),
 .dark .glass-card textarea,
 .dark .glass-card select {
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.9);
 }
-.glass-card input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):focus,
+.glass-card
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not(
+    [type="hidden"]
+  ):focus,
 .glass-card textarea:focus,
 .glass-card select:focus {
   ring-color: var(--primary);
@@ -259,7 +347,7 @@ body {
 }
 .glass-card input::placeholder,
 .glass-card textarea::placeholder {
-  color: rgba(0, 0, 0, 0.40);
+  color: rgba(0, 0, 0, 0.4);
 }
 .dark .glass-card input::placeholder,
 .dark .glass-card textarea::placeholder {
@@ -273,7 +361,9 @@ body {
 
 /* Accent glow for primary actions */
 @utility glass-accent-glow {
-  box-shadow: 0 0 20px rgba(var(--primary), 0.15), 0 0 60px rgba(var(--primary), 0.05);
+  box-shadow:
+    0 0 20px rgba(var(--primary), 0.15),
+    0 0 60px rgba(var(--primary), 0.05);
 }
 
 /* Glass stat card — small metric tiles */
