@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2, ArrowLeft, User, Crown, Eye, Edit, Unlink, Link as LinkIcon } from "lucide-react";
+import { Trash2, ArrowLeft, User, Crown, Eye, Edit, Unlink, Link as LinkIcon, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,7 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isPublic, setIsPublic] = useState(tree.is_public);
+  const [copied, setCopied] = useState(false);
 
   const {
     register,
@@ -64,6 +65,13 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to update");
     }
+  }
+
+  async function handleCopyLink() {
+    const url = `${window.location.origin}/share/${tree.id}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleTogglePublic(checked: boolean) {
@@ -170,6 +178,17 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
             </div>
             <Switch checked={isPublic} onCheckedChange={handleTogglePublic} />
           </div>
+          {isPublic && (
+            <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
+              <code className="flex-1 text-xs bg-muted/50 px-2 py-1.5 rounded font-mono truncate">
+                {typeof window !== "undefined" ? `${window.location.origin}/share/${tree.id}` : `/share/${tree.id}`}
+              </code>
+              <Button variant="outline" size="sm" onClick={handleCopyLink} className="flex-shrink-0">
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
+                {copied ? "Copied!" : "Copy link"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

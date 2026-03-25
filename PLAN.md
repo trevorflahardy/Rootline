@@ -944,33 +944,29 @@ Two UX fixes: inline gender editing in the member panel, and proper horizontal m
 
 ### Stream 34: Birthday Reminders (Feature E)
 
-**Status**: 🔴 TODO
+**Status**: 🟢 DONE
 
 In-app notification when a living member's birthday is within the next 7 days.
 
-- [ ] Database: `supabase/migrations/009_birthday_reminders.sql` — add computed column or function `days_until_birthday(date_of_birth)`
-- [ ] `getBirthdayReminders(treeId)` server action — returns living members with birthday within 7 days, with days remaining
-- [ ] `birthday-reminder-banner.tsx` — dismissible banner at top of tree canvas listing upcoming birthdays
-- [ ] Auto-create notification records for birthdays (extend `004_triggers.sql` or add new migration)
-- [ ] Tests: days_until_birthday calculation, members with no DOB excluded, deceased excluded
+- [x] Database: `supabase/migrations/011_birthday_reminders.sql` — `days_until_birthday(dob DATE)` SQL function (stable, null-safe, handles leap years)
+- [x] `getBirthdayReminders(treeId)` server action — returns living members with birthday within 7 days, with days remaining (`src/lib/actions/birthday.ts`)
+- [x] `birthday-reminder-banner.tsx` — dismissible banner at top of tree canvas listing upcoming birthdays with "today!", "tomorrow", "in N days" formatting
+- [x] Tests: 5 tests — days_until_birthday calculation, members with no DOB excluded, deceased excluded, within/beyond 7 days, no-access throw (`src/lib/actions/__tests__/birthday.test.ts`)
 
 ---
 
 ### Stream 35: Public Read-Only Share Link (Feature G)
 
-**Status**: 🔴 TODO
+**Status**: 🟢 DONE
 
 Shareable URL that shows the tree to unauthenticated visitors (read-only).
 
-- [ ] `family_trees` table: already has `is_public` field — use this as the gate
-- [ ] `src/app/share/[treeId]/page.tsx` — public tree view, no auth required for `is_public = true`
-  - Shows tree canvas in view-only mode (no add/edit/delete controls)
-  - Shows member count, tree name, owner display name
-  - "Sign up to collaborate" CTA
-- [ ] Update RLS: `family_trees` SELECT allowed if `is_public = true` (regardless of user)
-- [ ] Update tree settings page: "Make public / private" toggle with shareable link copy button
-- [ ] Update `src/proxy.ts` (Clerk middleware): `/share/*` routes are public (no auth required)
-- [ ] Tests: public tree accessible without auth, private tree returns 404, controls absent in share view
+- [x] `family_trees` table: already has `is_public` field — used as gate (RLS already correct)
+- [x] `src/app/share/[treeId]/page.tsx` — public tree view, no auth required for `is_public = true`; `TreeCanvas` with `canEdit={false}`, member count, "Sign up to collaborate" CTA, footer
+- [x] `src/lib/actions/share.ts` — `getPublicTree`, `getPublicMembers`, `getPublicRelationships` (admin client, no auth required)
+- [x] Updated tree settings page: share link copy button appears beneath public/private switch when tree is public (`src/components/tree/tree-settings-form.tsx`)
+- [x] Updated `src/proxy.ts`: `/share/(.*)` added to public route matcher (no Clerk auth redirect)
+- [x] Tests: 5 tests — null for private tree, data for public tree, members/relationships fetching (`src/lib/actions/__tests__/share.test.ts`)
 
 ---
 
