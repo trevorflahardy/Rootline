@@ -17,6 +17,8 @@ vi.mock("@/lib/actions/profile", () => ({
   ensureProfile: vi.fn(),
 }));
 
+const validUuid = "550e8400-e29b-41d4-a716-446655440000";
+
 const { client, builder } = createMockSupabaseClient();
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => client,
@@ -115,7 +117,7 @@ describe("updateTree", () => {
       }),
     }));
 
-    await expect(updateTree("tree-1", { name: "New Name" })).rejects.toThrow(
+    await expect(updateTree(validUuid, { name: "New Name" })).rejects.toThrow(
       "Only the owner can update tree settings"
     );
   });
@@ -131,7 +133,7 @@ describe("updateTree", () => {
       }),
     }));
 
-    await expect(updateTree("tree-1", { name: "New" })).rejects.toThrow(
+    await expect(updateTree(validUuid, { name: "New" })).rejects.toThrow(
       "Only the owner can update tree settings"
     );
   });
@@ -156,6 +158,6 @@ describe("deleteTree", () => {
       }),
     }));
 
-    await expect(deleteTree("tree-1")).rejects.toThrow("Only the owner can delete a tree");
+    await expect(deleteTree(validUuid)).rejects.toThrow("Only the owner can delete a tree");
   });
 });

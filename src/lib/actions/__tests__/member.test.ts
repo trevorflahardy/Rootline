@@ -133,7 +133,7 @@ describe("updateMember", () => {
     }));
 
     await expect(
-      updateMember("member-1", validUuid, { first_name: "Updated" })
+      updateMember(validUuid, validUuid, { first_name: "Updated" })
     ).rejects.toThrow("Viewers cannot edit members");
   });
 
@@ -157,7 +157,7 @@ describe("updateMember", () => {
     mockClient.rpc.mockResolvedValue({ data: false, error: null });
 
     await expect(
-      updateMember("member-1", validUuid, { first_name: "Updated" })
+      updateMember(validUuid, validUuid, { first_name: "Updated" })
     ).rejects.toThrow("You can only edit members in your branch");
   });
 });
@@ -181,7 +181,7 @@ describe("deleteMember", () => {
       }),
     }));
 
-    await expect(deleteMember("member-1", validUuid)).rejects.toThrow(
+    await expect(deleteMember(validUuid, validUuid)).rejects.toThrow(
       "Viewers cannot delete members"
     );
   });

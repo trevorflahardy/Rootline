@@ -266,7 +266,7 @@ describe("deleteRelationship", () => {
       }),
     }));
 
-    await expect(deleteRelationship("rel-1", validUuid)).rejects.toThrow(
+    await expect(deleteRelationship(validUuid2, validUuid)).rejects.toThrow(
       "Only the owner can delete relationships"
     );
   });
