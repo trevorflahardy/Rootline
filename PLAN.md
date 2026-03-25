@@ -902,21 +902,21 @@ Chronological view of all life events across the tree.
 
 ### Stream 33: Tree Statistics Dashboard (Feature D)
 
-**Status**: 🔴 TODO
+**Status**: 🟢 DONE
 
 Analytics panel showing tree completeness and interesting facts.
 
-- [ ] `src/components/tree/tree-stats.tsx` — glass card grid of stats:
+- [x] `src/components/tree/tree-stats.tsx` — collapsible glass card in sidebar (collapsed by default):
   - Total members (living vs deceased)
-  - Oldest living member / longest lifespan
-  - Most descendants (deepest branch)
-  - Average lifespan (of deceased members with known dates)
-  - Gender distribution (pie/bar)
-  - Profile completeness % (same as Tree Health but broken down)
-  - Most recently added / updated member
-- [ ] `getTreeStats(treeId)` server action — all stats in one query
-- [ ] Surface in tree sidebar below Tree Health bar, or as a dedicated tab
-- [ ] Tests: stat calculations correct on fixture data, handles trees with missing dates
+  - Oldest living member with age + member link
+  - Longest lifespan + average lifespan (deceased with both dates)
+  - Max generations (BFS depth, capped at 50)
+  - Gender distribution (♂/♀/?)
+  - Profile completeness % progress bar + DOB/Bio/Photo field breakdown
+  - Most recently added member
+- [x] `getTreeStats(treeId)` server action — all stats in one pass over members + parent_child relationships
+- [x] Surfaced in tree sidebar below Tree Health bar (`tree-sidebar.tsx` updated)
+- [x] Tests: 5 tests in `tests/tree/tree-stats.test.ts` — lifespan math, completeness %, gender categorization, BFS generations, null lifespan handling
 
 ---
 

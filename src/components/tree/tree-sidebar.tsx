@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { History, Settings, Users, UserPlus, Menu, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TreeHealthBar } from "./tree-health-bar";
+import { TreeStats } from "./tree-stats";
 import { cn } from "@/lib/utils/cn";
 
 interface TreeSidebarProps {
@@ -27,9 +28,10 @@ export function TreeSidebar({ treeId }: TreeSidebarProps) {
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Tree Health */}
-      <div className="p-4">
+      {/* Tree Health + Stats */}
+      <div className="p-4 space-y-2">
         <TreeHealthBar treeId={treeId} />
+        <TreeStats treeId={treeId} />
       </div>
 
       {/* Navigation */}
