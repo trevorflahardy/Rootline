@@ -73,6 +73,8 @@ export default async function TreePage({ params }: { params: Promise<{ id: strin
               descendantHighlightDepth={profile?.descendant_highlight_depth ?? 1}
               canEdit={canEdit}
               currentUserId={userId ?? ""}
+              currentUserName={profile?.display_name ?? null}
+              currentUserAvatarUrl={profile?.avatar_url ?? null}
               nodeProfileMap={nodeProfileMap}
               permissions={permissions}
             />

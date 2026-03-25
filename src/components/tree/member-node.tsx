@@ -14,6 +14,12 @@ export type MemberNodeData = TreeMember & {
   highlightVariant?: "none" | "path" | "descendant";
   isOwnerNode?: boolean;
   linkedProfile?: NodeProfileLink | null;
+  remoteSelection?: {
+    userId: string;
+    name: string;
+    color: string;
+    avatarUrl?: string | null;
+  } | null;
   [key: string]: unknown;
 };
 
@@ -27,6 +33,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
       : data.highlightVariant === "descendant"
         ? "descendant"
         : "none";
+  const hasRemoteSelection = Boolean(data.remoteSelection) && !data.isSelected;
   // Prefer linked Clerk profile avatar over the member's own avatar
   const displayAvatar = data.linkedProfile?.avatarUrl ?? data.avatar_url;
 
@@ -65,7 +72,16 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
           visualState === "selected" && "border-2 border-primary scale-105 transition-transform",
           visualState === "path" && "shadow-[0_0_20px_rgba(34,197,94,0.4)]",
           visualState === "descendant" && "border-primary/30 shadow-md shadow-primary/10",
+          hasRemoteSelection && "border shadow-sm",
         )}
+        style={
+          hasRemoteSelection
+            ? {
+                borderColor: `${data.remoteSelection?.color ?? "#94a3b8"}88`,
+                boxShadow: `0 0 0 1px ${data.remoteSelection?.color ?? "#94a3b8"}55`,
+              }
+            : undefined
+        }
       >
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -120,6 +136,12 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
             )}
           </div>
         </div>
+
+        {hasRemoteSelection && data.remoteSelection && (
+          <div className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${data.remoteSelection.color}22`, color: data.remoteSelection.color }}>
+            Viewing: {data.remoteSelection.name}
+          </div>
+        )}
       </div>
 
       {/* Right handle — source for outgoing spouse connections */}

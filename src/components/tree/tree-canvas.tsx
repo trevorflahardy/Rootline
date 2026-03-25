@@ -22,7 +22,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { toast } from "sonner";
-import { Undo2, Redo2, Trash2 } from "lucide-react";
+import Image from "next/image";
+import { MousePointer2, Undo2, Redo2, Trash2 } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ import { findPath, getPathRelationshipIds } from "@/lib/utils/path-finder";
 import { calculateRelationship } from "@/lib/utils/relationship-calculator";
 import { deleteMember, saveMemberPositions } from "@/lib/actions/member";
 import { createRelationship } from "@/lib/actions/relationship";
-import { useRealtimeTree } from "@/lib/hooks/use-realtime-tree";
+import { createBrowserClient } from "@/lib/supabase/client";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { MemberNode, type MemberNodeData } from "./member-node";
 import { RelationshipEdge, type EdgeHighlightMode, type RelationshipEdgeData } from "./relationship-edge";
@@ -64,8 +65,49 @@ interface TreeCanvasProps {
   descendantHighlightDepth?: number;
   canEdit: boolean;
   currentUserId: string;
+  currentUserName?: string | null;
+  currentUserAvatarUrl?: string | null;
   nodeProfileMap?: Record<string, NodeProfileLink>;
   permissions?: TreePermissions;
+}
+
+type CollaboratorLock = {
+  memberId: string;
+  field: string;
+};
+
+type CollaboratorPresence = {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  color: string;
+  selectedMemberId: string | null;
+  editingLock: CollaboratorLock | null;
+};
+
+type CollaboratorCursor = {
+  userId: string;
+  x: number;
+  y: number;
+  ts: number;
+};
+
+function colorFromUserId(userId: string): string {
+  const palette = [
+    "#22c55e",
+    "#3b82f6",
+    "#f59e0b",
+    "#ef4444",
+    "#06b6d4",
+    "#f97316",
+    "#10b981",
+    "#8b5cf6",
+  ];
+  let hash = 0;
+  for (let i = 0; i < userId.length; i += 1) {
+    hash = ((hash << 5) - hash + userId.charCodeAt(i)) | 0;
+  }
+  return palette[Math.abs(hash) % palette.length];
 }
 
 function TreeCanvasInner({
@@ -75,6 +117,8 @@ function TreeCanvasInner({
   descendantHighlightDepth = 1,
   canEdit,
   currentUserId,
+  currentUserName,
+  currentUserAvatarUrl,
   nodeProfileMap = {},
   permissions,
 }: TreeCanvasProps) {
@@ -118,6 +162,9 @@ function TreeCanvasInner({
   const [deleteTarget, setDeleteTarget] = useState<TreeMember | null>(null);
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<TreeMember[] | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [remoteCollaborators, setRemoteCollaborators] = useState<Record<string, CollaboratorPresence>>({});
+  const [remoteCursors, setRemoteCursors] = useState<Record<string, CollaboratorCursor>>({});
+  const [activeEditLock, setActiveEditLock] = useState<CollaboratorLock | null>(null);
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -144,9 +191,11 @@ function TreeCanvasInner({
   const pendingViewportCenterRef = useRef<{ x: number; y: number } | null>(null);
   // Track connection start to support quick-add when a drag misses a target
   const pendingConnectStartRef = useRef<{ nodeId: string | null; handleId: string | null } | null>(null);
-
-  // Realtime subscription for live updates
-  useRealtimeTree(tree.id);
+  // Realtime collaboration channel
+  const collaborationChannelRef = useRef<ReturnType<ReturnType<typeof createBrowserClient>["channel"]> | null>(null);
+  const cursorSentAtRef = useRef(0);
+  const selfColor = useMemo(() => colorFromUserId(currentUserId || "anonymous"), [currentUserId]);
+  const resolvedCurrentUserName = useMemo(() => currentUserName?.trim() || "You", [currentUserName]);
 
   // Compute layout from dagre
   const layout = useMemo(
@@ -265,6 +314,161 @@ function TreeCanvasInner({
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    const channel = supabase.channel(`tree-live-${tree.id}`, {
+      config: { presence: { key: currentUserId || `anon-${Date.now()}` } },
+    });
+
+    collaborationChannelRef.current = channel;
+
+    channel
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "tree_members",
+          filter: `tree_id=eq.${tree.id}`,
+        },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as TreeMember;
+          if (!row?.id) return;
+
+          if (payload.eventType === "INSERT") {
+            setMembers((prev) => {
+              if (prev.some((member) => member.id === row.id)) return prev;
+              return [...prev, row];
+            });
+            return;
+          }
+
+          if (payload.eventType === "UPDATE") {
+            setMembers((prev) => prev.map((member) => (member.id === row.id ? ({ ...member, ...row }) : member)));
+            return;
+          }
+
+          if (payload.eventType === "DELETE") {
+            setMembers((prev) => prev.filter((member) => member.id !== row.id));
+            setRelationships((prev) => prev.filter((rel) => rel.from_member_id !== row.id && rel.to_member_id !== row.id));
+            setSelectedNodeIds((prev) => {
+              if (!prev.has(row.id)) return prev;
+              const next = new Set(prev);
+              next.delete(row.id);
+              return next;
+            });
+            setSelectedMemberId((prev) => (prev === row.id ? null : prev));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "relationships",
+          filter: `tree_id=eq.${tree.id}`,
+        },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as Relationship;
+          if (!row?.id) return;
+
+          if (payload.eventType === "INSERT") {
+            setRelationships((prev) => {
+              if (prev.some((rel) => rel.id === row.id)) return prev;
+              return [...prev, row];
+            });
+            return;
+          }
+
+          if (payload.eventType === "UPDATE") {
+            setRelationships((prev) => prev.map((rel) => (rel.id === row.id ? ({ ...rel, ...row }) : rel)));
+            return;
+          }
+
+          if (payload.eventType === "DELETE") {
+            setRelationships((prev) => prev.filter((rel) => rel.id !== row.id));
+          }
+        }
+      )
+      .on("broadcast", { event: "cursor" }, ({ payload }) => {
+        const cursor = payload as CollaboratorCursor;
+        if (!cursor?.userId || cursor.userId === currentUserId) return;
+        setRemoteCursors((prev) => ({ ...prev, [cursor.userId]: cursor }));
+      })
+      .on("broadcast", { event: "member-updated" }, ({ payload }) => {
+        const member = payload as TreeMember;
+        if (!member?.id) return;
+        setMembers((prev) => prev.map((existing) => (existing.id === member.id ? ({ ...existing, ...member }) : existing)));
+      })
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState<CollaboratorPresence>();
+        const next: Record<string, CollaboratorPresence> = {};
+        for (const [key, entries] of Object.entries(state)) {
+          const latest = entries.at(-1);
+          if (!latest) continue;
+          const normalizedUserId = latest.userId || key;
+          if (normalizedUserId === currentUserId) continue;
+          next[normalizedUserId] = {
+            userId: normalizedUserId,
+            name: latest.name || "Collaborator",
+            avatarUrl: latest.avatarUrl ?? null,
+            color: latest.color || colorFromUserId(normalizedUserId),
+            selectedMemberId: latest.selectedMemberId ?? null,
+            editingLock: latest.editingLock ?? null,
+          };
+        }
+        setRemoteCollaborators(next);
+      })
+      .subscribe(async (status) => {
+        if (status !== "SUBSCRIBED") return;
+        await channel.track({
+          userId: currentUserId,
+          name: resolvedCurrentUserName,
+          avatarUrl: currentUserAvatarUrl ?? null,
+          color: selfColor,
+          selectedMemberId: null,
+          editingLock: null,
+        } as CollaboratorPresence);
+      });
+
+    return () => {
+      collaborationChannelRef.current = null;
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserAvatarUrl, currentUserId, resolvedCurrentUserName, selfColor, tree.id]);
+
+  useEffect(() => {
+    const channel = collaborationChannelRef.current;
+    if (!channel) return;
+
+    channel.track({
+      userId: currentUserId,
+      name: resolvedCurrentUserName,
+      avatarUrl: currentUserAvatarUrl ?? null,
+      color: selfColor,
+      selectedMemberId,
+      editingLock: activeEditLock,
+    } as CollaboratorPresence).catch(() => {
+      // best effort presence updates
+    });
+  }, [activeEditLock, currentUserAvatarUrl, currentUserId, resolvedCurrentUserName, selectedMemberId, selfColor]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setRemoteCursors((prev) => {
+        const next: Record<string, CollaboratorCursor> = {};
+        for (const [userId, cursor] of Object.entries(prev)) {
+          if (now - cursor.ts < 5000) next[userId] = cursor;
+        }
+        return next;
+      });
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Keep nodesRef in sync
   useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
@@ -313,6 +517,19 @@ function TreeCanvasInner({
 
   // Update node data for highlighting WITHOUT resetting positions
   useEffect(() => {
+    const remoteSelectionByNode = new Map<string, { userId: string; name: string; color: string; avatarUrl: string | null }>();
+    for (const collaborator of Object.values(remoteCollaborators)) {
+      if (!collaborator.selectedMemberId) continue;
+      if (!remoteSelectionByNode.has(collaborator.selectedMemberId)) {
+        remoteSelectionByNode.set(collaborator.selectedMemberId, {
+          userId: collaborator.userId,
+          name: collaborator.name,
+          color: collaborator.color,
+          avatarUrl: collaborator.avatarUrl,
+        });
+      }
+    }
+
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -324,10 +541,11 @@ function TreeCanvasInner({
             : selectedDescendantNodeIds.has(n.id)
               ? "descendant"
               : "none",
+          remoteSelection: remoteSelectionByNode.get(n.id) ?? null,
         },
       }))
     );
-  }, [selectedMemberId, highlightedPath, selectedDescendantNodeIds, setNodes]);
+  }, [selectedMemberId, highlightedPath, remoteCollaborators, selectedDescendantNodeIds, setNodes]);
 
   // Update edge highlighting WITHOUT resetting positions
   useEffect(() => {
@@ -529,6 +747,46 @@ function TreeCanvasInner({
     setHoveredRelMemberId(null);
     setContextMenu(null);
   }, []);
+
+  const handleCanvasMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const channel = collaborationChannelRef.current;
+    if (!channel || !currentUserId) return;
+
+    const now = Date.now();
+    if (now - cursorSentAtRef.current < 40) return;
+    cursorSentAtRef.current = now;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    channel.send({
+      type: "broadcast",
+      event: "cursor",
+      payload: {
+        userId: currentUserId,
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+        ts: now,
+      } satisfies CollaboratorCursor,
+    }).catch(() => {
+      // best effort cursor sync
+    });
+  }, [currentUserId]);
+
+  const handleCanvasMouseLeave = useCallback(() => {
+    const channel = collaborationChannelRef.current;
+    if (!channel || !currentUserId) return;
+    channel.send({
+      type: "broadcast",
+      event: "cursor",
+      payload: {
+        userId: currentUserId,
+        x: -1000,
+        y: -1000,
+        ts: Date.now(),
+      } satisfies CollaboratorCursor,
+    }).catch(() => {
+      // best effort cursor sync
+    });
+  }, [currentUserId]);
 
   // Handle drag-to-connect: right/left handles → spouse; bottom/top handles → parent_child
   const handleConnect = useCallback(
@@ -733,9 +991,51 @@ function TreeCanvasInner({
 
   const selectedMember = members.find((m) => m.id === selectedMemberId);
   const contextMenuMember = contextMenu ? members.find((m) => m.id === contextMenu.memberId) : null;
+  const remoteFieldLocks = useMemo(() => {
+    const locks: Record<string, { userId: string; name: string; color: string; avatarUrl: string | null }> = {};
+    if (!selectedMember) return locks;
+
+    for (const collaborator of Object.values(remoteCollaborators)) {
+      const lock = collaborator.editingLock;
+      if (!lock || lock.memberId !== selectedMember.id) continue;
+      locks[lock.field] = {
+        userId: collaborator.userId,
+        name: collaborator.name,
+        color: collaborator.color,
+        avatarUrl: collaborator.avatarUrl,
+      };
+    }
+    return locks;
+  }, [remoteCollaborators, selectedMember]);
+
+  const handleFieldEditStart = useCallback((memberId: string, field: string) => {
+    setActiveEditLock({ memberId, field });
+  }, []);
+
+  const handleFieldEditEnd = useCallback((memberId: string, field: string) => {
+    setActiveEditLock((current) => {
+      if (!current) return current;
+      if (current.memberId === memberId && current.field === field) return null;
+      return current;
+    });
+  }, []);
+
+  const handleMemberFieldSaved = useCallback((updatedMember: TreeMember) => {
+    setMembers((prev) => prev.map((member) => (member.id === updatedMember.id ? ({ ...member, ...updatedMember }) : member)));
+
+    const channel = collaborationChannelRef.current;
+    if (!channel) return;
+    channel.send({
+      type: "broadcast",
+      event: "member-updated",
+      payload: updatedMember,
+    }).catch(() => {
+      // best effort member sync
+    });
+  }, []);
 
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative" onMouseMove={handleCanvasMouseMove} onMouseLeave={handleCanvasMouseLeave}>
       <TooltipProvider>
         <ReactFlow
           nodes={nodes}
@@ -862,6 +1162,42 @@ function TreeCanvasInner({
           </div>
         )}
 
+        {Object.entries(remoteCursors).map(([userId, cursor]) => {
+          if (cursor.x < -100 || cursor.y < -100) return null;
+          const collaborator = remoteCollaborators[userId];
+          if (!collaborator) return null;
+          if (collaborator.selectedMemberId) return null;
+
+          return (
+            <div
+              key={`cursor-${userId}`}
+              className="pointer-events-none absolute z-30"
+              style={{ left: cursor.x, top: cursor.y, transform: "translate(-2px, -2px)" }}
+            >
+              <MousePointer2 className="h-4 w-4" style={{ color: collaborator.color, fill: collaborator.color }} />
+              <div
+                className="mt-1 inline-flex items-center gap-1.5 rounded-full glass-card glass-light px-2 py-1 text-[11px] font-medium"
+                style={{ borderColor: `${collaborator.color}88`, borderWidth: 1 }}
+              >
+                {collaborator.avatarUrl ? (
+                  <Image
+                    src={collaborator.avatarUrl}
+                    alt={collaborator.name}
+                    width={14}
+                    height={14}
+                    className="h-3.5 w-3.5 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="h-3.5 w-3.5 rounded-full text-[9px] flex items-center justify-center" style={{ backgroundColor: `${collaborator.color}33`, color: collaborator.color }}>
+                    {collaborator.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <span>{collaborator.name}</span>
+              </div>
+            </div>
+          );
+        })}
+
         {/* Context menu */}
         {contextMenu && contextMenuMember && (
           <NodeContextMenu
@@ -897,6 +1233,10 @@ function TreeCanvasInner({
             currentUserId={currentUserId}
             permissions={permissions ?? null}
             linkedProfile={nodeProfileMap[selectedMember.id] ?? null}
+            collaboratorLocks={remoteFieldLocks}
+            onFieldEditStart={handleFieldEditStart}
+            onFieldEditEnd={handleFieldEditEnd}
+            onMemberFieldSaved={handleMemberFieldSaved}
             onClose={() => { setSelectedMemberId(null); setHoveredRelMemberId(null); }}
             onEdit={() => setEditingMember(selectedMember)}
             onDelete={() => setDeleteTarget(selectedMember)}

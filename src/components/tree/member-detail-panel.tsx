@@ -67,6 +67,10 @@ interface MemberDetailPanelProps {
   currentUserId: string;
   permissions: TreePermissions | null;
   linkedProfile: NodeProfileLink | null;
+  collaboratorLocks?: Record<string, { userId: string; name: string; color: string; avatarUrl: string | null }>;
+  onFieldEditStart?: (memberId: string, field: string) => void;
+  onFieldEditEnd?: (memberId: string, field: string) => void;
+  onMemberFieldSaved?: (member: TreeMember) => void;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -74,47 +78,93 @@ interface MemberDetailPanelProps {
   onHoverMember?: (id: string | null) => void;
 }
 
+type FieldLockInfo = {
+  userId: string;
+  name: string;
+  color: string;
+  avatarUrl: string | null;
+};
+
 // Inline editable field component
 function InlineField({
   label,
   value,
   field,
+  memberId,
+  currentUserId,
   type = "text",
   canEdit,
+  lock,
+  onEditStart,
+  onEditEnd,
   onSave,
 }: {
   label: string;
   value: string | null;
   field: string;
+  memberId: string;
+  currentUserId: string;
   type?: "text" | "date" | "textarea";
   canEdit: boolean;
+  lock?: FieldLockInfo;
+  onEditStart?: (memberId: string, field: string) => void;
+  onEditEnd?: (memberId: string, field: string) => void;
   onSave: (field: string, value: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
+  const lockIsHeldByOther = Boolean(lock && lock.userId !== currentUserId);
 
-  const handleSave = async () => {
+  useEffect(() => {
+    setEditValue(value ?? "");
+  }, [value]);
+
+  useEffect(() => {
+    if (lockIsHeldByOther && editing) {
+      setEditing(false);
+    }
+  }, [editing, lockIsHeldByOther]);
+
+  const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      await onSave(field, editValue);
+      if (editValue !== (value ?? "")) {
+        await onSave(field, editValue);
+      }
       setEditing(false);
     } catch {
       toast.error("Failed to save");
     } finally {
       setSaving(false);
+      onEditEnd?.(memberId, field);
     }
-  };
+  }, [editValue, field, memberId, onEditEnd, onSave, value]);
 
   const handleCancel = () => {
     setEditValue(value ?? "");
     setEditing(false);
+    onEditEnd?.(memberId, field);
   };
+
+  useEffect(() => {
+    return () => {
+      if (editing) onEditEnd?.(memberId, field);
+    };
+  }, [editing, field, memberId, onEditEnd]);
 
   if (editing) {
     return (
-      <div className="space-y-1">
+      <div
+        className="space-y-1 rounded-md px-2 py-1"
+        style={{ border: lock ? `1px solid ${lock.color}` : undefined }}
+      >
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        {lock && (
+          <p className="text-[10px]" style={{ color: lock.color }}>
+            Editing: {lock.name}
+          </p>
+        )}
         <div className="flex items-center gap-1">
           {type === "textarea" ? (
             <Textarea
@@ -122,6 +172,8 @@ function InlineField({
               onChange={(e) => setEditValue(e.target.value)}
               className="text-sm min-h-[60px]"
               autoFocus
+              onFocus={() => onEditStart?.(memberId, field)}
+              onBlur={() => { void handleSave(); }}
             />
           ) : (
             <Input
@@ -130,19 +182,19 @@ function InlineField({
               onChange={(e) => setEditValue(e.target.value)}
               className="h-7 text-sm"
               autoFocus
+              onFocus={() => onEditStart?.(memberId, field)}
+              onBlur={() => { void handleSave(); }}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleSave();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
                 if (e.key === "Escape") handleCancel();
               }}
             />
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={handleSave} disabled={saving}>
-            <Check className="h-3.5 w-3.5 text-green-600" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={handleCancel}>
-            <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
         </div>
+        <p className="text-[10px] text-muted-foreground">Auto-saves on blur</p>
       </div>
     );
   }
@@ -154,12 +206,18 @@ function InlineField({
     <div className="space-y-0.5">
       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
       <p
-        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
-        onClick={canEdit ? () => { setEditValue(value ?? ""); setEditing(true); } : undefined}
-        title={canEdit ? "Click to edit" : undefined}
+        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit && !lockIsHeldByOther ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
+        onClick={canEdit && !lockIsHeldByOther ? () => { setEditValue(value ?? ""); setEditing(true); onEditStart?.(memberId, field); } : undefined}
+        title={lockIsHeldByOther ? `Locked by ${lock?.name}` : canEdit ? "Click to edit" : undefined}
+        style={lock ? { borderLeft: `2px solid ${lock.color}`, paddingLeft: 6 } : undefined}
       >
         {displayValue}
       </p>
+      {lockIsHeldByOther && lock && (
+        <p className="text-[10px]" style={{ color: lock.color }}>
+          {lock.name} is editing this field
+        </p>
+      )}
     </div>
   );
 }
@@ -169,19 +227,30 @@ function InlineSelectField({
   label,
   value,
   field,
+  memberId,
+  currentUserId,
   options,
   canEdit,
+  lock,
+  onEditStart,
+  onEditEnd,
   onSave,
 }: {
   label: string;
   value: string | null;
   field: string;
+  memberId: string;
+  currentUserId: string;
   options: { value: string; label: string }[];
   canEdit: boolean;
+  lock?: FieldLockInfo;
+  onEditStart?: (memberId: string, field: string) => void;
+  onEditEnd?: (memberId: string, field: string) => void;
   onSave: (field: string, value: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const lockIsHeldByOther = Boolean(lock && lock.userId !== currentUserId);
 
   const handleChange = async (newValue: string) => {
     setSaving(true);
@@ -192,18 +261,30 @@ function InlineSelectField({
       toast.error("Failed to save");
     } finally {
       setSaving(false);
+      onEditEnd?.(memberId, field);
     }
   };
+
+  useEffect(() => {
+    if (lockIsHeldByOther && editing) {
+      setEditing(false);
+    }
+  }, [editing, lockIsHeldByOther]);
 
   const displayLabel = options.find((o) => o.value === value)?.label ?? "—";
   const isEmpty = !value;
 
   if (editing) {
     return (
-      <div className="space-y-1">
+      <div className="space-y-1 rounded-md px-2 py-1" style={{ border: lock ? `1px solid ${lock.color}` : undefined }}>
         <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+        {lock && (
+          <p className="text-[10px]" style={{ color: lock.color }}>
+            Editing: {lock.name}
+          </p>
+        )}
         <div className="flex items-center gap-1">
-          <Select defaultValue={value ?? undefined} onValueChange={handleChange} disabled={saving}>
+          <Select defaultValue={value ?? undefined} onValueChange={handleChange} disabled={saving || lockIsHeldByOther}>
             <SelectTrigger className="h-7 text-sm flex-1">
               <SelectValue />
             </SelectTrigger>
@@ -213,7 +294,15 @@ function InlineSelectField({
               ))}
             </SelectContent>
           </Select>
-          <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => setEditing(false)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 flex-shrink-0"
+            onClick={() => {
+              setEditing(false);
+              onEditEnd?.(memberId, field);
+            }}
+          >
             <XIcon className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
         </div>
@@ -225,12 +314,18 @@ function InlineSelectField({
     <div className="space-y-0.5">
       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
       <p
-        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
-        onClick={canEdit ? () => setEditing(true) : undefined}
-        title={canEdit ? "Click to edit" : undefined}
+        className={`text-sm ${isEmpty ? "text-muted-foreground/50 italic" : ""} ${canEdit && !lockIsHeldByOther ? "cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1 py-0.5 transition-colors" : ""}`}
+        onClick={canEdit && !lockIsHeldByOther ? () => { setEditing(true); onEditStart?.(memberId, field); } : undefined}
+        title={lockIsHeldByOther ? `Locked by ${lock?.name}` : canEdit ? "Click to edit" : undefined}
+        style={lock ? { borderLeft: `2px solid ${lock.color}`, paddingLeft: 6 } : undefined}
       >
         {displayLabel}
       </p>
+      {lockIsHeldByOther && lock && (
+        <p className="text-[10px]" style={{ color: lock.color }}>
+          {lock.name} is editing this field
+        </p>
+      )}
     </div>
   );
 }
@@ -461,6 +556,10 @@ export function MemberDetailPanel({
   currentUserId,
   permissions,
   linkedProfile,
+  collaboratorLocks = {},
+  onFieldEditStart,
+  onFieldEditEnd,
+  onMemberFieldSaved,
   onClose,
   onEdit,
   onDelete,
@@ -790,7 +889,8 @@ export function MemberDetailPanel({
   const handleInlineSave = useCallback(
     async (field: string, value: string) => {
       try {
-        await updateMember(member.id, member.tree_id, { [field]: value });
+        const updated = await updateMember(member.id, member.tree_id, { [field]: value });
+        onMemberFieldSaved?.(updated);
         router.refresh();
       } catch (err) {
         const msg = err instanceof Error ? err.message : "";
@@ -800,7 +900,7 @@ export function MemberDetailPanel({
         throw err;
       }
     },
-    [member.id, member.tree_id, router]
+    [member.id, member.tree_id, onMemberFieldSaved, router]
   );
 
   return (
@@ -976,22 +1076,24 @@ export function MemberDetailPanel({
 
         {/* All fields — click to edit for admins */}
         <div className="space-y-3">
-          <InlineField label="First name" value={member.first_name} field="first_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
-          <InlineField label="Last name" value={member.last_name} field="last_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
-          <InlineField label="Maiden name" value={member.maiden_name} field="maiden_name" canEdit={memberCanEdit} onSave={handleInlineSave} />
-          <InlineField label="Date of birth" value={member.date_of_birth} field="date_of_birth" type="date" canEdit={memberCanEdit} onSave={handleInlineSave} />
-          <InlineField label="Birth place" value={member.birth_place} field="birth_place" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="First name" value={member.first_name} field="first_name" memberId={member.id} currentUserId={currentUserId} canEdit={memberCanEdit} lock={collaboratorLocks.first_name} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
+          <InlineField label="Last name" value={member.last_name} field="last_name" memberId={member.id} currentUserId={currentUserId} canEdit={memberCanEdit} lock={collaboratorLocks.last_name} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
+          <InlineField label="Maiden name" value={member.maiden_name} field="maiden_name" memberId={member.id} currentUserId={currentUserId} canEdit={memberCanEdit} lock={collaboratorLocks.maiden_name} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
+          <InlineField label="Date of birth" value={member.date_of_birth} field="date_of_birth" memberId={member.id} currentUserId={currentUserId} type="date" canEdit={memberCanEdit} lock={collaboratorLocks.date_of_birth} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
+          <InlineField label="Birth place" value={member.birth_place} field="birth_place" memberId={member.id} currentUserId={currentUserId} canEdit={memberCanEdit} lock={collaboratorLocks.birth_place} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
           {(member.is_deceased || member.date_of_death) && (
             <>
-              <InlineField label="Date of death" value={member.date_of_death} field="date_of_death" type="date" canEdit={memberCanEdit} onSave={handleInlineSave} />
-              <InlineField label="Death place" value={member.death_place} field="death_place" canEdit={memberCanEdit} onSave={handleInlineSave} />
+              <InlineField label="Date of death" value={member.date_of_death} field="date_of_death" memberId={member.id} currentUserId={currentUserId} type="date" canEdit={memberCanEdit} lock={collaboratorLocks.date_of_death} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
+              <InlineField label="Death place" value={member.death_place} field="death_place" memberId={member.id} currentUserId={currentUserId} canEdit={memberCanEdit} lock={collaboratorLocks.death_place} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
             </>
           )}
-          <InlineField label="Bio" value={member.bio} field="bio" type="textarea" canEdit={memberCanEdit} onSave={handleInlineSave} />
+          <InlineField label="Bio" value={member.bio} field="bio" memberId={member.id} currentUserId={currentUserId} type="textarea" canEdit={memberCanEdit} lock={collaboratorLocks.bio} onEditStart={onFieldEditStart} onEditEnd={onFieldEditEnd} onSave={handleInlineSave} />
           <InlineSelectField
             label="Gender"
             value={member.gender ?? null}
             field="gender"
+            memberId={member.id}
+            currentUserId={currentUserId}
             options={[
               { value: "male", label: "Male" },
               { value: "female", label: "Female" },
@@ -999,6 +1101,9 @@ export function MemberDetailPanel({
               { value: "unknown", label: "Unknown" },
             ]}
             canEdit={memberCanEdit}
+            lock={collaboratorLocks.gender}
+            onEditStart={onFieldEditStart}
+            onEditEnd={onFieldEditEnd}
             onSave={handleInlineSave}
           />
         </div>
