@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Copy, Link2, Plus, Trash2, Users } from "lucide-react";
+import { Check, ChevronsUpDown, Copy, Link2, Plus, Trash2, User, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -19,17 +22,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createInvite, revokeInvite, type Invitation } from "@/lib/actions/invite";
+import { cn } from "@/lib/utils/cn";
 import type { TreeMember } from "@/types";
 
 interface InviteManagerProps {
   treeId: string;
   invites: Invitation[];
   members: TreeMember[];
+  initialCreateOpen?: boolean;
 }
 
-export function InviteManager({ treeId, invites, members }: InviteManagerProps) {
+export function InviteManager({ treeId, invites, members, initialCreateOpen = false }: InviteManagerProps) {
   const router = useRouter();
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(initialCreateOpen);
+  const [memberSearchOpen, setMemberSearchOpen] = useState(false);
   const [role, setRole] = useState<"editor" | "viewer">("editor");
   const [targetNodeId, setTargetNodeId] = useState<string>("");
   const [maxUses, setMaxUses] = useState("1");
@@ -81,6 +87,7 @@ export function InviteManager({ treeId, invites, members }: InviteManagerProps) 
   const usedInvites = invites.filter(
     (i) => i.use_count >= i.max_uses || (i.expires_at && new Date(i.expires_at) <= new Date())
   );
+  const selectedMember = members.find((m) => m.id === targetNodeId);
 
   return (
     <Card className="glass-card glass-edge-top border-white/10">
@@ -153,17 +160,80 @@ export function InviteManager({ treeId, invites, members }: InviteManagerProps) 
             {role === "editor" && members.length > 0 && (
               <div className="space-y-1.5">
                 <Label>Link to member (optional)</Label>
-                <Select value={targetNodeId} onValueChange={setTargetNodeId}>
-                  <SelectTrigger><SelectValue placeholder="No link — full editor access" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No link — full editor access</SelectItem>
-                    {members.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.first_name} {m.last_name} — can edit descendants only
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={memberSearchOpen} onOpenChange={setMemberSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={memberSearchOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      {selectedMember ? (
+                        <span className="flex items-center gap-2 truncate">
+                          <MemberAvatar member={selectedMember} />
+                          {selectedMember.first_name} {selectedMember.last_name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Search by name...</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-85 p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search people by name..." />
+                      <CommandList>
+                        <CommandEmpty>No members found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="no-link"
+                            onSelect={() => {
+                              setTargetNodeId("");
+                              setMemberSearchOpen(false);
+                            }}
+                          >
+                            <span>No link - full editor access</span>
+                            <Check className={cn("ml-auto h-4 w-4", !targetNodeId ? "opacity-100" : "opacity-0")} />
+                          </CommandItem>
+                          {members.map((m) => (
+                            <CommandItem
+                              key={m.id}
+                              value={`${m.first_name} ${m.last_name ?? ""}`}
+                              onSelect={() => {
+                                setTargetNodeId(m.id);
+                                setMemberSearchOpen(false);
+                              }}
+                            >
+                              <div className="flex items-center gap-2 w-full">
+                                <MemberAvatar member={m} />
+                                <span className="truncate">{m.first_name} {m.last_name}</span>
+                              </div>
+                              <Check className={cn("ml-auto h-4 w-4", targetNodeId === m.id ? "opacity-100" : "opacity-0")} />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {selectedMember && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Badge variant="secondary" className="flex items-center gap-1.5 pr-1">
+                      <MemberAvatar member={selectedMember} />
+                      <span className="truncate max-w-55">
+                        {selectedMember.first_name} {selectedMember.last_name}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setTargetNodeId("")}
+                        className="rounded-sm p-0.5 hover:bg-black/10"
+                        aria-label="Clear linked member"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   If linked, the editor can only modify this member and their descendants.
                 </p>
@@ -191,6 +261,26 @@ export function InviteManager({ treeId, invites, members }: InviteManagerProps) 
         </DialogContent>
       </Dialog>
     </Card>
+  );
+}
+
+function MemberAvatar({ member }: { member: TreeMember }) {
+  if (member.avatar_url) {
+    return (
+      <Image
+        src={member.avatar_url}
+        alt={member.first_name}
+        className="h-5 w-5 rounded-full object-cover shrink-0"
+        width={20}
+        height={20}
+      />
+    );
+  }
+
+  return (
+    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      <User className="h-3 w-3 text-primary" />
+    </div>
   );
 }
 

@@ -1078,6 +1078,7 @@ function TreeCanvasInner({
           onSearch={() => setShowSearch(true)}
           onImportGedcom={() => setShowImportDialog(true)}
           onLinkMembers={() => setShowAddRelationshipDialog(true)}
+          onInviteMembers={permissions?.isOwner ? (() => router.push(`/tree/${tree.id}/settings?invite=new#invites`)) : undefined}
           onAutoLayout={handleAutoLayout}
           treeName={tree.name}
           canEdit={canEdit}

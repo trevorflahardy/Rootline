@@ -10,6 +10,7 @@ import {
   Upload,
   Link2,
   LayoutGrid,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,12 +28,13 @@ interface TreeToolbarProps {
   onSearch: () => void;
   onImportGedcom?: () => void;
   onLinkMembers?: () => void;
+  onInviteMembers?: () => void;
   onAutoLayout?: () => void;
   treeName?: string;
   canEdit: boolean;
 }
 
-export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onLinkMembers, onAutoLayout, treeName, canEdit }: TreeToolbarProps) {
+export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onLinkMembers, onInviteMembers, onAutoLayout, treeName, canEdit }: TreeToolbarProps) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
@@ -111,6 +113,19 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
       )}
 
       <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {onInviteMembers && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onInviteMembers}>
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Generate invite link</TooltipContent>
+        </Tooltip>
+      )}
+
+      {onInviteMembers && <Separator orientation="vertical" className="h-6 mx-1" />}
 
       {canEdit && onImportGedcom && (
         <Tooltip>

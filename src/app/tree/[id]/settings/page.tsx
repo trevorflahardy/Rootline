@@ -14,8 +14,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: tree ? `Settings - ${tree.name}` : "Settings" };
 }
 
-export default async function TreeSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TreeSettingsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ invite?: string }>;
+}) {
   const { id } = await params;
+  const { invite } = await searchParams;
   const { userId } = await auth();
   const tree = await getTreeById(id);
 
@@ -52,8 +59,13 @@ export default async function TreeSettingsPage({ params }: { params: Promise<{ i
             currentUserId={userId ?? ""}
           />
         </div>
-        <div className="glass-card glass-edge-top p-6 rounded-xl">
-          <InviteManager treeId={id} invites={invites} members={members} />
+        <div id="invites" className="glass-card glass-edge-top p-6 rounded-xl scroll-mt-24">
+          <InviteManager
+            treeId={id}
+            invites={invites}
+            members={members}
+            initialCreateOpen={invite === "new"}
+          />
         </div>
       </div>
     </div>
