@@ -38,7 +38,7 @@
 - **Memory**: hybrid
 - **HNSW**: Enabled
 - **Neural**: Enabled
-- **Canonical Swarm ID**: `swarm-1774441906884-3icr71` ← ALWAYS reuse this, never create a new one
+- **Canonical Swarm ID**: `swarm-1774444665371-r306rx` ← ALWAYS reuse this, never create a new one
 
 ## Build & Test
 
@@ -150,7 +150,7 @@ ruflo swarm init --topology hierarchical --max-agents 8 --strategy specialized
 
 ## Swarm Execution Rules
 
-- **ALWAYS reuse the canonical swarm** (`swarm-1774441906884-3icr71`) — NEVER call `swarm_init` again unless it is shut down
+- **ALWAYS reuse the canonical swarm** (`swarm-1774444665371-r306rx`) — NEVER call `swarm_init` again unless it is shut down
 - Check swarm is running first: `mcp__ruflo__swarm_status` — if `status: "running"` skip init entirely
 - ALWAYS call all `agent_spawn` + `coordination_orchestrate` + all `Agent` tool spawns in ONE message
 - NEVER stop after `agent_spawn` alone — without the `Agent` tool calls, no code executes

@@ -1,29 +1,65 @@
 {
-    "swarms": {
-        "swarm-1774441906884-3icr71": {
-            "swarmId": "swarm-1774441906884-3icr71",
-            "topology": "hierarchical",
-            "maxAgents": 8,
-            "status": "running",
-            "agents": [
-                "p7-coordinator",
-                "p7-security",
-                "s29-coder",
-                "s30-coder",
-                "s29-tester"
-            ],
-            "tasks": [],
-            "config": {
-                "topology": "hierarchical",
-                "maxAgents": 8,
-                "strategy": "specialized",
-                "communicationProtocol": "message-bus",
-                "autoScaling": true,
-                "consensusMechanism": "majority"
-            },
-            "createdAt": "2026-03-25T12:31:46.884Z",
-            "updatedAt": "2026-03-25T12:51:21.000Z"
-        }
+  "swarms": {
+    "swarm-1774441906884-3icr71": {
+      "swarmId": "swarm-1774441906884-3icr71",
+      "topology": "hierarchical",
+      "maxAgents": 8,
+      "status": "running",
+      "agents": [
+        "p7-coordinator",
+        "p7-security",
+        "s29-coder",
+        "s30-coder",
+        "s29-tester"
+      ],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical",
+        "maxAgents": 8,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-25T12:31:46.884Z",
+      "updatedAt": "2026-03-25T12:51:21.000Z"
     },
-    "version": "3.0.0"
+    "swarm-1774443796912-itnchs": {
+      "swarmId": "swarm-1774443796912-itnchs",
+      "topology": "hierarchical-mesh",
+      "maxAgents": 15,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical-mesh",
+        "maxAgents": 15,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-25T13:03:16.912Z",
+      "updatedAt": "2026-03-25T13:03:16.912Z"
+    },
+    "swarm-1774444665371-r306rx": {
+      "swarmId": "swarm-1774444665371-r306rx",
+      "topology": "hierarchical",
+      "maxAgents": 8,
+      "status": "running",
+      "agents": [],
+      "tasks": [],
+      "config": {
+        "topology": "hierarchical",
+        "maxAgents": 8,
+        "strategy": "specialized",
+        "communicationProtocol": "message-bus",
+        "autoScaling": true,
+        "consensusMechanism": "majority"
+      },
+      "createdAt": "2026-03-25T13:17:45.371Z",
+      "updatedAt": "2026-03-25T13:17:45.371Z"
+    }
+  },
+  "version": "3.0.0"
 }

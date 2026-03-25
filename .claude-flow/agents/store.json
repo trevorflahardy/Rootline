@@ -169,6 +169,32 @@
       "model": "haiku",
       "modelRoutedBy": "explicit",
       "swarmId": "swarm-1774441906884-3icr71"
+    },
+    "coder-test-1": {
+      "agentId": "coder-test-1",
+      "agentType": "coder",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T13:17:49.346Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
+    },
+    "tester-test-1": {
+      "agentId": "tester-test-1",
+      "agentType": "tester",
+      "status": "completed",
+      "health": 1,
+      "taskCount": 0,
+      "config": {
+        "model": "haiku"
+      },
+      "createdAt": "2026-03-25T13:17:50.294Z",
+      "model": "haiku",
+      "modelRoutedBy": "explicit"
     }
   },
   "version": "3.0.0"
