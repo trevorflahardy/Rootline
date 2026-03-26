@@ -445,7 +445,7 @@ Added 5 new relationship types (sibling, step_parent, step_child, in_law, guardi
 - [x] Update `relationship-edge.tsx` — distinct visual styles for new edge types (unique dash patterns per type)
 - [x] Update `tree-layout.ts` — step_parent/guardian create hierarchy; sibling/in_law horizontal; siblings same rank
 - [x] Update `path-finder.ts` — BFS traversal includes new relationship types with correct directionality
-- [x] Update GEDCOM parser/exporter to handle extended relationship types via custom tags (_SIBL, _STEP, _STEPC, _GUARD, _INLAW)
+- [x] Update GEDCOM parser/exporter to handle extended relationship types via custom tags (\_SIBL, \_STEP, \_STEPC, \_GUARD, \_INLAW)
 - [x] Tests: 25 new tests — relationship calculator, layout, path-finder, validator, GEDCOM round-trip
 
 ### Stream 16: Permission Management Dashboard
@@ -712,10 +712,10 @@ Final integration pass — all tests pass, build succeeds, types clean.
 
 ### Bugs Identified (Pre-Phase)
 
-| # | Location | Bug | Severity |
-|---|----------|-----|----------|
-| **BUG-001** | `relationship.ts:39` | `!fromResult.data && !toResult.data` — uses `&&` so scoped editor can link their branch node to any out-of-scope node as long as one endpoint is in-scope | 🔴 Critical |
-| **BUG-002** | `member.ts:saveMemberPositions` | No `linked_node_id` scope check — scoped editors can reposition any node in the tree | 🟡 Medium |
+| #           | Location                        | Bug                                                                                                                                                       | Severity    |
+| ----------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| **BUG-001** | `relationship.ts:39`            | `!fromResult.data && !toResult.data` — uses `&&` so scoped editor can link their branch node to any out-of-scope node as long as one endpoint is in-scope | 🔴 Critical |
+| **BUG-002** | `member.ts:saveMemberPositions` | No `linked_node_id` scope check — scoped editors can reposition any node in the tree                                                                      | 🟡 Medium   |
 
 ### Stream 27: Comprehensive Permission Boundary Tests
 
@@ -739,6 +739,7 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 #### Tests to Write
 
 **Member attribute edits:**
+
 - [x] Eve updates `first_name` on David (descendant) → **succeeds**
 - [x] Eve updates `first_name` on Carol (cousin — out of scope) → **blocked**
 - [x] Eve updates `first_name` on Harold (grandparent — out of scope) → **blocked**
@@ -746,21 +747,25 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 - [x] Eve deletes Carol (out of scope) → **blocked**
 
 **Relationship creation (cross-branch attack):**
+
 - [x] Eve creates `parent_child` between David (in-scope) and Carol (out-of-scope) → **blocked** ← BUG-001 fixed
 - [x] Eve creates `spouse` between Fiona (in-scope) and George (out-of-scope) → **blocked** ← BUG-001 fixed
 - [x] Eve creates `sibling` between David and Fiona (both in-scope) → **succeeds**
 - [x] Eve creates `parent_child` between Carol and George (both out-of-scope) → **blocked**
 
 **Position save scope:**
+
 - [x] Eve saves position for David (in-scope) → **succeeds** ← BUG-002 fixed
 - [x] Eve saves position for Carol (out-of-scope) → **blocked** ← BUG-002 fixed
 
 **Data integrity invariants:**
+
 - [x] Create relationship where `from_member_id === to_member_id` (self-reference) → **blocked** ← BUG-003 fixed
 - [ ] Create `parent_child` A→B then B→A (direct cycle) → **blocked** (future)
 - [ ] Create member with `date_of_death` before `date_of_birth` → **blocked** (future)
 
 **Role boundary:**
+
 - [x] Viewer tries to update any member → **blocked**
 - [x] Editor without `linked_node_id` can edit any member → **succeeds** (unscoped editor)
 - [ ] Scoped editor tries to self-escalate role to owner → **blocked** (future)
@@ -995,11 +1000,13 @@ Merge two family trees when families connect. Schema already supports it via sha
 ### Verification Checklist: After Phase 7
 
 **Critical Fixes:**
+
 - [ ] `/tree/[id]/members` page loads and lists all members
 - [ ] Photo upload succeeds (tree-photos bucket exists)
 - [ ] Document upload succeeds (tree-documents bucket exists)
 
 **Security:**
+
 - [ ] `bun audit` shows no high/critical CVEs
 - [ ] XSS payload in bio is sanitized before DB insert
 - [ ] Rate limiting returns 429 after threshold exceeded
@@ -1007,6 +1014,7 @@ Merge two family trees when families connect. Schema already supports it via sha
 - [ ] No `NEXT_PUBLIC_` exposure of service role key
 
 **Features:**
+
 - [ ] Timeline shows all birth/death/marriage events sorted by date
 - [ ] Tree stats panel shows accurate counts and calculations
 - [ ] Birthday reminder banner appears for members with upcoming birthdays
