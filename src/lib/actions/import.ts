@@ -14,7 +14,7 @@ export async function importGedcomData(
   relationships: ParsedRelationship[]
 ): Promise<{ members: TreeMember[]; relationships: Relationship[]; errors: string[] }> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'importGedcom', 5, 60_000);
+  await rateLimit(userId, 'importGedcom', 5, 60_000);
   assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
   const errors: string[] = [];

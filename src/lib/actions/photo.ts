@@ -32,7 +32,7 @@ export async function uploadPhoto(
   isProfilePhoto = false
 ): Promise<Media> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'uploadPhoto', 10, 60_000);
+  await rateLimit(userId, 'uploadPhoto', 10, 60_000);
   assertUUID(treeId, 'treeId');
   if (memberId) assertUUID(memberId, 'memberId');
   const supabase = createAdminClient();

@@ -1,23 +1,4 @@
-/**
- * WARNING: SERVERLESS LIMITATION: This rate limiter uses in-memory state.
- * In serverless/edge environments (Vercel, AWS Lambda), each function invocation
- * may run in a fresh process, resetting all counters. This means rate limits
- * are NOT reliably enforced in production serverless deployments.
- *
- * For production use, replace with a persistent store:
- *   - Upstash Redis: @upstash/ratelimit (https://github.com/upstash/ratelimit)
- *   - Vercel KV: @vercel/kv
- *   - Redis via ioredis
- *
- * Example with Upstash:
- *   import { Ratelimit } from "@upstash/ratelimit";
- *   import { Redis } from "@upstash/redis";
- */
-
-/**
- * In-memory token bucket rate limiter.
- * Keyed by `${userId}:${action}`. Resets after windowMs milliseconds.
- */
+import { createClient } from "redis";
 
 export class RateLimitError extends Error {
   retryAfter: number;
@@ -29,15 +10,19 @@ export class RateLimitError extends Error {
   }
 }
 
-interface BucketEntry {
-  count: number;
-  resetAt: number;
+let _client: ReturnType<typeof createClient> | null = null;
+
+async function getClient() {
+  if (!_client) {
+    _client = createClient({ url: process.env.REDIS_URL });
+    _client.on("error", (err) => console.error("[rate-limit] Redis error:", err));
+    await _client.connect();
+  }
+  return _client;
 }
 
-const buckets = new Map<string, BucketEntry>();
-
 /**
- * Enforces a sliding-window counter rate limit.
+ * Enforces a sliding-window counter rate limit backed by Redis.
  *
  * @param userId   - Clerk user ID
  * @param action   - Logical action name (e.g. "createMember")
@@ -45,27 +30,22 @@ const buckets = new Map<string, BucketEntry>();
  * @param windowMs - Window length in milliseconds
  * @throws RateLimitError when the limit is exceeded
  */
-export function rateLimit(
+export async function rateLimit(
   userId: string,
   action: string,
   limit: number,
   windowMs: number
-): void {
-  const key = `${userId}:${action}`;
-  const now = Date.now();
+): Promise<void> {
+  const key = `rl:${userId}:${action}`;
+  const redis = await getClient();
 
-  const entry = buckets.get(key);
-
-  if (!entry || now >= entry.resetAt) {
-    // Start a fresh window
-    buckets.set(key, { count: 1, resetAt: now + windowMs });
-    return;
+  const count = await redis.incr(key);
+  if (count === 1) {
+    await redis.pExpire(key, windowMs);
   }
 
-  if (entry.count >= limit) {
-    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-    throw new RateLimitError(retryAfter);
+  if (count > limit) {
+    const ttl = await redis.pTTL(key);
+    throw new RateLimitError(Math.ceil(Math.max(ttl, 0) / 1000));
   }
-
-  entry.count += 1;
 }

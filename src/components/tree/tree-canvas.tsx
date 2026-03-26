@@ -879,6 +879,7 @@ function TreeCanvasInner({
     if (now - cursorSentAtRef.current < 40) return;
     cursorSentAtRef.current = now;
 
+    if (channel.state !== 'joined') return;
     const rect = event.currentTarget.getBoundingClientRect();
     channel.send({
       type: "broadcast",
@@ -896,7 +897,7 @@ function TreeCanvasInner({
 
   const handleCanvasMouseLeave = useCallback(() => {
     const channel = collaborationChannelRef.current;
-    if (!channel || !currentUserId) return;
+    if (!channel || !currentUserId || channel.state !== 'joined') return;
     channel.send({
       type: "broadcast",
       event: "cursor",
@@ -1181,7 +1182,7 @@ function TreeCanvasInner({
     setMembers((prev) => prev.map((member) => (member.id === updatedMember.id ? ({ ...member, ...updatedMember }) : member)));
 
     const channel = collaborationChannelRef.current;
-    if (!channel) return;
+    if (!channel || channel.state !== 'joined') return;
     channel.send({
       type: "broadcast",
       event: "member-updated",

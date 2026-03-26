@@ -12,7 +12,7 @@ import { assertUUID } from "@/lib/validate";
 
 export async function createRelationship(input: CreateRelationshipInput): Promise<Relationship> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'createRelationship', 30, 60_000);
+  await rateLimit(userId, 'createRelationship', 30, 60_000);
   const validated = createRelationshipSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -102,7 +102,7 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
 
 export async function deleteRelationship(relationshipId: string, treeId: string) {
   const userId = await getAuthUser();
-  rateLimit(userId, 'deleteRelationship', 30, 60_000);
+  await rateLimit(userId, 'deleteRelationship', 30, 60_000);
   assertUUID(relationshipId, 'relationshipId');
   assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
@@ -131,7 +131,7 @@ export async function deleteRelationship(relationshipId: string, treeId: string)
 
 export async function updateRelationship(input: UpdateRelationshipInput): Promise<Relationship> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'updateRelationship', 60, 60_000);
+  await rateLimit(userId, 'updateRelationship', 60, 60_000);
   const validated = updateRelationshipSchema.parse(input);
   const supabase = createAdminClient();
 

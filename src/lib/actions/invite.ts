@@ -28,7 +28,7 @@ function generateInviteCode(): string {
 
 export async function createInvite(input: CreateInviteInput): Promise<Invitation> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'createInvite', 5, 60_000);
+  await rateLimit(userId, 'createInvite', 5, 60_000);
   const validated = createInviteSchema.parse(input);
   assertUUID(validated.tree_id, 'treeId');
   const supabase = createAdminClient();
@@ -130,7 +130,7 @@ export async function getInviteByCode(code: string): Promise<Invitation | null> 
 
 export async function acceptInvite(inviteCode: string): Promise<{ treeId: string }> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'acceptInvite', 10, 60_000);
+  await rateLimit(userId, 'acceptInvite', 10, 60_000);
   const supabase = createAdminClient();
 
   // Get the invite

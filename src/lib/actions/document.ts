@@ -18,7 +18,7 @@ const BUCKET = "tree-documents";
 
 export async function uploadDocument(formData: FormData): Promise<Document> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'uploadDocument', 10, 60_000);
+  await rateLimit(userId, 'uploadDocument', 10, 60_000);
   const supabase = createAdminClient();
 
   const treeId = formData.get("treeId") as string;
