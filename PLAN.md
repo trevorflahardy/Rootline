@@ -972,23 +972,23 @@ Shareable URL that shows the tree to unauthenticated visitors (read-only).
 
 ### Stream 36: Tree Merge (Feature J)
 
-**Status**: 🔴 TODO
+**Status**: ✅ COMPLETE
 
 Merge two family trees when families connect. Schema already supports it via shared UUIDs.
 
-- [ ] `mergeTree(sourceTreeId, targetTreeId, memberMappings)` server action — owner-only
+- [x] `mergeTree(sourceTreeId, targetTreeId, memberMappings)` server action — owner-only (`src/lib/actions/merge.ts`)
   - Copy all `tree_members` from source → target (with dedup by name+DOB)
   - Copy all `relationships`, remapping member IDs
-  - Copy all `media` and `documents` references
+  - Copy non-profile-photo media references
   - Create `audit_log` entry for the merge
   - Delete source tree after confirmation
-- [ ] `src/components/tree/merge-tree-dialog.tsx` — step wizard:
+- [x] `src/components/tree/merge-tree-dialog.tsx` — 4-step wizard:
   1. Select source tree (from user's owned trees)
   2. Preview member conflicts (name+DOB matches shown as potential duplicates)
   3. Resolve conflicts: merge as same person, keep as separate, skip
   4. Confirm merge with data-loss warning
-- [ ] Add "Merge another tree into this one" option in tree settings danger zone
-- [ ] Tests: merge copies members, remaps relationships, dedup detection works, non-owner blocked
+- [x] Add "Merge another tree into this one" option in tree settings danger zone (`tree-settings-form.tsx`)
+- [x] Tests: 11 tests — merge copies members, remaps relationships, dedup detection, non-owner blocked, skipped members excluded, same-tree guard (`src/lib/actions/__tests__/merge.test.ts`)
 
 ---
 
@@ -1011,7 +1011,7 @@ Merge two family trees when families connect. Schema already supports it via sha
 - [ ] Tree stats panel shows accurate counts and calculations
 - [ ] Birthday reminder banner appears for members with upcoming birthdays
 - [ ] Public share link works without login for `is_public` trees
-- [ ] Tree merge copies all members + relationships with dedup detection
+- [ ] Tree merge copies all members + relationships with duplicate detection
 
 ---
 

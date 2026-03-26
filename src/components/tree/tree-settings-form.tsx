@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Trash2, ArrowLeft, User, Crown, Eye, Edit, Unlink, Link as LinkIcon, Copy } from "lucide-react";
+import { Trash2, ArrowLeft, User, Crown, Eye, Edit, Unlink, Link as LinkIcon, Copy, GitMerge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { MergeTreeDialog } from "@/components/tree/merge-tree-dialog";
 import { updateTree, deleteTree, updateMembership, removeMembership } from "@/lib/actions/tree";
 import { unlinkNodeProfile } from "@/lib/actions/permissions";
 import { updateTreeSchema, type UpdateTreeInput } from "@/lib/validators/tree";
@@ -41,6 +42,7 @@ const roleIcons: Record<TreeRole, typeof Crown> = {
 export function TreeSettingsForm({ tree, memberships, members, currentUserId }: TreeSettingsFormProps) {
   const router = useRouter();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [isPublic, setIsPublic] = useState(tree.is_public);
   const [copied, setCopied] = useState(false);
@@ -285,20 +287,41 @@ export function TreeSettingsForm({ tree, memberships, members, currentUserId }: 
           <CardDescription>Irreversible actions for this tree.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Delete this tree</p>
-              <p className="text-xs text-muted-foreground">
-                All members, relationships, photos, and history will be permanently deleted.
-              </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Merge another tree into this one</p>
+                <p className="text-xs text-muted-foreground">
+                  Copy all members and relationships from another tree you own. The source tree will be deleted.
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setShowMergeDialog(true)}>
+                <GitMerge className="h-3.5 w-3.5 mr-1.5" />
+                Merge Tree
+              </Button>
             </div>
-            <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Delete Tree
-            </Button>
+            <div className="border-t border-white/10 pt-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Delete this tree</p>
+                <p className="text-xs text-muted-foreground">
+                  All members, relationships, photos, and history will be permanently deleted.
+                </p>
+              </div>
+              <Button variant="destructive" size="sm" onClick={() => setShowDeleteConfirm(true)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete Tree
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      <MergeTreeDialog
+        open={showMergeDialog}
+        onOpenChange={setShowMergeDialog}
+        targetTreeId={tree.id}
+        targetTreeName={tree.name}
+      />
 
       <ConfirmDialog
         open={showDeleteConfirm}
