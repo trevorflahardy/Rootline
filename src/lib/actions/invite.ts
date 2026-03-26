@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { createInviteSchema, type CreateInviteInput } from "@/lib/validators/invite";
 import { rateLimit } from "@/lib/rate-limit";
+import { assertUUID } from "@/lib/validate";
 
 export interface Invitation {
   id: string;
@@ -29,6 +30,7 @@ export async function createInvite(input: CreateInviteInput): Promise<Invitation
   const userId = await getAuthUser();
   rateLimit(userId, 'createInvite', 5, 60_000);
   const validated = createInviteSchema.parse(input);
+  assertUUID(validated.tree_id, 'treeId');
   const supabase = createAdminClient();
 
   // Only owners can create invites
@@ -87,6 +89,7 @@ export async function createInvite(input: CreateInviteInput): Promise<Invitation
 
 export async function getInvitesByTreeId(treeId: string): Promise<Invitation[]> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -104,6 +107,7 @@ export async function getInvitesByTreeId(treeId: string): Promise<Invitation[]> 
     .from("invitations")
     .select("*")
     .eq("tree_id", treeId)
+    .limit(200)
     .order("created_at", { ascending: false });
 
   if (error) throw new Error(`Failed to fetch invites: ${error.message}`);
@@ -111,6 +115,7 @@ export async function getInvitesByTreeId(treeId: string): Promise<Invitation[]> 
 }
 
 export async function getInviteByCode(code: string): Promise<Invitation | null> {
+  await getAuthUser();
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -185,6 +190,8 @@ export async function acceptInvite(inviteCode: string): Promise<{ treeId: string
 
 export async function revokeInvite(inviteId: string, treeId: string): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(inviteId, 'inviteId');
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase

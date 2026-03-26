@@ -44,12 +44,12 @@ export async function importGedcomData(
       .from("tree_members")
       .insert({
         tree_id: treeId,
-        first_name: member.first_name,
-        last_name: orNull(member.last_name),
-        maiden_name: orNull(member.maiden_name),
-        gender: orNull(member.gender),
-        date_of_birth: orNull(member.date_of_birth),
-        date_of_death: orNull(member.date_of_death),
+        first_name: sanitizeText(member.first_name),
+        last_name: orNull(member.last_name ? sanitizeText(member.last_name) : null),
+        maiden_name: orNull(member.maiden_name ? sanitizeText(member.maiden_name) : null),
+        gender: orNull(member.gender ? sanitizeText(member.gender) : null),
+        date_of_birth: orNull(member.date_of_birth ? sanitizeText(member.date_of_birth) : null),
+        date_of_death: orNull(member.date_of_death ? sanitizeText(member.date_of_death) : null),
         birth_place: orNull(member.birth_place ? sanitizeText(member.birth_place) : null),
         death_place: orNull(member.death_place ? sanitizeText(member.death_place) : null),
         bio: orNull(member.bio ? sanitizeText(member.bio) : null),

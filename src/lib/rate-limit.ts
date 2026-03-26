@@ -1,4 +1,20 @@
 /**
+ * WARNING: SERVERLESS LIMITATION: This rate limiter uses in-memory state.
+ * In serverless/edge environments (Vercel, AWS Lambda), each function invocation
+ * may run in a fresh process, resetting all counters. This means rate limits
+ * are NOT reliably enforced in production serverless deployments.
+ *
+ * For production use, replace with a persistent store:
+ *   - Upstash Redis: @upstash/ratelimit (https://github.com/upstash/ratelimit)
+ *   - Vercel KV: @vercel/kv
+ *   - Redis via ioredis
+ *
+ * Example with Upstash:
+ *   import { Ratelimit } from "@upstash/ratelimit";
+ *   import { Redis } from "@upstash/redis";
+ */
+
+/**
  * In-memory token bucket rate limiter.
  * Keyed by `${userId}:${action}`. Resets after windowMs milliseconds.
  */

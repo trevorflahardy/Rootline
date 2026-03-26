@@ -82,7 +82,10 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
       upsert: false,
     });
 
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+  if (uploadError) {
+    console.error("Document upload failed:", uploadError.message);
+    throw new Error("Upload failed");
+  }
 
   // Create DB record
   const { data, error } = await supabase
@@ -102,7 +105,10 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to save document record: ${error.message}`);
+  if (error) {
+    console.error("Failed to save document record:", error.message);
+    throw new Error("Failed to save document");
+  }
 
   revalidatePath(`/tree/${treeId}`);
   return data as Document;

@@ -102,6 +102,7 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
 
 export async function deleteRelationship(relationshipId: string, treeId: string) {
   const userId = await getAuthUser();
+  rateLimit(userId, 'deleteRelationship', 30, 60_000);
   assertUUID(relationshipId, 'relationshipId');
   assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();

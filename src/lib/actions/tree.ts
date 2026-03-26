@@ -7,9 +7,11 @@ import { createTreeSchema, updateTreeSchema } from "@/lib/validators/tree";
 import type { CreateTreeInput, UpdateTreeInput } from "@/lib/validators/tree";
 import type { FamilyTree, TreeSummary, TreeMembership } from "@/types";
 import { assertUUID } from "@/lib/validate";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function createTree(input: CreateTreeInput) {
   const userId = await getAuthUser();
+  rateLimit(userId, 'createTree', 5, 60_000);
   const validated = createTreeSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -128,6 +130,7 @@ export async function getTreeById(treeId: string): Promise<FamilyTree | null> {
 
 export async function updateTree(treeId: string, input: UpdateTreeInput) {
   const userId = await getAuthUser();
+  rateLimit(userId, 'updateTree', 20, 60_000);
   assertUUID(treeId, 'treeId');
   const validated = updateTreeSchema.parse(input);
   const supabase = createAdminClient();
@@ -242,6 +245,7 @@ export async function removeMembership(membershipId: string, treeId: string) {
 
 export async function deleteTree(treeId: string) {
   const userId = await getAuthUser();
+  rateLimit(userId, 'deleteTree', 3, 60_000);
   assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 

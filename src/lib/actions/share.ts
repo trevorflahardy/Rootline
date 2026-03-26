@@ -25,6 +25,13 @@ export async function getPublicTree(treeId: string): Promise<FamilyTree | null> 
 export async function getPublicMembers(treeId: string): Promise<TreeMember[]> {
   assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
+  const { data: tree } = await supabase
+    .from("family_trees")
+    .select("id")
+    .eq("id", treeId)
+    .eq("is_public", true)
+    .single();
+  if (!tree) throw new Error("Tree not found or not public");
   const { data } = await supabase
     .from("tree_members")
     .select("*")
@@ -35,6 +42,13 @@ export async function getPublicMembers(treeId: string): Promise<TreeMember[]> {
 export async function getPublicRelationships(treeId: string): Promise<PublicRelationship[]> {
   assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
+  const { data: tree } = await supabase
+    .from("family_trees")
+    .select("id")
+    .eq("id", treeId)
+    .eq("is_public", true)
+    .single();
+  if (!tree) throw new Error("Tree not found or not public");
   const { data } = await supabase
     .from("relationships")
     .select("id, tree_id, from_member_id, to_member_id, relationship_type")

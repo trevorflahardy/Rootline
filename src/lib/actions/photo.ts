@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { sanitizeStoragePath } from "@/lib/sanitize";
+import { sanitizeStoragePath, sanitizeText } from "@/lib/sanitize";
+import { assertUUID } from "@/lib/validate";
 
 export interface Media {
   id: string;
@@ -32,6 +33,8 @@ export async function uploadPhoto(
 ): Promise<Media> {
   const userId = await getAuthUser();
   rateLimit(userId, 'uploadPhoto', 10, 60_000);
+  assertUUID(treeId, 'treeId');
+  if (memberId) assertUUID(memberId, 'memberId');
   const supabase = createAdminClient();
 
   // Check tree access
@@ -72,7 +75,10 @@ export async function uploadPhoto(
       upsert: false,
     });
 
-  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+  if (uploadError) {
+    console.error("Photo upload failed:", uploadError.message);
+    throw new Error("Upload failed");
+  }
 
   // If this is a profile photo, unset any existing profile photo for this member
   if (isProfilePhoto && memberId) {
@@ -91,7 +97,7 @@ export async function uploadPhoto(
       tree_id: treeId,
       uploaded_by: userId,
       storage_path: storagePath,
-      file_name: file.name,
+      file_name: sanitizeText(file.name),
       file_size: file.size,
       mime_type: file.type,
       member_id: memberId ?? null,
@@ -100,7 +106,10 @@ export async function uploadPhoto(
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to save photo record: ${error.message}`);
+  if (error) {
+    console.error("Failed to save photo record:", error.message);
+    throw new Error("Failed to save photo");
+  }
 
   // If profile photo, update member's avatar_url
   if (isProfilePhoto && memberId) {
@@ -120,6 +129,7 @@ export async function uploadPhoto(
 
 export async function getPhotosByTreeId(treeId: string): Promise<Media[]> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Check access
@@ -144,6 +154,8 @@ export async function getPhotosByTreeId(treeId: string): Promise<Media[]> {
 
 export async function getPhotosByMemberId(memberId: string, treeId: string): Promise<Media[]> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
+  assertUUID(memberId, 'memberId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -168,6 +180,8 @@ export async function getPhotosByMemberId(memberId: string, treeId: string): Pro
 
 export async function deletePhoto(photoId: string, treeId: string): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(photoId, 'photoId');
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase

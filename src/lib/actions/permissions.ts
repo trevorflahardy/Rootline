@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { assertUUID } from "@/lib/validate";
 import type { TreeRole } from "@/types";
 
 export interface TreePermissions {
@@ -13,6 +14,7 @@ export interface TreePermissions {
 
 export async function getTreePermissions(treeId: string): Promise<TreePermissions> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -39,6 +41,8 @@ export async function canEditMember(
   memberId: string
 ): Promise<boolean> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
+  assertUUID(memberId, 'memberId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -71,6 +75,7 @@ export async function selfAssignToNode(
   nodeId: string
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -113,6 +118,7 @@ export async function selfAssignToNode(
 
 export async function selfUnassignFromNode(treeId: string): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -138,6 +144,7 @@ export async function unlinkNodeProfile(
   membershipId: string
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Only owner can unlink others
@@ -171,7 +178,18 @@ export interface NodeProfileLink {
 export async function getNodeProfileMap(
   treeId: string
 ): Promise<Record<string, NodeProfileLink>> {
+  const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
+
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("id")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership) throw new Error("No access to this tree");
 
   const { data, error } = await supabase
     .from("tree_memberships")
@@ -209,7 +227,18 @@ export async function getNodeMembership(
   treeId: string,
   nodeId: string
 ): Promise<NodeMembership | null> {
+  const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
+
+  const { data: membership } = await supabase
+    .from("tree_memberships")
+    .select("id")
+    .eq("tree_id", treeId)
+    .eq("user_id", userId)
+    .single();
+
+  if (!membership) throw new Error("No access to this tree");
 
   const { data } = await supabase
     .from("tree_memberships")
@@ -236,6 +265,7 @@ export async function updateMemberRole(
   newRole: "editor" | "viewer"
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Only owner can change roles
@@ -289,6 +319,7 @@ export async function getTreeMembershipsWithActivity(
   treeId: string
 ): Promise<MembershipWithActivity[]> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Verify user has access
@@ -304,7 +335,8 @@ export async function getTreeMembershipsWithActivity(
   const { data, error } = await supabase
     .from("tree_memberships")
     .select("*, profiles(display_name, email, avatar_url)")
-    .eq("tree_id", treeId);
+    .eq("tree_id", treeId)
+    .limit(500);
 
   if (error) throw new Error(`Failed to fetch memberships: ${error.message}`);
 
@@ -318,7 +350,8 @@ export async function getTreeMembershipsWithActivity(
       .select("user_id, created_at")
       .eq("tree_id", treeId)
       .in("user_id", userIds)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(500);
 
     if (logs) {
       for (const log of logs) {
@@ -346,6 +379,7 @@ export async function revokeMembership(
   membershipId: string
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   // Only owner can revoke
@@ -391,6 +425,7 @@ export async function bulkUpdateRoles(
   newRole: "editor" | "viewer"
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: callerMembership } = await supabase
@@ -403,6 +438,8 @@ export async function bulkUpdateRoles(
   if (!callerMembership || callerMembership.role !== "owner") {
     throw new Error("Only the tree owner can bulk update roles");
   }
+
+  if (membershipIds.length > 100) throw new Error("Cannot update more than 100 memberships at once");
 
   const { error } = await supabase
     .from("tree_memberships")
@@ -419,6 +456,7 @@ export async function bulkRevokeMemberships(
   membershipIds: string[]
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: callerMembership } = await supabase
@@ -431,6 +469,8 @@ export async function bulkRevokeMemberships(
   if (!callerMembership || callerMembership.role !== "owner") {
     throw new Error("Only the tree owner can bulk revoke memberships");
   }
+
+  if (membershipIds.length > 100) throw new Error("Cannot revoke more than 100 memberships at once");
 
   // Filter out self and owners
   const { error } = await supabase
@@ -449,6 +489,7 @@ export async function updateMemberLinkedNode(
   nodeId: string | null
 ): Promise<void> {
   const userId = await getAuthUser();
+  assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();
 
   const { data: callerMembership } = await supabase

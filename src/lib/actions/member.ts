@@ -23,7 +23,7 @@ async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, t
 
 export async function createMember(input: CreateMemberInput): Promise<TreeMember> {
   const userId = await getAuthUser();
-  rateLimit(userId, 'createMember', 30, 60_000);
+  rateLimit(userId, 'createMember', 20, 60_000);
   const validated = createMemberSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -69,6 +69,7 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
 
 export async function updateMember(memberId: string, treeId: string, input: UpdateMemberInput): Promise<TreeMember> {
   const userId = await getAuthUser();
+  rateLimit(userId, 'updateMember', 30, 60_000);
   assertUUID(memberId, 'memberId');
   assertUUID(treeId, 'treeId');
   const validated = updateMemberSchema.parse(input);
@@ -117,6 +118,7 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
 
 export async function deleteMember(memberId: string, treeId: string) {
   const userId = await getAuthUser();
+  rateLimit(userId, 'deleteMember', 10, 60_000);
   assertUUID(memberId, 'memberId');
   assertUUID(treeId, 'treeId');
   const supabase = createAdminClient();

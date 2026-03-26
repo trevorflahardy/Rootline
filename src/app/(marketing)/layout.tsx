@@ -45,6 +45,7 @@ export default function MarketingLayout({
 
   return (
     <>
+      {/* jsonLd contains only hardcoded static server constants — no user-controlled data flows in. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
