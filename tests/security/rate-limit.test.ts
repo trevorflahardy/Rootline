@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { rateLimit, RateLimitError } from '../../src/lib/rate-limit';
+import {
+  rateLimit,
+  RateLimitError,
+  rateLimitHeaders,
+} from '../../src/lib/rate-limit';
+import { rateLimitHeaders as rateLimitHeadersStandalone } from '../../src/lib/rate-limit-headers';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -169,5 +174,169 @@ describe('rateLimit — window reset', () => {
     expect(() => rateLimit(userId, 'fresh', limit, windowMs)).toThrow(
       RateLimitError
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RateLimitResult — return value metadata
+// ---------------------------------------------------------------------------
+describe('rateLimit — RateLimitResult', () => {
+  it('returns an object with limit, remaining, and reset', () => {
+    const userId = uniqueUser();
+    const result = rateLimit(userId, 'meta', 5, 60_000);
+    expect(result).toHaveProperty('limit', 5);
+    expect(result).toHaveProperty('remaining', 4);
+    expect(typeof result.reset).toBe('number');
+    expect(result.reset).toBeGreaterThan(0);
+  });
+
+  it('decrements remaining with each call', () => {
+    const userId = uniqueUser();
+    const r1 = rateLimit(userId, 'dec', 3, 60_000);
+    const r2 = rateLimit(userId, 'dec', 3, 60_000);
+    const r3 = rateLimit(userId, 'dec', 3, 60_000);
+
+    expect(r1.remaining).toBe(2);
+    expect(r2.remaining).toBe(1);
+    expect(r3.remaining).toBe(0);
+  });
+
+  it('remaining never goes below zero in the result', () => {
+    const userId = uniqueUser();
+    const result = rateLimit(userId, 'floor', 1, 60_000);
+    expect(result.remaining).toBe(0); // 1 call with limit 1 → 0 remaining
+  });
+
+  it('reset is a Unix timestamp in seconds in the future', () => {
+    const userId = uniqueUser();
+    const nowSec = Math.floor(Date.now() / 1000);
+    const result = rateLimit(userId, 'ts', 5, 60_000);
+    expect(result.reset).toBeGreaterThanOrEqual(nowSec);
+    expect(result.reset).toBeLessThanOrEqual(nowSec + 61);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RateLimitError — headers property
+// ---------------------------------------------------------------------------
+describe('RateLimitError — headers', () => {
+  it('has a headers getter with X-RateLimit-* keys', () => {
+    const userId = uniqueUser();
+    rateLimit(userId, 'hdr', 1, 60_000); // exhaust limit
+    let caught: RateLimitError | undefined;
+    try {
+      rateLimit(userId, 'hdr', 1, 60_000);
+    } catch (err) {
+      caught = err as RateLimitError;
+    }
+    expect(caught).toBeInstanceOf(RateLimitError);
+    const hdrs = caught!.headers;
+    expect(hdrs).toHaveProperty('X-RateLimit-Limit');
+    expect(hdrs).toHaveProperty('X-RateLimit-Remaining');
+    expect(hdrs).toHaveProperty('X-RateLimit-Reset');
+  });
+
+  it('header values are strings', () => {
+    const userId = uniqueUser();
+    rateLimit(userId, 'hdr-str', 1, 60_000);
+    let caught: RateLimitError | undefined;
+    try {
+      rateLimit(userId, 'hdr-str', 1, 60_000);
+    } catch (err) {
+      caught = err as RateLimitError;
+    }
+    const hdrs = caught!.headers;
+    expect(typeof hdrs['X-RateLimit-Limit']).toBe('string');
+    expect(typeof hdrs['X-RateLimit-Remaining']).toBe('string');
+    expect(typeof hdrs['X-RateLimit-Reset']).toBe('string');
+  });
+
+  it('X-RateLimit-Remaining is "0" when over limit', () => {
+    const userId = uniqueUser();
+    rateLimit(userId, 'hdr-zero', 1, 60_000);
+    let caught: RateLimitError | undefined;
+    try {
+      rateLimit(userId, 'hdr-zero', 1, 60_000);
+    } catch (err) {
+      caught = err as RateLimitError;
+    }
+    expect(caught!.headers['X-RateLimit-Remaining']).toBe('0');
+  });
+
+  it('X-RateLimit-Limit matches the configured limit', () => {
+    const userId = uniqueUser();
+    rateLimit(userId, 'hdr-lim', 1, 60_000);
+    let caught: RateLimitError | undefined;
+    try {
+      rateLimit(userId, 'hdr-lim', 1, 60_000);
+    } catch (err) {
+      caught = err as RateLimitError;
+    }
+    expect(caught!.headers['X-RateLimit-Limit']).toBe('1');
+  });
+
+  it('includes limit, remaining, and reset numeric properties', () => {
+    const userId = uniqueUser();
+    rateLimit(userId, 'hdr-props', 2, 30_000);
+    rateLimit(userId, 'hdr-props', 2, 30_000);
+    let caught: RateLimitError | undefined;
+    try {
+      rateLimit(userId, 'hdr-props', 2, 30_000);
+    } catch (err) {
+      caught = err as RateLimitError;
+    }
+    expect(caught!.limit).toBe(2);
+    expect(caught!.remaining).toBe(0);
+    expect(caught!.reset).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rateLimitHeaders — standalone helper
+// ---------------------------------------------------------------------------
+describe('rateLimitHeaders', () => {
+  it('formats a RateLimitResult into X-RateLimit-* headers', () => {
+    const result = rateLimit(uniqueUser(), 'fmt', 10, 60_000);
+    const hdrs = rateLimitHeaders(result);
+    expect(hdrs['X-RateLimit-Limit']).toBe('10');
+    expect(hdrs['X-RateLimit-Remaining']).toBe('9');
+    expect(hdrs['X-RateLimit-Reset']).toBe(String(result.reset));
+  });
+
+  it('clamps remaining to 0 when negative', () => {
+    const hdrs = rateLimitHeaders({ limit: 5, remaining: -1, reset: 999 });
+    expect(hdrs['X-RateLimit-Remaining']).toBe('0');
+  });
+
+  it('returns only the three expected header keys', () => {
+    const hdrs = rateLimitHeaders({ limit: 1, remaining: 0, reset: 123 });
+    expect(Object.keys(hdrs).sort()).toEqual([
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+    ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rateLimitHeaders — standalone module (rate-limit-headers.ts)
+// ---------------------------------------------------------------------------
+describe('rateLimitHeaders standalone module', () => {
+  it('produces identical output to the inline helper', () => {
+    const result = rateLimit(uniqueUser(), 'standalone', 5, 60_000);
+    const fromInline = rateLimitHeaders(result);
+    const fromStandalone = rateLimitHeadersStandalone(result);
+    expect(fromStandalone).toEqual(fromInline);
+  });
+
+  it('formats correctly with edge values', () => {
+    const hdrs = rateLimitHeadersStandalone({
+      limit: 0,
+      remaining: 0,
+      reset: 0,
+    });
+    expect(hdrs['X-RateLimit-Limit']).toBe('0');
+    expect(hdrs['X-RateLimit-Remaining']).toBe('0');
+    expect(hdrs['X-RateLimit-Reset']).toBe('0');
   });
 });

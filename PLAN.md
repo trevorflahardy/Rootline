@@ -801,7 +801,7 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 **Goal**: Fix the two broken production paths (members page 404, missing storage buckets), perform a comprehensive security audit and hardening pass, then implement the approved new feature set.
 
 > **Last Updated**: 2026-03-25
-> **Status**: 🔴 TODO
+> **Status**: 🟢 DONE
 > **Swarm**: `swarm-1774441906884-3icr71` (hierarchical, max 8 agents)
 
 ---
@@ -850,7 +850,7 @@ Eve is an editor with `linked_node_id = PA (Alice)`. She may only edit Alice's d
 
 - [x] Add rate limiting to all server actions (createMember 30/min, createRelationship 30/min, uploadPhoto/uploadDocument 10/min, createInvite 5/min, acceptInvite 10/min) — done via `src/lib/rate-limit.ts` Map-based token bucket
 - [x] Clerk webhook endpoint: validate `svix-signature` header — confirmed enforced in `src/app/api/webhooks/clerk/route.ts`
-- [ ] API routes: add `X-RateLimit-*` response headers — not yet implemented
+- [x] API routes: add `X-RateLimit-*` response headers — implemented in rate-limit.ts + middleware.ts (Phase 8 Stream 38)
 - [x] Tests: rate limit function tested in `tests/security/rate-limit.test.ts` (11 tests, including window reset)
 
 #### 31b: Input Sanitization & Injection Prevention
@@ -1020,6 +1020,219 @@ Merge two family trees when families connect. Schema already supports it via sha
 - [ ] Birthday reminder banner appears for members with upcoming birthdays
 - [ ] Public share link works without login for `is_public` trees
 - [ ] Tree merge copies all members + relationships with duplicate detection
+
+---
+
+## Phase 8: Quality, Testing & Hardening
+
+**Goal**: Complete deferred quality improvements — E2E testing, accessibility, temporal validation, and remaining security polish.
+
+> **Last Updated**: 2026-03-28
+> **Status**: 🟡 IN PROGRESS
+
+---
+
+### Stream 38: Rate Limit Response Headers (Security Polish)
+
+**Status**: 🟡 IN PROGRESS
+
+Complete the remaining item from Stream 31a: add standard `X-RateLimit-*` response headers.
+
+- [ ] Modify `rateLimit()` in `src/lib/rate-limit.ts` to return `{ remaining, limit, reset }` metadata
+- [ ] Create rate limit header helper to format `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- [ ] Integrate headers via Next.js middleware for server action responses
+- [ ] `RateLimitError` includes `.headers` property with standard header key/values
+
+#### Stream 38 Tests (`tests/security/rate-limit-headers.test.ts`)
+
+- [ ] `RateLimitResult` has correct `limit`, `remaining`, `reset` after each call
+- [ ] `remaining` decrements by 1 on each successive call
+- [ ] `remaining` is 0 (not negative) when at exact limit boundary
+- [ ] `reset` is a valid Unix timestamp in the future
+- [ ] `rateLimitHeaders()` returns object with all 3 `X-RateLimit-*` keys
+- [ ] `rateLimitHeaders()` values are strings (not numbers)
+- [ ] `RateLimitError.headers` contains `X-RateLimit-Limit`, `X-RateLimit-Remaining` (0), `X-RateLimit-Reset`
+- [ ] `RateLimitError.headers['X-RateLimit-Remaining']` is "0" when limit exceeded
+- [ ] Existing 11 rate-limit tests still pass (no regressions)
+
+---
+
+### Stream 39: E2E Tests with Playwright
+
+**Status**: 🔴 TODO
+
+End-to-end test coverage for critical user flows.
+
+- [ ] Install and configure Playwright (`@playwright/test`)
+- [ ] CI integration: Playwright in GitHub Actions workflow
+
+#### E2E Test Specs (each is a separate file under `tests/e2e/`)
+
+**`auth.spec.ts`** — Authentication flows:
+- [ ] Sign up with email → profile appears in Supabase `profiles` table
+- [ ] Sign in → redirected to dashboard
+- [ ] Sign out → redirected to landing page
+- [ ] Unauthenticated user visiting `/dashboard` → redirected to sign-in
+- [ ] Session persists across page navigation
+
+**`tree-crud.spec.ts`** — Tree & member CRUD:
+- [ ] Create tree → appears on dashboard
+- [ ] Add 3+ members with names, DOB, gender → visible in tree canvas
+- [ ] Create parent_child and spouse relationships → edges render correctly
+- [ ] Edit member name inline → saves and reflects immediately
+- [ ] Delete member → removed from canvas, relationships cleaned up
+- [ ] Delete tree → removed from dashboard, all members gone
+
+**`tree-visualization.spec.ts`** — Canvas interactions:
+- [ ] Pan canvas by dragging background
+- [ ] Zoom in/out with scroll wheel
+- [ ] Click node → detail panel opens with correct member data
+- [ ] Select two nodes → green path highlights with relationship label
+- [ ] Cmd+K search → finds member by name, centers canvas on node
+- [ ] Marriage edges render horizontally between spouses
+
+**`collaboration.spec.ts`** — Multi-user collaboration:
+- [ ] Owner creates invite link → link is valid URL with code
+- [ ] Invitee opens link, signs up, accepts → gains editor role
+- [ ] Editor can add children below linked node
+- [ ] Editor cannot edit members outside their scope
+- [ ] Viewer can see tree but cannot add/edit/delete
+- [ ] Real-time: User A edits member → User B sees update without refresh
+
+**`import-export.spec.ts`** — Data portability:
+- [ ] Import valid GEDCOM file → members and relationships populated
+- [ ] Import GEDCOM with >10MB file → rejected with error
+- [ ] Import GEDCOM with malformed data → partial import with error list
+- [ ] Export tree as GEDCOM → valid .ged file with all members
+- [ ] Export tree as PNG → image file downloaded
+- [ ] Round-trip: export GEDCOM → import into new tree → same member count
+
+**`public-share.spec.ts`** — Public sharing:
+- [ ] Toggle tree to public → share link appears in settings
+- [ ] Visit share link logged out → tree renders read-only
+- [ ] Public view has no edit/delete controls
+- [ ] Toggle tree back to private → share link returns 404
+- [ ] "Sign up to collaborate" CTA links to registration
+
+---
+
+### Stream 40: Accessibility Audit
+
+**Status**: 🔴 TODO
+
+Ensure WCAG 2.1 AA compliance across all pages.
+
+- [ ] Install axe-core (`@axe-core/playwright` or `@axe-core/react`)
+- [ ] Audit all pages for color contrast, focus management, ARIA labels
+- [ ] Fix keyboard navigation in tree canvas (focus trap, arrow key nav)
+- [ ] Add screen reader labels to tree nodes, edges, and controls
+- [ ] Add skip-to-content link and landmark regions
+
+#### Accessibility Tests (`tests/e2e/accessibility.spec.ts` + `tests/a11y/`)
+
+- [ ] axe-core scan on landing page → 0 critical/serious violations
+- [ ] axe-core scan on dashboard → 0 critical/serious violations
+- [ ] axe-core scan on tree canvas page → 0 critical/serious violations
+- [ ] axe-core scan on member detail panel → 0 critical/serious violations
+- [ ] axe-core scan on settings page → 0 critical/serious violations
+- [ ] Tab key navigates through all interactive elements in correct order
+- [ ] Escape key closes open dialogs and panels
+- [ ] Tree nodes are focusable via keyboard (Arrow keys or Tab)
+- [ ] Screen reader announces member name and role when node receives focus
+- [ ] Color contrast ratio >= 4.5:1 for all text (both light and dark mode)
+- [ ] Skip-to-content link visible on focus and jumps to main content
+- [ ] All images have alt text (avatars, tree export preview)
+
+---
+
+### Stream 41: Temporal Invariants & Data Validation
+
+**Status**: 🔴 TODO
+
+Enforce date logic and prevent invalid genealogical data at the validator level.
+
+- [ ] Validator: `date_of_death` must be after `date_of_birth` (block on create/update)
+- [ ] Validator: parent's `date_of_birth` must be before child's `date_of_birth`
+- [ ] Validator: marriage `start_date` must be after both partners' `date_of_birth`
+- [ ] Cycle detection: block `parent_child` A→B when B→A exists (direct cycle)
+- [ ] Cycle detection: block transitive cycles in parent_child chain (DFS)
+
+#### Temporal Invariant Tests (`tests/validation/temporal-invariants.test.ts`)
+
+- [ ] Create member: `date_of_death` before `date_of_birth` → rejected with clear error
+- [ ] Update member: set `date_of_death` before existing `date_of_birth` → rejected
+- [ ] Create member: `date_of_death` = `date_of_birth` (same day) → allowed (valid edge case)
+- [ ] Create member: only `date_of_death` set (no DOB) → allowed (partial data)
+- [ ] Create member: only `date_of_birth` set (no DOD) → allowed (living person)
+- [ ] Create parent_child: parent born after child → rejected
+- [ ] Create parent_child: parent born same year as child → rejected (biologically impossible)
+- [ ] Create parent_child: parent born 12+ years before child → allowed
+- [ ] Create marriage: start_date before either partner's DOB → rejected
+- [ ] Create marriage: start_date after both partners' DOB → allowed
+- [ ] Create marriage: one partner has no DOB → skip temporal check (partial data)
+- [ ] Update DOB that would violate existing parent_child relationship → rejected
+
+#### Cycle Detection Tests (`tests/validation/cycle-detection.test.ts`)
+
+- [ ] Direct cycle: A→B parent_child then B→A parent_child → blocked
+- [ ] Transitive cycle: A→B→C→A parent_child chain → blocked on C→A
+- [ ] Deep cycle: chain of 10+ nodes forming a loop → blocked
+- [ ] Non-cycle: A→B, A→C, B→D (tree shape) → allowed
+- [ ] Diamond: A→B, A→C, B→D, C→D (two parents for D) → allowed (valid genealogy)
+- [ ] Self-referential: A→A → blocked (already enforced, regression test)
+- [ ] Cycle check after member deletion: delete middle node → cycle no longer exists
+- [ ] Performance: cycle detection on tree with 500+ nodes completes in < 100ms
+
+---
+
+### Stream 42: Advanced Graph Validation
+
+**Status**: 🔴 TODO
+
+Additional genealogical integrity checks beyond temporal invariants.
+
+- [ ] Self-referential relationship block (already done in Phase 6, verify coverage)
+- [ ] Duplicate relationship detection (same type between same members)
+- [ ] Orphan node detection and reporting in tree stats
+- [ ] Maximum tree depth guard (prevent stack overflow in deep recursion)
+
+#### Graph Validation Tests (`tests/validation/graph-validation.test.ts`)
+
+- [ ] Self-referential: create relationship where member_a_id = member_b_id → blocked
+- [ ] Duplicate: create same relationship type between A↔B twice → blocked on second
+- [ ] Duplicate: different types between A↔B (e.g. parent_child + spouse) → allowed
+- [ ] Duplicate: A→B and B→A of same type → depends on type (parent_child directional, spouse symmetric)
+- [ ] Orphan detection: member with 0 relationships flagged in stats
+- [ ] Orphan detection: member with only deleted relationships flagged as orphan
+- [ ] Max depth: tree with depth > configured max → warning returned (not hard block)
+- [ ] Max depth: BFS traversal on 1000-node tree completes without stack overflow
+- [ ] Relationship count stays accurate after bulk delete of members
+- [ ] Deleting a member with 10+ relationships cleans up all edges
+
+---
+
+### Verification Checklist: After Phase 8
+
+**Test Coverage Gates (all must pass before Phase 8 is marked DONE):**
+
+- [ ] `bun test` passes all unit/integration tests (existing 352+ new)
+- [ ] `bun run build` succeeds with 0 TypeScript errors
+- [ ] Playwright E2E suite: all 6 spec files pass (`auth`, `tree-crud`, `tree-visualization`, `collaboration`, `import-export`, `public-share`)
+- [ ] Rate limit header tests: 9 new tests pass in `tests/security/rate-limit-headers.test.ts`
+- [ ] Temporal invariant tests: 12 tests pass in `tests/validation/temporal-invariants.test.ts`
+- [ ] Cycle detection tests: 8 tests pass in `tests/validation/cycle-detection.test.ts`
+- [ ] Graph validation tests: 10 tests pass in `tests/validation/graph-validation.test.ts`
+- [ ] Accessibility tests: axe-core reports 0 critical/serious violations across 5 pages
+- [ ] No existing tests broken (full regression pass)
+
+**Functional Verification:**
+
+- [ ] `X-RateLimit-*` headers present on rate-limited responses
+- [ ] Temporal invariant violations return clear, user-friendly error messages
+- [ ] Cycle detection blocks circular parent_child chains with explanation
+- [ ] Orphan nodes reported in tree stats panel
+- [ ] Keyboard-only navigation works through entire tree workflow
+- [ ] Screen reader can announce all tree node names and relationships
 
 ---
 
