@@ -8,6 +8,7 @@ import type { TreeMember } from "@/types";
 import { rateLimit } from "@/lib/rate-limit";
 import { sanitizeText } from "@/lib/sanitize";
 import { assertUUID } from "@/lib/validate";
+import { validateLifespan } from "@/lib/validators/temporal";
 
 async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, treeId: string, userId: string) {
   const { data } = await supabase
@@ -25,6 +26,7 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
   const userId = await getAuthUser();
   await rateLimit(userId, 'createMember', 20, 60_000);
   const validated = createMemberSchema.parse(input);
+  validateLifespan(validated.date_of_birth ?? null, validated.date_of_death ?? null);
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, validated.tree_id, userId);
@@ -73,6 +75,7 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
   assertUUID(memberId, 'memberId');
   assertUUID(treeId, 'treeId');
   const validated = updateMemberSchema.parse(input);
+  validateLifespan(validated.date_of_birth ?? null, validated.date_of_death ?? null);
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);

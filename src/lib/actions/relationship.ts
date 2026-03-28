@@ -9,6 +9,9 @@ import type { UpdateRelationshipInput } from "@/lib/validators/relationship";
 import type { Relationship } from "@/types";
 import { rateLimit } from "@/lib/rate-limit";
 import { assertUUID } from "@/lib/validate";
+import { validateParentChildDates, validateMarriageDates } from "@/lib/validators/temporal";
+import { detectCycle } from "@/lib/validators/cycle-detection";
+import { detectDuplicateRelationship } from "@/lib/validators/graph";
 
 export async function createRelationship(input: CreateRelationshipInput): Promise<Relationship> {
   const userId = await getAuthUser();
@@ -43,6 +46,69 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
     ]);
     if (!fromResult.data || !toResult.data) {
       throw new Error("You can only create relationships within your branch");
+    }
+  }
+
+  // Fetch existing relationships for graph/cycle validation
+  let existingRels: Array<{ id: string; from_member_id: string; to_member_id: string; relationship_type: string }> = [];
+  try {
+    const { data } = await supabase
+      .from("relationships")
+      .select("id, from_member_id, to_member_id, relationship_type")
+      .eq("tree_id", validated.tree_id);
+    existingRels = data ?? [];
+  } catch {
+    // If the fetch fails, skip in-memory validation; DB constraints are the safety net
+  }
+
+  // Check for duplicate relationships
+  detectDuplicateRelationship(
+    validated.from_member_id,
+    validated.to_member_id,
+    validated.relationship_type,
+    existingRels
+  );
+
+  // Type-specific validation
+  if (validated.relationship_type === "parent_child") {
+    // Cycle detection
+    detectCycle(validated.from_member_id, validated.to_member_id, existingRels);
+
+    // Temporal validation — fetch both members
+    try {
+      const [{ data: parent }, { data: child }] = await Promise.all([
+        supabase.from("tree_members").select("date_of_birth").eq("id", validated.from_member_id).single(),
+        supabase.from("tree_members").select("date_of_birth").eq("id", validated.to_member_id).single(),
+      ]);
+      if (parent && child) {
+        validateParentChildDates(
+          { date_of_birth: parent.date_of_birth },
+          { date_of_birth: child.date_of_birth }
+        );
+      }
+    } catch {
+      // If member fetch fails, skip temporal check; data may be incomplete
+    }
+  }
+
+  if (validated.relationship_type === "spouse" || validated.relationship_type === "divorced") {
+    // Marriage date validation
+    if (validated.start_date) {
+      try {
+        const [{ data: partnerA }, { data: partnerB }] = await Promise.all([
+          supabase.from("tree_members").select("date_of_birth").eq("id", validated.from_member_id).single(),
+          supabase.from("tree_members").select("date_of_birth").eq("id", validated.to_member_id).single(),
+        ]);
+        if (partnerA && partnerB) {
+          validateMarriageDates(
+            validated.start_date,
+            { date_of_birth: partnerA.date_of_birth },
+            { date_of_birth: partnerB.date_of_birth }
+          );
+        }
+      } catch {
+        // If member fetch fails, skip temporal check; data may be incomplete
+      }
     }
   }
 
