@@ -77,6 +77,7 @@ export function TreeSidebar({ treeId }: TreeSidebarProps) {
         size="icon"
         className="md:hidden fixed top-16 left-3 z-50 glass-card"
         onClick={() => setMobileOpen(true)}
+        aria-label="Open sidebar menu"
       >
         <Menu className="h-5 w-5" />
       </Button>
@@ -101,6 +102,7 @@ export function TreeSidebar({ treeId }: TreeSidebarProps) {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(false)}
+            aria-label="Close sidebar menu"
           >
             <X className="h-5 w-5" />
           </Button>

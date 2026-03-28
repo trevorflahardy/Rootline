@@ -911,15 +911,15 @@ export function MemberDetailPanel({
         <div className="flex items-center gap-1">
           {memberCanEdit && !editCheckLoading && (
             <>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="Full edit">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEdit} title="Full edit" aria-label="Edit member">
                 <Edit className="h-3.5 w-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete} title="Delete">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onDelete} title="Delete" aria-label="Delete member">
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose} aria-label="Close panel">
             <X className="h-4 w-4" />
           </Button>
         </div>

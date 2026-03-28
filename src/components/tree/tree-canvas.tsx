@@ -1220,6 +1220,9 @@ function TreeCanvasInner({
           nodesConnectable={canEdit}
           connectionLineStyle={{ stroke: "oklch(0.55 0.08 155)", strokeWidth: 2 }}
           style={{ background: 'transparent' }}
+          role="application"
+          aria-label="Family tree visualization"
+          aria-roledescription="family tree"
         >
           <Background gap={24} size={1} color="oklch(0.8 0.01 75 / 0.15)" />
           <MiniMap

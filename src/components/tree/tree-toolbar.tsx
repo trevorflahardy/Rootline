@@ -41,7 +41,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
     <div className="absolute top-4 left-4 z-10 flex items-center gap-1 glass-card glass-light glass-edge-top rounded-xl p-1.5" data-export-exclude>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomIn()} aria-label="Zoom in">
             <ZoomIn className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -50,7 +50,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomOut()}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => zoomOut()} aria-label="Zoom out">
             <ZoomOut className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -59,7 +59,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fitView({ padding: 0.2, duration: 300 })}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fitView({ padding: 0.2, duration: 300 })} aria-label="Fit view">
             <Maximize2 className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -69,7 +69,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
       {onAutoLayout && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAutoLayout}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAutoLayout} aria-label="Auto-format layout">
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -81,7 +81,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSearch}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSearch} aria-label="Search members">
             <Search className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
@@ -92,7 +92,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
         <>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddMember}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onAddMember} aria-label="Add member">
                 <Plus className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
@@ -102,7 +102,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
           {onLinkMembers && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLinkMembers}>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onLinkMembers} aria-label="Link members">
                   <Link2 className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -117,7 +117,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
       {onInviteMembers && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onInviteMembers}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onInviteMembers} aria-label="Generate invite link">
               <UserPlus className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -130,7 +130,7 @@ export function TreeToolbar({ treeId, onAddMember, onSearch, onImportGedcom, onL
       {canEdit && onImportGedcom && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onImportGedcom}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onImportGedcom} aria-label="Import GEDCOM">
               <Upload className="h-4 w-4" />
             </Button>
           </TooltipTrigger>

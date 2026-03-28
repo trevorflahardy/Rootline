@@ -17,7 +17,7 @@ test.describe('Authentication', () => {
   test('sign up page renders', async ({ page }) => {
     await page.goto('/sign-up');
     await waitForHydration(page);
-    await expect(page.locator('[data-clerk-sign-up]').or(page.getByRole('heading', { name: /sign up/i }))).toBeVisible();
+    await expect(page.locator('[data-clerk-sign-up]').or(page.getByRole('heading', { name: /create your account|sign up/i }))).toBeVisible();
   });
 
   test('landing page loads without auth', async ({ page }) => {

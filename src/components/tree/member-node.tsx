@@ -64,6 +64,9 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
       />
 
       <div
+        role="treeitem"
+        aria-label={`${data.first_name}${data.last_name ? ` ${data.last_name}` : ""}`}
+        tabIndex={0}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(

@@ -29,6 +29,7 @@ function CoupleBlockNodeComponent({ data }: NodeProps & { data: CoupleBlockNodeD
       <button
         onClick={(e) => { e.stopPropagation(); data.onToggle(data.arcId); }}
         className="absolute top-2 right-2 rounded-full p-1 transition-all"
+        aria-label={data.joinEnabled ? "Separate child edges" : "Join child edges"}
         style={{
           background: data.joinEnabled
             ? "oklch(0.62 0.12 280 / 0.22)"
