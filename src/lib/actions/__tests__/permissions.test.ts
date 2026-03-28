@@ -49,6 +49,7 @@ function mockChain(singleResult: { data: unknown; error: unknown } = { data: nul
     in: vi.fn(),
     not: vi.fn(),
     order: vi.fn(),
+    limit: vi.fn(),
     delete: vi.fn(),
     update: vi.fn(),
     single: vi.fn().mockResolvedValue(singleResult),
@@ -60,6 +61,7 @@ function mockChain(singleResult: { data: unknown; error: unknown } = { data: nul
   self.in.mockReturnValue(self);
   self.not.mockReturnValue(self);
   self.order.mockReturnValue(self);
+  self.limit.mockReturnValue(self);
   self.delete.mockReturnValue(self);
   self.update.mockReturnValue(self);
   return self;
@@ -243,15 +245,19 @@ describe("getTreeMembershipsWithActivity", () => {
     ];
 
     const membershipListChain = mockChain();
-    // Override eq to resolve as a promise (non-single result)
-    membershipListChain.eq.mockResolvedValue({ data: membershipsData, error: null });
+    // Override eq to return a chainable object with limit that resolves
+    membershipListChain.eq.mockReturnValue({
+      limit: vi.fn().mockResolvedValue({ data: membershipsData, error: null }),
+    });
 
     const logsData = [
       { user_id: "user-1", created_at: "2026-03-22T10:00:00Z" },
     ];
 
     const logsChain = mockChain();
-    logsChain.order.mockResolvedValue({ data: logsData, error: null });
+    logsChain.order.mockReturnValue({
+      limit: vi.fn().mockResolvedValue({ data: logsData, error: null }),
+    });
 
     let callCount = 0;
     mockClient.from.mockImplementation((table: string) => {

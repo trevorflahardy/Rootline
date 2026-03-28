@@ -238,7 +238,7 @@ describe("revokeInvite", () => {
       }),
     }));
 
-    await expect(revokeInvite("invite-1", validUuid)).rejects.toThrow(
+    await expect(revokeInvite("660e8400-e29b-41d4-a716-446655440001", validUuid)).rejects.toThrow(
       "Only owners can revoke invites"
     );
   });

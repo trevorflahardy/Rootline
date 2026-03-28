@@ -63,22 +63,48 @@ describe("getPublicMembers", () => {
       { id: "member-2", tree_id: validUuid, first_name: "Bob", last_name: "Smith" },
     ];
 
-    mockClient.from.mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: mockMembers, error: null }),
-      }),
-    }));
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "family_trees") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: validUuid }, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: mockMembers, error: null }),
+        }),
+      };
+    });
 
     const result = await getPublicMembers(validUuid);
     expect(result).toEqual(mockMembers);
   });
 
   it("returns empty array when no members", async () => {
-    mockClient.from.mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-      }),
-    }));
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "family_trees") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: validUuid }, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
+      };
+    });
 
     const result = await getPublicMembers(validUuid);
     expect(result).toEqual([]);
@@ -101,11 +127,24 @@ describe("getPublicRelationships", () => {
       },
     ];
 
-    mockClient.from.mockImplementation(() => ({
-      select: vi.fn().mockReturnValue({
-        eq: vi.fn().mockResolvedValue({ data: mockRelationships, error: null }),
-      }),
-    }));
+    mockClient.from.mockImplementation((table: string) => {
+      if (table === "family_trees") {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({ data: { id: validUuid }, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: mockRelationships, error: null }),
+        }),
+      };
+    });
 
     const result = await getPublicRelationships(validUuid);
     expect(result).toEqual(mockRelationships);
