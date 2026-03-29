@@ -50,7 +50,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         id="top"
         type="target"
         position={Position.Top}
-        className="w-1.5! h-1.5! border-0! rounded-full! min-w-0! min-h-0!"
+        className="h-1.5! min-h-0! w-1.5! min-w-0! rounded-full! border-0!"
         style={{ background: handleColor }}
       />
       {/* Left handle — target for incoming spouse connections */}
@@ -58,24 +58,25 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         id="left"
         type="target"
         position={Position.Left}
-        className="w-2.5! h-2.5! border-2! border-solid! rounded-full! min-w-0! min-h-0! transition-opacity duration-150"
+        className="h-2.5! min-h-0! w-2.5! min-w-0! rounded-full! border-2! border-solid! transition-opacity duration-150"
         style={{ background: "transparent", borderColor: handleColor, opacity: hovered ? 1 : 0 }}
         title="Connect as spouse"
       />
 
       <div
         role="treeitem"
+        aria-selected={data.isSelected ?? false}
         aria-label={`${data.first_name}${data.last_name ? ` ${data.last_name}` : ""}`}
         tabIndex={0}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(
-          "glass-card glass-edge-top rounded-2xl px-4 py-3 min-w-40 max-w-50 transition-all duration-200 cursor-pointer hover:bg-(--glass-bg-heavy)",
+          "glass-card glass-edge-top max-w-50 min-w-40 cursor-pointer rounded-2xl px-4 py-3 transition-all duration-200 hover:bg-(--glass-bg-heavy)",
           data.is_deceased && "opacity-70",
-          visualState === "selected" && "border-2 border-primary scale-105 transition-transform",
+          visualState === "selected" && "border-primary scale-105 border-2 transition-transform",
           visualState === "path" && "shadow-[0_0_20px_rgba(34,197,94,0.4)]",
-          visualState === "descendant" && "border-primary/30 shadow-md shadow-primary/10",
-          hasRemoteSelection && "border shadow-sm",
+          visualState === "descendant" && "border-primary/30 shadow-primary/10 shadow-md",
+          hasRemoteSelection && "border shadow-sm"
         )}
         style={
           hasRemoteSelection
@@ -90,14 +91,14 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
           <div className="relative">
             <div
               className={cn(
-                "h-10 w-10 rounded-full shrink-0 flex items-center justify-center text-sm font-semibold",
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
                 data.is_deceased
                   ? "bg-muted text-muted-foreground grayscale"
                   : visualState === "selected" || visualState === "path"
                     ? "bg-[oklch(0.45_0.18_155/0.12)] text-[oklch(0.4_0.15_155)]"
                     : visualState === "descendant"
                       ? "bg-[oklch(0.62_0.12_210/0.14)] text-[oklch(0.5_0.1_210)]"
-                    : "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground"
               )}
             >
               {displayAvatar ? (
@@ -113,7 +114,10 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
               )}
             </div>
             {data.linkedProfile && (
-              <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-blue-500 flex items-center justify-center ring-2 ring-primary/20" title={`Linked to ${data.linkedProfile.displayName}`}>
+              <div
+                className="ring-primary/20 absolute -right-0.5 -bottom-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 ring-2"
+                title={`Linked to ${data.linkedProfile.displayName}`}
+              >
                 <UserCheck className="h-2.5 w-2.5 text-white" />
               </div>
             )}
@@ -121,27 +125,29 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <p className="text-sm font-semibold truncate text-foreground">
+              <p className="text-foreground truncate text-sm font-semibold">
                 {data.first_name}
                 {data.last_name ? ` ${data.last_name}` : ""}
               </p>
-              {data.isOwnerNode && (
-                <Crown className="h-3 w-3 text-primary shrink-0" />
-              )}
+              {data.isOwnerNode && <Crown className="text-primary h-3 w-3 shrink-0" />}
             </div>
             {data.maiden_name && (
-              <p className="text-[10px] text-muted-foreground truncate">
+              <p className="text-muted-foreground truncate text-[10px]">
                 n&eacute;e {data.maiden_name}
               </p>
             )}
-            {lifespan && (
-              <p className="text-xs text-muted-foreground">{lifespan}</p>
-            )}
+            {lifespan && <p className="text-muted-foreground text-xs">{lifespan}</p>}
           </div>
         </div>
 
         {hasRemoteSelection && data.remoteSelection && (
-          <div className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ backgroundColor: `${data.remoteSelection.color}22`, color: data.remoteSelection.color }}>
+          <div
+            className="mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
+            style={{
+              backgroundColor: `${data.remoteSelection.color}22`,
+              color: data.remoteSelection.color,
+            }}
+          >
             Viewing: {data.remoteSelection.name}
           </div>
         )}
@@ -152,7 +158,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         id="right"
         type="source"
         position={Position.Right}
-        className="w-2.5! h-2.5! border-2! border-solid! rounded-full! min-w-0! min-h-0! transition-opacity duration-150"
+        className="h-2.5! min-h-0! w-2.5! min-w-0! rounded-full! border-2! border-solid! transition-opacity duration-150"
         style={{ background: "transparent", borderColor: handleColor, opacity: hovered ? 1 : 0 }}
         title="Connect as spouse"
       />
@@ -160,7 +166,7 @@ function MemberNodeComponent({ data }: NodeProps & { data: MemberNodeData }) {
         id="bottom"
         type="source"
         position={Position.Bottom}
-        className="w-1.5! h-1.5! border-0! rounded-full! min-w-0! min-h-0!"
+        className="h-1.5! min-h-0! w-1.5! min-w-0! rounded-full! border-0!"
         style={{ background: handleColor }}
       />
     </>

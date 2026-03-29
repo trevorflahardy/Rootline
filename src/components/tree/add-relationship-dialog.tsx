@@ -18,9 +18,24 @@ import { Check, ChevronsUpDown, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils/cn";
 import { createRelationship } from "@/lib/actions/relationship";
 import type { TreeMember, RelationshipType } from "@/types";
@@ -70,6 +85,7 @@ export function AddRelationshipDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const fromMemberId = watch("from_member_id");
   const toMemberId = watch("to_member_id");
   const fromMember = members.find((m) => m.id === fromMemberId);
@@ -102,18 +118,16 @@ export function AddRelationshipDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input]:border-[var(--glass-border-subtle)] [&_input:focus]:ring-2 [&_input:focus]:ring-primary">
+      <DialogContent className="glass-card glass-elevated glass-edge-top glass-edge-left [&_input:focus]:ring-primary max-h-[90vh] max-w-lg overflow-y-auto border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:border-[var(--glass-border-subtle)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input:focus]:ring-2">
         <DialogHeader>
           <DialogTitle>Link Members</DialogTitle>
-          <DialogDescription>
-            Create a relationship between two existing members.
-          </DialogDescription>
+          <DialogDescription>Create a relationship between two existing members.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">From member</Label>
+              <Label className="text-muted-foreground text-xs">From member</Label>
               <MemberCombobox
                 members={members}
                 selectedId={fromMemberId}
@@ -122,11 +136,13 @@ export function AddRelationshipDialog({
                 onSelect={(id) => setValue("from_member_id", id, { shouldValidate: true })}
                 selectedMember={fromMember}
               />
-              {errors.from_member_id && <p className="text-xs text-destructive">{errors.from_member_id.message}</p>}
+              {errors.from_member_id && (
+                <p className="text-destructive text-xs">{errors.from_member_id.message}</p>
+              )}
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">To member</Label>
+              <Label className="text-muted-foreground text-xs">To member</Label>
               <MemberCombobox
                 members={members}
                 selectedId={toMemberId}
@@ -135,14 +151,20 @@ export function AddRelationshipDialog({
                 onSelect={(id) => setValue("to_member_id", id, { shouldValidate: true })}
                 selectedMember={toMember}
               />
-              {errors.to_member_id && <p className="text-xs text-destructive">{errors.to_member_id.message}</p>}
+              {errors.to_member_id && (
+                <p className="text-destructive text-xs">{errors.to_member_id.message}</p>
+              )}
             </div>
           </div>
 
           <div className="space-y-1.5">
             <Label>Relationship type</Label>
-            <Select onValueChange={(v) => setValue("relationship_type", v, { shouldValidate: true })}>
-              <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+            <Select
+              onValueChange={(v) => setValue("relationship_type", v, { shouldValidate: true })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select type..." />
+              </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Hierarchical</SelectLabel>
@@ -161,17 +183,27 @@ export function AddRelationshipDialog({
                 </SelectGroup>
               </SelectContent>
             </Select>
-            {errors.relationship_type && <p className="text-xs text-destructive">{errors.relationship_type.message}</p>}
+            {errors.relationship_type && (
+              <p className="text-destructive text-xs">{errors.relationship_type.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="rel_start_date">Start date (optional)</Label>
-              <Input id="rel_start_date" type="date" onChange={(e) => setValue("start_date", e.target.value)} />
+              <Input
+                id="rel_start_date"
+                type="date"
+                onChange={(e) => setValue("start_date", e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rel_end_date">End date (optional)</Label>
-              <Input id="rel_end_date" type="date" onChange={(e) => setValue("end_date", e.target.value)} />
+              <Input
+                id="rel_end_date"
+                type="date"
+                onChange={(e) => setValue("end_date", e.target.value)}
+              />
             </div>
           </div>
 
@@ -239,11 +271,18 @@ function MemberCombobox({
                     onOpenChange(false);
                   }}
                 >
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex w-full items-center gap-2">
                     <MemberAvatar member={m} />
-                    <span className="truncate">{m.first_name} {m.last_name}</span>
+                    <span className="truncate">
+                      {m.first_name} {m.last_name}
+                    </span>
                   </div>
-                  <Check className={cn("ml-auto h-4 w-4", selectedId === m.id ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      selectedId === m.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -260,7 +299,7 @@ function MemberAvatar({ member }: { member: TreeMember }) {
       <Image
         src={member.avatar_url}
         alt={member.first_name}
-        className="h-5 w-5 rounded-full object-cover flex-shrink-0"
+        className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
         width={20}
         height={20}
       />
@@ -268,8 +307,8 @@ function MemberAvatar({ member }: { member: TreeMember }) {
   }
 
   return (
-    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-      <User className="h-3 w-3 text-primary" />
+    <div className="bg-primary/10 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full">
+      <User className="text-primary h-3 w-3" />
     </div>
   );
 }

@@ -4,24 +4,33 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: [
           // Clickjacking protection
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: "X-Frame-Options", value: "DENY" },
           // MIME-type sniffing protection
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: "X-Content-Type-Options", value: "nosniff" },
           // Referrer leakage control
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // Feature/capability restrictions
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
           // Force HTTPS for 1 year (includeSubDomains — omit preload until DNS preload list ready)
-          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
           // Prevent cross-origin window.opener access (tab-napping)
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
           // Restrict cross-origin resource reads
-          { key: 'Cross-Origin-Resource-Policy', value: 'same-site' },
+          { key: "Cross-Origin-Resource-Policy", value: "same-site" },
           // DNS prefetch for performance
-          { key: 'X-DNS-Prefetch-Control', value: 'on' },
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+          // Content Security Policy
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://*.supabase.co https://img.clerk.com; font-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.clerk.accounts.dev; frame-src https://*.clerk.accounts.dev https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'",
+          },
         ],
       },
     ];

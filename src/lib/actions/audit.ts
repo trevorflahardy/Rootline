@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 
 export interface AuditLogEntry {
   id: string;
@@ -77,6 +79,7 @@ export async function getAuditLog(
   options: AuditLogOptions = {}
 ): Promise<{ entries: AuditLogEntry[]; total: number }> {
   const userId = await getAuthUser();
+  rateLimit(userId, "getAuditLog", ...RATE_LIMITS.getAuditLog);
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);
@@ -130,7 +133,8 @@ export async function getAuditLog(
     const affectedUserId = typeof payload?.user_id === "string" ? payload.user_id : null;
     if (affectedUserId) profileIds.add(affectedUserId);
 
-    const fromMemberId = typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
+    const fromMemberId =
+      typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
     const toMemberId = typeof payload?.to_member_id === "string" ? payload.to_member_id : null;
     if (fromMemberId) memberIds.add(fromMemberId);
     if (toMemberId) memberIds.add(toMemberId);
@@ -143,24 +147,37 @@ export async function getAuditLog(
   const [profilesResult, membersResult] = await Promise.all([
     profileIds.size > 0
       ? supabase
-        .from("profiles")
-        .select("clerk_id, display_name, avatar_url")
-        .in("clerk_id", Array.from(profileIds))
+          .from("profiles")
+          .select("clerk_id, display_name, avatar_url")
+          .in("clerk_id", Array.from(profileIds))
       : Promise.resolve({ data: [], error: null }),
     memberIds.size > 0
       ? supabase
-        .from("tree_members")
-        .select("id, first_name, last_name, avatar_url")
-        .in("id", Array.from(memberIds))
+          .from("tree_members")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", Array.from(memberIds))
       : Promise.resolve({ data: [], error: null }),
   ]);
 
   const profileMap = new Map(
-    ((profilesResult.data ?? []) as Array<{ clerk_id: string; display_name: string; avatar_url: string | null }>).map((profile) => [profile.clerk_id, profile])
+    (
+      (profilesResult.data ?? []) as Array<{
+        clerk_id: string;
+        display_name: string;
+        avatar_url: string | null;
+      }>
+    ).map((profile) => [profile.clerk_id, profile])
   );
 
   const memberMap = new Map(
-    ((membersResult.data ?? []) as Array<{ id: string; first_name: string; last_name: string | null; avatar_url: string | null }>).map((member) => [
+    (
+      (membersResult.data ?? []) as Array<{
+        id: string;
+        first_name: string;
+        last_name: string | null;
+        avatar_url: string | null;
+      }>
+    ).map((member) => [
       member.id,
       {
         id: member.id,
@@ -173,10 +190,16 @@ export async function getAuditLog(
   const enriched: AuditLogEntry[] = rows.map((row) => {
     const payload = (row.new_data ?? row.old_data) as Record<string, unknown> | null;
     const affectedUserId = typeof payload?.user_id === "string" ? payload.user_id : null;
-    const fromMemberId = typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
+    const fromMemberId =
+      typeof payload?.from_member_id === "string" ? payload.from_member_id : null;
     const toMemberId = typeof payload?.to_member_id === "string" ? payload.to_member_id : null;
 
-    const relatedMembers: Array<{ id: string; name: string; avatar_url: string | null; role: "from" | "to" }> = [];
+    const relatedMembers: Array<{
+      id: string;
+      name: string;
+      avatar_url: string | null;
+      role: "from" | "to";
+    }> = [];
     if (fromMemberId) {
       const member = memberMap.get(fromMemberId);
       if (member) relatedMembers.push({ ...member, role: "from" });
@@ -188,13 +211,13 @@ export async function getAuditLog(
 
     const subjectMember =
       row.entity_type === "tree_member" && row.entity_id
-        ? memberMap.get(row.entity_id) ?? null
+        ? (memberMap.get(row.entity_id) ?? null)
         : null;
 
     return {
       ...row,
-      actor: row.user_id ? profileMap.get(row.user_id) ?? null : null,
-      subject_profile: affectedUserId ? profileMap.get(affectedUserId) ?? null : null,
+      actor: row.user_id ? (profileMap.get(row.user_id) ?? null) : null,
+      subject_profile: affectedUserId ? (profileMap.get(affectedUserId) ?? null) : null,
       subject_member: subjectMember,
       related_members: relatedMembers,
     };
@@ -203,11 +226,9 @@ export async function getAuditLog(
   return { entries: enriched, total: count ?? 0 };
 }
 
-export async function createSnapshot(
-  treeId: string,
-  description: string
-): Promise<TreeSnapshot> {
+export async function createSnapshot(treeId: string, description: string): Promise<TreeSnapshot> {
   const userId = await getAuthUser();
+  rateLimit(userId, "createSnapshot", ...RATE_LIMITS.createSnapshot);
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);
@@ -224,9 +245,7 @@ export async function createSnapshot(
   if (membersResult.error)
     throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
   if (relationshipsResult.error)
-    throw new Error(
-      `Failed to fetch relationships: ${relationshipsResult.error.message}`
-    );
+    throw new Error(`Failed to fetch relationships: ${relationshipsResult.error.message}`);
 
   const snapshotData = {
     members: membersResult.data ?? [],
@@ -266,11 +285,9 @@ export async function getSnapshots(treeId: string): Promise<TreeSnapshot[]> {
   return (data ?? []) as TreeSnapshot[];
 }
 
-export async function rollbackToSnapshot(
-  treeId: string,
-  snapshotId: string
-): Promise<void> {
+export async function rollbackToSnapshot(treeId: string, snapshotId: string): Promise<void> {
   const userId = await getAuthUser();
+  rateLimit(userId, "rollbackToSnapshot", ...RATE_LIMITS.rollbackToSnapshot);
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);
@@ -301,30 +318,18 @@ export async function rollbackToSnapshot(
     .delete()
     .eq("tree_id", treeId);
 
-  if (delRelError)
-    throw new Error(
-      `Failed to clear relationships: ${delRelError.message}`
-    );
+  if (delRelError) throw new Error(`Failed to clear relationships: ${delRelError.message}`);
 
   // Delete current members
-  const { error: delMemError } = await supabase
-    .from("tree_members")
-    .delete()
-    .eq("tree_id", treeId);
+  const { error: delMemError } = await supabase.from("tree_members").delete().eq("tree_id", treeId);
 
-  if (delMemError)
-    throw new Error(`Failed to clear members: ${delMemError.message}`);
+  if (delMemError) throw new Error(`Failed to clear members: ${delMemError.message}`);
 
   // Re-insert members from snapshot
   if (snapshotData.members && snapshotData.members.length > 0) {
-    const { error: insMemError } = await supabase
-      .from("tree_members")
-      .insert(snapshotData.members);
+    const { error: insMemError } = await supabase.from("tree_members").insert(snapshotData.members);
 
-    if (insMemError)
-      throw new Error(
-        `Failed to restore members: ${insMemError.message}`
-      );
+    if (insMemError) throw new Error(`Failed to restore members: ${insMemError.message}`);
   }
 
   // Re-insert relationships from snapshot
@@ -333,10 +338,7 @@ export async function rollbackToSnapshot(
       .from("relationships")
       .insert(snapshotData.relationships);
 
-    if (insRelError)
-      throw new Error(
-        `Failed to restore relationships: ${insRelError.message}`
-      );
+    if (insRelError) throw new Error(`Failed to restore relationships: ${insRelError.message}`);
   }
 
   revalidatePath(`/tree/${treeId}`);

@@ -84,6 +84,12 @@ const members: TreeMember[] = [
     bio: null,
     avatar_url: null,
     is_deceased: false,
+    birth_year: null,
+    birth_month: null,
+    birth_day: null,
+    death_year: null,
+    death_month: null,
+    death_day: null,
     position_x: null,
     position_y: null,
     created_at: "2026-01-01T00:00:00Z",
@@ -131,9 +137,7 @@ describe("PermissionManager", () => {
     const ownerBadge = screen.getByTestId("role-badge-m-owner");
     expect(ownerBadge).toHaveTextContent("owner");
     // Owner row should not have a checkbox
-    expect(
-      ownerRow.querySelector("[data-slot='checkbox']")
-    ).toBeNull();
+    expect(ownerRow.querySelector("[data-slot='checkbox']")).toBeNull();
   });
 
   it("shows role select for non-owner memberships when user is owner", () => {

@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 
 export interface Notification {
   id: string;
@@ -61,7 +63,9 @@ export async function getNotifications(limit = 20): Promise<Notification[]> {
   const notifications = (data ?? []) as NotificationRow[];
   if (notifications.length === 0) return [];
 
-  const entityIds = [...new Set(notifications.map((n) => n.entity_id).filter((id): id is string => !!id))];
+  const entityIds = [
+    ...new Set(notifications.map((n) => n.entity_id).filter((id): id is string => !!id)),
+  ];
 
   let auditRows: AuditLookupRow[] = [];
   if (entityIds.length > 0) {
@@ -94,7 +98,8 @@ export async function getNotifications(limit = 20): Promise<Notification[]> {
     }
 
     const candidates = auditByEntity.get(entityId) ?? [];
-    const matched = candidates.find((row) => row.created_at <= notification.created_at) ?? candidates[0] ?? null;
+    const matched =
+      candidates.find((row) => row.created_at <= notification.created_at) ?? candidates[0] ?? null;
     matchedAuditByNotificationId.set(notification.id, matched);
 
     if (matched?.user_id) actorIds.add(matched.user_id);
@@ -113,24 +118,37 @@ export async function getNotifications(limit = 20): Promise<Notification[]> {
   const [profilesResult, membersResult] = await Promise.all([
     actorIds.size > 0
       ? supabase
-        .from("profiles")
-        .select("clerk_id, display_name, avatar_url")
-        .in("clerk_id", Array.from(actorIds))
+          .from("profiles")
+          .select("clerk_id, display_name, avatar_url")
+          .in("clerk_id", Array.from(actorIds))
       : Promise.resolve({ data: [], error: null }),
     memberIds.size > 0
       ? supabase
-        .from("tree_members")
-        .select("id, first_name, last_name, avatar_url")
-        .in("id", Array.from(memberIds))
+          .from("tree_members")
+          .select("id, first_name, last_name, avatar_url")
+          .in("id", Array.from(memberIds))
       : Promise.resolve({ data: [], error: null }),
   ]);
 
   const profileMap = new Map(
-    ((profilesResult.data ?? []) as Array<{ clerk_id: string; display_name: string; avatar_url: string | null }>).map((profile) => [profile.clerk_id, profile])
+    (
+      (profilesResult.data ?? []) as Array<{
+        clerk_id: string;
+        display_name: string;
+        avatar_url: string | null;
+      }>
+    ).map((profile) => [profile.clerk_id, profile])
   );
 
   const memberMap = new Map(
-    ((membersResult.data ?? []) as Array<{ id: string; first_name: string; last_name: string | null; avatar_url: string | null }>).map((member) => [
+    (
+      (membersResult.data ?? []) as Array<{
+        id: string;
+        first_name: string;
+        last_name: string | null;
+        avatar_url: string | null;
+      }>
+    ).map((member) => [
       member.id,
       {
         id: member.id,
@@ -142,7 +160,7 @@ export async function getNotifications(limit = 20): Promise<Notification[]> {
 
   return notifications.map((notification) => {
     const matchedAudit = matchedAuditByNotificationId.get(notification.id) ?? null;
-    const actor = matchedAudit?.user_id ? profileMap.get(matchedAudit.user_id) ?? null : null;
+    const actor = matchedAudit?.user_id ? (profileMap.get(matchedAudit.user_id) ?? null) : null;
 
     const subjectMembers: Array<{ id: string; name: string; avatar_url: string | null }> = [];
 
@@ -151,7 +169,10 @@ export async function getNotifications(limit = 20): Promise<Notification[]> {
       if (member) subjectMembers.push(member);
     }
 
-    const relData = (matchedAudit?.new_data ?? matchedAudit?.old_data) as Record<string, unknown> | null;
+    const relData = (matchedAudit?.new_data ?? matchedAudit?.old_data) as Record<
+      string,
+      unknown
+    > | null;
     const fromId = typeof relData?.from_member_id === "string" ? relData.from_member_id : null;
     const toId = typeof relData?.to_member_id === "string" ? relData.to_member_id : null;
     if (fromId) {
@@ -189,6 +210,7 @@ export async function getUnreadCount(): Promise<number> {
 
 export async function markAsRead(notificationId: string): Promise<void> {
   const userId = await getAuthUser();
+  rateLimit(userId, "markAsRead", ...RATE_LIMITS.markAsRead);
   const supabase = createAdminClient();
 
   await supabase
@@ -200,6 +222,7 @@ export async function markAsRead(notificationId: string): Promise<void> {
 
 export async function markAllAsRead(): Promise<void> {
   const userId = await getAuthUser();
+  rateLimit(userId, "markAllAsRead", ...RATE_LIMITS.markAllAsRead);
   const supabase = createAdminClient();
 
   await supabase

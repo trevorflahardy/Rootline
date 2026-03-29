@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { assertUUID } from "@/lib/validate";
 import { sanitizeText } from "@/lib/sanitize";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import type { TreeSummary } from "@/types";
 
 export type ConflictResolution = "merge" | "copy" | "skip";
@@ -57,7 +59,10 @@ export async function getOwnedTreesForMerge(excludeTreeId: string): Promise<Tree
   const treeIds = memberships.map((m) => m.tree_id);
 
   const [{ data: trees }, { data: counts }] = await Promise.all([
-    supabase.from("family_trees").select("id, name, description, is_public, updated_at").in("id", treeIds),
+    supabase
+      .from("family_trees")
+      .select("id, name, description, is_public, updated_at")
+      .in("id", treeIds),
     supabase.from("tree_members").select("tree_id").in("tree_id", treeIds),
   ]);
 
@@ -92,8 +97,14 @@ export async function previewMerge(
   ]);
 
   const [{ data: sourceMembers }, { data: targetMembers }] = await Promise.all([
-    supabase.from("tree_members").select("id, first_name, last_name, date_of_birth").eq("tree_id", sourceTreeId),
-    supabase.from("tree_members").select("id, first_name, last_name, date_of_birth").eq("tree_id", targetTreeId),
+    supabase
+      .from("tree_members")
+      .select("id, first_name, last_name, date_of_birth")
+      .eq("tree_id", sourceTreeId),
+    supabase
+      .from("tree_members")
+      .select("id, first_name, last_name, date_of_birth")
+      .eq("tree_id", targetTreeId),
   ]);
 
   const conflicts: MergeConflict[] = [];
@@ -127,6 +138,7 @@ export async function mergeTree(
   mappings: MemberMapping[]
 ): Promise<void> {
   const userId = await getAuthUser();
+  rateLimit(userId, "mergeTree", ...RATE_LIMITS.mergeTree);
   assertUUID(sourceTreeId, "sourceTreeId");
   assertUUID(targetTreeId, "targetTreeId");
 
@@ -215,12 +227,10 @@ export async function mergeTree(
     .filter((r) => r.from_member_id !== r.to_member_id);
 
   if (relsToInsert.length > 0) {
-    const { error: relInsertError } = await supabase
-      .from("relationships")
-      .upsert(relsToInsert, {
-        onConflict: "tree_id,from_member_id,to_member_id,relationship_type",
-        ignoreDuplicates: true,
-      });
+    const { error: relInsertError } = await supabase.from("relationships").upsert(relsToInsert, {
+      onConflict: "tree_id,from_member_id,to_member_id,relationship_type",
+      ignoreDuplicates: true,
+    });
 
     if (relInsertError) throw new Error(`Failed to copy relationships: ${relInsertError.message}`);
   }

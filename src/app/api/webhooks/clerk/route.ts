@@ -65,7 +65,6 @@ export async function POST(req: Request) {
     );
 
     if (error) {
-      console.error("Failed to sync profile:", error);
       return new Response("Failed to sync profile", { status: 500 });
     }
   }

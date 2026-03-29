@@ -1,15 +1,15 @@
-import { test, expect, waitForHydration } from './fixtures';
+import { test, waitForHydration } from "./fixtures";
 
-test.describe('Collaboration', () => {
-  test.skip(!process.env.E2E_TEST_EMAIL, 'Requires multiple authenticated sessions');
+test.describe("Collaboration", () => {
+  test.skip(!process.env.E2E_TEST_EMAIL, "Requires multiple authenticated sessions");
 
-  test('invite link generation', async ({ page }) => {
-    await page.goto('/dashboard');
+  test("invite link generation", async ({ page }) => {
+    await page.goto("/dashboard");
     await waitForHydration(page);
   });
 
-  test('viewer cannot edit tree', async ({ page }) => {
-    await page.goto('/dashboard');
+  test("viewer cannot edit tree", async ({ page }) => {
+    await page.goto("/dashboard");
     await waitForHydration(page);
   });
 });

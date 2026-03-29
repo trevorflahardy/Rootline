@@ -5,8 +5,7 @@
  * tree_members and relationships tables.
  */
 
-import type { Gender } from "@/types";
-import type { RelationshipType } from "@/types";
+import type { Gender, RelationshipType } from "@/types";
 import { sanitizeText } from "@/lib/sanitize";
 
 const MAX_GEDCOM_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -118,7 +117,12 @@ function extractRecordLines(lines: GedcomLine[], startIdx: number): GedcomLine[]
   return result;
 }
 
-function findSubTag(recordLines: GedcomLine[], parentLevel: number, parentTag: string, childTag: string): string | null {
+function findSubTag(
+  recordLines: GedcomLine[],
+  parentLevel: number,
+  parentTag: string,
+  childTag: string
+): string | null {
   let inParent = false;
   for (const line of recordLines) {
     if (line.level === parentLevel + 1 && line.tag === parentTag) {
@@ -149,9 +153,18 @@ function findTag(recordLines: GedcomLine[], level: number, tag: string): string 
 // ---------------------------------------------------------------------------
 
 const MONTH_MAP: Record<string, string> = {
-  JAN: "01", FEB: "02", MAR: "03", APR: "04",
-  MAY: "05", JUN: "06", JUL: "07", AUG: "08",
-  SEP: "09", OCT: "10", NOV: "11", DEC: "12",
+  JAN: "01",
+  FEB: "02",
+  MAR: "03",
+  APR: "04",
+  MAY: "05",
+  JUN: "06",
+  JUL: "07",
+  AUG: "08",
+  SEP: "09",
+  OCT: "10",
+  NOV: "11",
+  DEC: "12",
 };
 
 /**
@@ -317,14 +330,18 @@ export function parseGedcom(text: string): GedcomParseResult {
   const errors: string[] = [];
 
   // Guard: reject files larger than 10 MB to prevent DoS
-  if (Buffer.byteLength(text, 'utf8') > MAX_GEDCOM_BYTES) {
-    throw new Error('GEDCOM file exceeds maximum allowed size of 10 MB');
+  if (Buffer.byteLength(text, "utf8") > MAX_GEDCOM_BYTES) {
+    throw new Error("GEDCOM file exceeds maximum allowed size of 10 MB");
   }
 
   const lines = parseLines(text);
 
   if (lines.length === 0) {
-    return { members: [], relationships: [], errors: ["File appears to be empty or not valid GEDCOM"] };
+    return {
+      members: [],
+      relationships: [],
+      errors: ["File appears to be empty or not valid GEDCOM"],
+    };
   }
 
   // Collect INDI and FAM records
@@ -372,7 +389,12 @@ export function parseGedcom(text: string): GedcomParseResult {
 
   for (const fam of famRecords) {
     // Spouse relationship
-    if (fam.husbXref && fam.wifeXref && memberXrefs.has(fam.husbXref) && memberXrefs.has(fam.wifeXref)) {
+    if (
+      fam.husbXref &&
+      fam.wifeXref &&
+      memberXrefs.has(fam.husbXref) &&
+      memberXrefs.has(fam.wifeXref)
+    ) {
       relationships.push({
         from_gedcom_id: fam.husbXref,
         to_gedcom_id: fam.wifeXref,
@@ -407,11 +429,11 @@ export function parseGedcom(text: string): GedcomParseResult {
 
   // Parse custom extended relationship tags from INDI records
   const customTagMap: Record<string, RelationshipType> = {
-    "_SIBL": "sibling",
-    "_STEP": "step_parent",
-    "_STEPC": "step_child",
-    "_GUARD": "guardian",
-    "_INLAW": "in_law",
+    _SIBL: "sibling",
+    _STEP: "step_parent",
+    _STEPC: "step_child",
+    _GUARD: "guardian",
+    _INLAW: "in_law",
   };
 
   for (let i = 0; i < lines.length; i++) {

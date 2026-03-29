@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 
 export interface TreeStats {
   // Member counts
@@ -44,6 +46,7 @@ export interface TreeStats {
  */
 export async function getTreeStats(treeId: string): Promise<TreeStats> {
   const userId = await getAuthUser();
+  rateLimit(userId, "getTreeStats", ...RATE_LIMITS.getTreeStats);
   const supabase = createAdminClient();
 
   // Verify access

@@ -17,6 +17,12 @@ function makeMember(id: string, firstName: string): TreeMember {
     bio: null,
     avatar_url: null,
     is_deceased: false,
+    birth_year: null,
+    birth_month: null,
+    birth_day: null,
+    death_year: null,
+    death_month: null,
+    death_day: null,
     position_x: null,
     position_y: null,
     created_at: "2026-01-01T00:00:00Z",
@@ -69,20 +75,18 @@ describe("computeTreeLayout", () => {
 
   it("creates edges for all relationship types", () => {
     const members = [makeMember("a", "A"), makeMember("b", "B")];
-    const rels: Relationship[] = [
-      { ...makeRel("r1", "a", "b"), relationship_type: "spouse" },
-    ];
+    const rels: Relationship[] = [{ ...makeRel("r1", "a", "b"), relationship_type: "spouse" }];
     const layout = computeTreeLayout(members, rels);
 
     expect(layout.edges).toHaveLength(1);
-    expect(layout.edges[0].data.relationship_type).toBe("spouse");
+    expect(
+      "relationship_type" in layout.edges[0].data && layout.edges[0].data.relationship_type
+    ).toBe("spouse");
   });
 
   it("places siblings at the same rank (no hierarchy edge)", () => {
     const members = [makeMember("a", "Alice"), makeMember("b", "Bob")];
-    const rels: Relationship[] = [
-      { ...makeRel("r1", "a", "b"), relationship_type: "sibling" },
-    ];
+    const rels: Relationship[] = [{ ...makeRel("r1", "a", "b"), relationship_type: "sibling" }];
     const layout = computeTreeLayout(members, rels);
     const nodeA = layout.nodes.find((n) => n.id === "a")!;
     const nodeB = layout.nodes.find((n) => n.id === "b")!;
@@ -103,9 +107,7 @@ describe("computeTreeLayout", () => {
 
   it("does not create hierarchy for in_law", () => {
     const members = [makeMember("a", "A"), makeMember("b", "B")];
-    const rels: Relationship[] = [
-      { ...makeRel("r1", "a", "b"), relationship_type: "in_law" },
-    ];
+    const rels: Relationship[] = [{ ...makeRel("r1", "a", "b"), relationship_type: "in_law" }];
     const layout = computeTreeLayout(members, rels);
     const nodeA = layout.nodes.find((n) => n.id === "a")!;
     const nodeB = layout.nodes.find((n) => n.id === "b")!;
@@ -114,9 +116,7 @@ describe("computeTreeLayout", () => {
 
   it("creates hierarchy for guardian", () => {
     const members = [makeMember("g", "Guardian"), makeMember("w", "Ward")];
-    const rels: Relationship[] = [
-      { ...makeRel("r1", "g", "w"), relationship_type: "guardian" },
-    ];
+    const rels: Relationship[] = [{ ...makeRel("r1", "g", "w"), relationship_type: "guardian" }];
     const layout = computeTreeLayout(members, rels);
     const gNode = layout.nodes.find((n) => n.id === "g")!;
     const wNode = layout.nodes.find((n) => n.id === "w")!;

@@ -2,12 +2,14 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
-import { createRelationshipSchema } from "@/lib/validators/relationship";
-import { updateRelationshipSchema } from "@/lib/validators/relationship";
-import type { CreateRelationshipInput } from "@/lib/validators/relationship";
-import type { UpdateRelationshipInput } from "@/lib/validators/relationship";
+import { createRelationshipSchema, updateRelationshipSchema } from "@/lib/validators/relationship";
+import type {
+  CreateRelationshipInput,
+  UpdateRelationshipInput,
+} from "@/lib/validators/relationship";
 import type { Relationship } from "@/types";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { assertUUID } from "@/lib/validate";
 import { validateParentChildDates, validateMarriageDates } from "@/lib/validators/temporal";
 import { detectCycle } from "@/lib/validators/cycle-detection";
@@ -15,7 +17,7 @@ import { detectDuplicateRelationship } from "@/lib/validators/graph";
 
 export async function createRelationship(input: CreateRelationshipInput): Promise<Relationship> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'createRelationship', 30, 60_000);
+  rateLimit(userId, "createRelationship", ...RATE_LIMITS.createRelationship);
   const validated = createRelationshipSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -50,7 +52,12 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
   }
 
   // Fetch existing relationships for graph/cycle validation
-  let existingRels: Array<{ id: string; from_member_id: string; to_member_id: string; relationship_type: string }> = [];
+  let existingRels: Array<{
+    id: string;
+    from_member_id: string;
+    to_member_id: string;
+    relationship_type: string;
+  }> = [];
   try {
     const { data } = await supabase
       .from("relationships")
@@ -77,8 +84,16 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
     // Temporal validation — fetch both members
     try {
       const [{ data: parent }, { data: child }] = await Promise.all([
-        supabase.from("tree_members").select("date_of_birth").eq("id", validated.from_member_id).single(),
-        supabase.from("tree_members").select("date_of_birth").eq("id", validated.to_member_id).single(),
+        supabase
+          .from("tree_members")
+          .select("date_of_birth")
+          .eq("id", validated.from_member_id)
+          .single(),
+        supabase
+          .from("tree_members")
+          .select("date_of_birth")
+          .eq("id", validated.to_member_id)
+          .single(),
       ]);
       if (parent && child) {
         validateParentChildDates(
@@ -96,8 +111,16 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
     if (validated.start_date) {
       try {
         const [{ data: partnerA }, { data: partnerB }] = await Promise.all([
-          supabase.from("tree_members").select("date_of_birth").eq("id", validated.from_member_id).single(),
-          supabase.from("tree_members").select("date_of_birth").eq("id", validated.to_member_id).single(),
+          supabase
+            .from("tree_members")
+            .select("date_of_birth")
+            .eq("id", validated.from_member_id)
+            .single(),
+          supabase
+            .from("tree_members")
+            .select("date_of_birth")
+            .eq("id", validated.to_member_id)
+            .single(),
         ]);
         if (partnerA && partnerB) {
           validateMarriageDates(
@@ -168,9 +191,9 @@ export async function createRelationship(input: CreateRelationshipInput): Promis
 
 export async function deleteRelationship(relationshipId: string, treeId: string) {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'deleteRelationship', 30, 60_000);
-  assertUUID(relationshipId, 'relationshipId');
-  assertUUID(treeId, 'treeId');
+  rateLimit(userId, "deleteRelationship", ...RATE_LIMITS.deleteRelationship);
+  assertUUID(relationshipId, "relationshipId");
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -197,7 +220,7 @@ export async function deleteRelationship(relationshipId: string, treeId: string)
 
 export async function updateRelationship(input: UpdateRelationshipInput): Promise<Relationship> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'updateRelationship', 60, 60_000);
+  rateLimit(userId, "updateRelationship", ...RATE_LIMITS.updateRelationship);
   const validated = updateRelationshipSchema.parse(input);
   const supabase = createAdminClient();
 
@@ -282,10 +305,7 @@ export async function getRelationshipsByTreeId(treeId: string): Promise<Relation
 
   if (!membership) throw new Error("No access to this tree");
 
-  const { data, error } = await supabase
-    .from("relationships")
-    .select("*")
-    .eq("tree_id", treeId);
+  const { data, error } = await supabase.from("relationships").select("*").eq("tree_id", treeId);
 
   if (error) throw new Error(`Failed to fetch relationships: ${error.message}`);
   return (data ?? []) as Relationship[];

@@ -22,6 +22,12 @@ function makeMember(id: string, treeId = "tree-1"): TreeMember {
     bio: null,
     avatar_url: null,
     is_deceased: false,
+    birth_year: null,
+    birth_month: null,
+    birth_day: null,
+    death_year: null,
+    death_month: null,
+    death_day: null,
     position_x: null,
     position_y: null,
     created_at: "2026-01-01T00:00:00Z",
@@ -69,9 +75,7 @@ function generateLargeTree(count: number) {
   // This creates a ternary tree with depth ~ log3(count)
   for (let i = 1; i < count; i++) {
     const parentIdx = Math.floor((i - 1) / 3);
-    relationships.push(
-      makeRelationship(`r${i}`, `m${parentIdx}`, `m${i}`, "parent_child")
-    );
+    relationships.push(makeRelationship(`r${i}`, `m${parentIdx}`, `m${i}`, "parent_child"));
   }
 
   return { members, relationships };
@@ -91,9 +95,7 @@ function generateLargeGraph(nodeCount: number, edgeCount: number) {
   // First, create a spanning tree so the graph is connected
   for (let i = 1; i < nodeCount; i++) {
     const parentIdx = Math.floor((i - 1) / 3);
-    relationships.push(
-      makeRelationship(`e${i}`, `n${parentIdx}`, `n${i}`, "parent_child")
-    );
+    relationships.push(makeRelationship(`e${i}`, `n${parentIdx}`, `n${i}`, "parent_child"));
   }
 
   // Add additional edges to reach edgeCount
@@ -119,18 +121,14 @@ describe("Performance: computeTreeLayout", () => {
     const relationships: Relationship[] = [];
     for (let i = 1; i < 500; i++) {
       const parentIdx = Math.floor((i - 1) / 3);
-      relationships.push(
-        makeRelationship(`r${i}`, `m${parentIdx}`, `m${i}`, "parent_child")
-      );
+      relationships.push(makeRelationship(`r${i}`, `m${parentIdx}`, `m${i}`, "parent_child"));
     }
     // Add 101 more spouse relationships
     for (let i = 0; i < 101; i++) {
       const a = i * 2;
       const b = i * 2 + 1;
       if (b < 500) {
-        relationships.push(
-          makeRelationship(`rs${i}`, `m${a}`, `m${b}`, "spouse")
-        );
+        relationships.push(makeRelationship(`rs${i}`, `m${a}`, `m${b}`, "spouse"));
       }
     }
 
@@ -159,8 +157,14 @@ describe("Performance: computeTreeLayout", () => {
 
     // Add all relationship types
     const allTypes: RelationshipType[] = [
-      "spouse", "divorced", "adopted", "sibling",
-      "step_parent", "step_child", "in_law", "guardian",
+      "spouse",
+      "divorced",
+      "adopted",
+      "sibling",
+      "step_parent",
+      "step_child",
+      "in_law",
+      "guardian",
     ];
     for (let i = 0; i < allTypes.length; i++) {
       const from = 40 + i * 2;
@@ -172,7 +176,9 @@ describe("Performance: computeTreeLayout", () => {
 
     expect(layout.nodes).toHaveLength(100);
     // All relationship types should be present in edges
-    const edgeTypes = new Set(layout.edges.map((e) => e.data.relationship_type));
+    const edgeTypes = new Set(
+      layout.edges.map((e) => ("relationship_type" in e.data ? e.data.relationship_type : null))
+    );
     for (const t of allTypes) {
       expect(edgeTypes.has(t)).toBe(true);
     }
@@ -199,9 +205,12 @@ describe("Performance: computeTreeLayout", () => {
   it("tree layout with mixed horizontal and vertical relationships maintains hierarchy", () => {
     // Build a small tree: grandparent -> parent -> child, with spouses at each level
     const members = [
-      makeMember("gp"), makeMember("gp_spouse"),
-      makeMember("p1"), makeMember("p1_spouse"),
-      makeMember("c1"), makeMember("c2"),
+      makeMember("gp"),
+      makeMember("gp_spouse"),
+      makeMember("p1"),
+      makeMember("p1_spouse"),
+      makeMember("c1"),
+      makeMember("c2"),
     ];
     const relationships = [
       makeRelationship("r1", "gp", "p1", "parent_child"),
@@ -245,17 +254,13 @@ describe("Performance: findPath", () => {
     // Component 1: nodes n0..n249
     for (let i = 1; i < 250; i++) {
       const parentIdx = Math.floor((i - 1) / 3);
-      relationships.push(
-        makeRelationship(`e${i}`, `n${parentIdx}`, `n${i}`, "parent_child")
-      );
+      relationships.push(makeRelationship(`e${i}`, `n${parentIdx}`, `n${i}`, "parent_child"));
     }
 
     // Component 2: nodes n250..n499
     for (let i = 251; i < 500; i++) {
       const parentIdx = 250 + Math.floor((i - 251) / 3);
-      relationships.push(
-        makeRelationship(`f${i}`, `n${parentIdx}`, `n${i}`, "parent_child")
-      );
+      relationships.push(makeRelationship(`f${i}`, `n${parentIdx}`, `n${i}`, "parent_child"));
     }
 
     const path = findPath(relationships, "n0", "n499");
@@ -267,7 +272,12 @@ describe("Performance: calculateRelationship deep paths", () => {
   it("handles deep paths (20+ steps) without stack overflow", () => {
     // Create a path that goes 25 steps up
     const path = [
-      { memberId: "start", relationshipId: null as string | null, relationshipType: null as RelationshipType | null, direction: null as "up" | "down" | "spouse" | null },
+      {
+        memberId: "start",
+        relationshipId: null as string | null,
+        relationshipType: null as RelationshipType | null,
+        direction: null as "up" | "down" | "spouse" | null,
+      },
     ];
     for (let i = 1; i <= 25; i++) {
       path.push({
@@ -287,25 +297,73 @@ describe("Performance: calculateRelationship deep paths", () => {
   it("handles all 9 relationship types in a path", () => {
     // This path traverses various relationship types;
     // calculateRelationship counts ups/downs/spouse directions
-    const allTypes: RelationshipType[] = [
-      "parent_child", "spouse", "divorced", "adopted",
-      "sibling", "step_parent", "step_child", "in_law", "guardian",
-    ];
+    // All 9 relationship types: parent_child, spouse, divorced, adopted,
+    // sibling, step_parent, step_child, in_law, guardian
 
     // Build a path where we go up (parent_child), spouse, up (adopted),
     // spouse (sibling), up (step_parent), down (step_child reversed),
     // spouse (in_law), down (guardian)
     const path = [
-      { memberId: "m0", relationshipId: null, relationshipType: null, direction: null as "up" | "down" | "spouse" | null },
-      { memberId: "m1", relationshipId: "r1", relationshipType: "parent_child" as const, direction: "up" as const },
-      { memberId: "m2", relationshipId: "r2", relationshipType: "spouse" as const, direction: "spouse" as const },
-      { memberId: "m3", relationshipId: "r3", relationshipType: "adopted" as const, direction: "up" as const },
-      { memberId: "m4", relationshipId: "r4", relationshipType: "sibling" as const, direction: "spouse" as const },
-      { memberId: "m5", relationshipId: "r5", relationshipType: "step_parent" as const, direction: "down" as const },
-      { memberId: "m6", relationshipId: "r6", relationshipType: "step_child" as const, direction: "down" as const },
-      { memberId: "m7", relationshipId: "r7", relationshipType: "in_law" as const, direction: "spouse" as const },
-      { memberId: "m8", relationshipId: "r8", relationshipType: "guardian" as const, direction: "down" as const },
-      { memberId: "m9", relationshipId: "r9", relationshipType: "divorced" as const, direction: "spouse" as const },
+      {
+        memberId: "m0",
+        relationshipId: null,
+        relationshipType: null,
+        direction: null as "up" | "down" | "spouse" | null,
+      },
+      {
+        memberId: "m1",
+        relationshipId: "r1",
+        relationshipType: "parent_child" as const,
+        direction: "up" as const,
+      },
+      {
+        memberId: "m2",
+        relationshipId: "r2",
+        relationshipType: "spouse" as const,
+        direction: "spouse" as const,
+      },
+      {
+        memberId: "m3",
+        relationshipId: "r3",
+        relationshipType: "adopted" as const,
+        direction: "up" as const,
+      },
+      {
+        memberId: "m4",
+        relationshipId: "r4",
+        relationshipType: "sibling" as const,
+        direction: "spouse" as const,
+      },
+      {
+        memberId: "m5",
+        relationshipId: "r5",
+        relationshipType: "step_parent" as const,
+        direction: "down" as const,
+      },
+      {
+        memberId: "m6",
+        relationshipId: "r6",
+        relationshipType: "step_child" as const,
+        direction: "down" as const,
+      },
+      {
+        memberId: "m7",
+        relationshipId: "r7",
+        relationshipType: "in_law" as const,
+        direction: "spouse" as const,
+      },
+      {
+        memberId: "m8",
+        relationshipId: "r8",
+        relationshipType: "guardian" as const,
+        direction: "down" as const,
+      },
+      {
+        memberId: "m9",
+        relationshipId: "r9",
+        relationshipType: "divorced" as const,
+        direction: "spouse" as const,
+      },
     ];
 
     // Should not throw — the function should handle any combination

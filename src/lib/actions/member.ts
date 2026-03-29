@@ -6,11 +6,16 @@ import { createMemberSchema, updateMemberSchema } from "@/lib/validators/member"
 import type { CreateMemberInput, UpdateMemberInput } from "@/lib/validators/member";
 import type { TreeMember } from "@/types";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { sanitizeText } from "@/lib/sanitize";
 import { assertUUID } from "@/lib/validate";
 import { validateLifespan } from "@/lib/validators/temporal";
 
-async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, treeId: string, userId: string) {
+async function checkTreeAccess(
+  supabase: ReturnType<typeof createAdminClient>,
+  treeId: string,
+  userId: string
+) {
   const { data } = await supabase
     .from("tree_memberships")
     .select("role, linked_node_id")
@@ -24,7 +29,7 @@ async function checkTreeAccess(supabase: ReturnType<typeof createAdminClient>, t
 
 export async function createMember(input: CreateMemberInput): Promise<TreeMember> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'createMember', 20, 60_000);
+  rateLimit(userId, "createMember", ...RATE_LIMITS.createMember);
   const validated = createMemberSchema.parse(input);
   validateLifespan(validated.date_of_birth ?? null, validated.date_of_death ?? null);
   const supabase = createAdminClient();
@@ -38,7 +43,7 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
   // Set the user context for audit triggers
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
-  const orNull = (v: string | undefined | null) => v && v.trim() !== "" ? v : null;
+  const orNull = (v: string | undefined | null) => (v && v.trim() !== "" ? v : null);
 
   const { data, error } = await supabase
     .from("tree_members")
@@ -69,11 +74,15 @@ export async function createMember(input: CreateMemberInput): Promise<TreeMember
   return data as TreeMember;
 }
 
-export async function updateMember(memberId: string, treeId: string, input: UpdateMemberInput): Promise<TreeMember> {
+export async function updateMember(
+  memberId: string,
+  treeId: string,
+  input: UpdateMemberInput
+): Promise<TreeMember> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'updateMember', 30, 60_000);
-  assertUUID(memberId, 'memberId');
-  assertUUID(treeId, 'treeId');
+  rateLimit(userId, "updateMember", ...RATE_LIMITS.updateMember);
+  assertUUID(memberId, "memberId");
+  assertUUID(treeId, "treeId");
   const validated = updateMemberSchema.parse(input);
   validateLifespan(validated.date_of_birth ?? null, validated.date_of_death ?? null);
   const supabase = createAdminClient();
@@ -121,9 +130,9 @@ export async function updateMember(memberId: string, treeId: string, input: Upda
 
 export async function deleteMember(memberId: string, treeId: string) {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'deleteMember', 10, 60_000);
-  assertUUID(memberId, 'memberId');
-  assertUUID(treeId, 'treeId');
+  rateLimit(userId, "deleteMember", ...RATE_LIMITS.deleteMember);
+  assertUUID(memberId, "memberId");
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   const membership = await checkTreeAccess(supabase, treeId, userId);
@@ -206,6 +215,7 @@ export interface MemberWithStats extends TreeMember {
 
 export async function getMembersWithStats(treeId: string): Promise<MemberWithStats[]> {
   const userId = await getAuthUser();
+  rateLimit(userId, "getMembersWithStats", ...RATE_LIMITS.getMembersWithStats);
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);
@@ -217,7 +227,8 @@ export async function getMembersWithStats(treeId: string): Promise<MemberWithSta
     supabase.from("documents").select("member_id").eq("tree_id", treeId),
   ]);
 
-  if (membersResult.error) throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
+  if (membersResult.error)
+    throw new Error(`Failed to fetch members: ${membersResult.error.message}`);
 
   const relCounts = new Map<string, number>();
   for (const rel of relsResult.data ?? []) {
@@ -238,10 +249,15 @@ export async function getMembersWithStats(treeId: string): Promise<MemberWithSta
   return (membersResult.data as TreeMember[]).map((m) => {
     const relCount = relCounts.get(m.id) ?? 0;
     const hasBirthValue = Boolean(m.date_of_birth || m.birth_year);
-    const filledFields = [m.first_name, m.last_name, hasBirthValue ? "1" : ""].filter(Boolean).length;
+    const filledFields = [m.first_name, m.last_name, hasBirthValue ? "1" : ""].filter(
+      Boolean
+    ).length;
     const completeness: MemberWithStats["completeness"] =
-      filledFields === 3 && relCount > 0 ? "complete" :
-        filledFields > 0 || relCount > 0 ? "partial" : "empty";
+      filledFields === 3 && relCount > 0
+        ? "complete"
+        : filledFields > 0 || relCount > 0
+          ? "partial"
+          : "empty";
     return {
       ...m,
       relationship_count: relCount,
@@ -254,8 +270,8 @@ export async function getMembersWithStats(treeId: string): Promise<MemberWithSta
 
 export async function getMemberById(memberId: string, treeId: string): Promise<TreeMember | null> {
   const userId = await getAuthUser();
-  assertUUID(memberId, 'memberId');
-  assertUUID(treeId, 'treeId');
+  assertUUID(memberId, "memberId");
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   await checkTreeAccess(supabase, treeId, userId);

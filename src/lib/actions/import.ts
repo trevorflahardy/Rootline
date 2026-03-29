@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { sanitizeText } from "@/lib/sanitize";
 import { assertUUID } from "@/lib/validate";
 import type { ParsedMember, ParsedRelationship } from "@/lib/utils/gedcom-parser";
@@ -14,8 +15,8 @@ export async function importGedcomData(
   relationships: ParsedRelationship[]
 ): Promise<{ members: TreeMember[]; relationships: Relationship[]; errors: string[] }> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'importGedcom', 5, 60_000);
-  assertUUID(treeId, 'treeId');
+  rateLimit(userId, "importGedcom", ...RATE_LIMITS.importGedcom);
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
   const errors: string[] = [];
 
@@ -37,8 +38,7 @@ export async function importGedcomData(
   const createdMembers: TreeMember[] = [];
 
   for (const member of members) {
-    const orNull = (v: string | null | undefined) =>
-      v && v.trim() !== "" ? v : null;
+    const orNull = (v: string | null | undefined) => (v && v.trim() !== "" ? v : null);
 
     const { data, error } = await supabase
       .from("tree_members")

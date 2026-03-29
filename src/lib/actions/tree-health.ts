@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 
 export interface TreeHealthData {
   percentage: number;
@@ -16,6 +18,7 @@ export interface TreeHealthData {
  */
 export async function getTreeHealth(treeId: string): Promise<TreeHealthData> {
   const userId = await getAuthUser();
+  rateLimit(userId, "getTreeHealth", ...RATE_LIMITS.getTreeHealth);
   const supabase = createAdminClient();
 
   // Verify access
@@ -59,18 +62,12 @@ export async function getTreeHealth(treeId: string): Promise<TreeHealthData> {
 
   // Count complete members: first_name + last_name + date_of_birth + at least 1 relationship
   const completeMembers = allMembers.filter(
-    (m) =>
-      m.first_name &&
-      m.last_name &&
-      m.date_of_birth &&
-      membersWithRelationships.has(m.id)
+    (m) => m.first_name && m.last_name && m.date_of_birth && membersWithRelationships.has(m.id)
   ).length;
 
   // Count members created in the last 24 hours
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const newToday = allMembers.filter(
-    (m) => m.created_at && m.created_at >= oneDayAgo
-  ).length;
+  const newToday = allMembers.filter((m) => m.created_at && m.created_at >= oneDayAgo).length;
 
   const percentage = Math.round((completeMembers / totalMembers) * 100);
 

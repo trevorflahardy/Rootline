@@ -3,11 +3,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { assertUUID } from "@/lib/validate";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import type { TimelineEvent } from "@/types/timeline";
 
 export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]> {
   const userId = await getAuthUser();
-  assertUUID(treeId, 'treeId');
+  rateLimit(userId, "getTimelineEvents", ...RATE_LIMITS.getTimelineEvents);
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   // Verify access
@@ -22,7 +25,9 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
   // Fetch members
   const { data: members, error: membersError } = await supabase
     .from("tree_members")
-    .select("id, first_name, last_name, date_of_birth, date_of_death, birth_place, death_place, is_deceased")
+    .select(
+      "id, first_name, last_name, date_of_birth, date_of_death, birth_place, death_place, is_deceased"
+    )
     .eq("tree_id", treeId);
   if (membersError) throw new Error(membersError.message);
 
@@ -51,7 +56,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
       if (!isNaN(year)) {
         events.push({
           id: `birth-${member.id}`,
-          type: 'birth',
+          type: "birth",
           date: member.date_of_birth,
           year,
           decade: toDecade(year),
@@ -66,7 +71,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
       if (!isNaN(year)) {
         events.push({
           id: `death-${member.id}`,
-          type: 'death',
+          type: "death",
           date: member.date_of_death,
           year,
           decade: toDecade(year),
@@ -86,7 +91,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
     if (!fromMember || !toMember) continue;
 
     // Deduplicate: spouse relationships may appear in both directions
-    const pairKey = [rel.from_member_id, rel.to_member_id].sort().join('-');
+    const pairKey = [rel.from_member_id, rel.to_member_id].sort().join("-");
 
     if (rel.start_date) {
       const year = parseYear(rel.start_date);
@@ -96,7 +101,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
           seenMarriages.add(marriageKey);
           events.push({
             id: `marriage-${rel.id}`,
-            type: 'marriage',
+            type: "marriage",
             date: rel.start_date,
             year,
             decade: toDecade(year),
@@ -110,7 +115,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
       }
     }
 
-    if (rel.end_date && rel.relationship_type === 'divorced') {
+    if (rel.end_date && rel.relationship_type === "divorced") {
       const year = parseYear(rel.end_date);
       if (!isNaN(year)) {
         const divorceKey = `divorce-${pairKey}`;
@@ -118,7 +123,7 @@ export async function getTimelineEvents(treeId: string): Promise<TimelineEvent[]
           seenMarriages.add(divorceKey);
           events.push({
             id: `divorce-${rel.id}`,
-            type: 'divorce',
+            type: "divorce",
             date: rel.end_date,
             year,
             decade: toDecade(year),

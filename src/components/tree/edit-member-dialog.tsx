@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod/v4";
+import type { z } from "zod/v4";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -16,7 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { updateMember } from "@/lib/actions/member";
 import { updateMemberSchema, type UpdateMemberInput } from "@/lib/validators/member";
@@ -61,6 +67,7 @@ export function EditMemberDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const isDeceased = watch("is_deceased");
 
   async function onSubmit(data: UpdateMemberFormValues) {
@@ -77,12 +84,10 @@ export function EditMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input]:border-[var(--glass-border-subtle)] [&_textarea]:bg-white/10 [&_textarea]:dark:bg-white/5 [&_textarea]:border-[var(--glass-border-subtle)] [&_input:focus]:ring-2 [&_input:focus]:ring-primary [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-primary">
+      <DialogContent className="glass-card glass-elevated glass-edge-top glass-edge-left [&_input:focus]:ring-primary [&_textarea:focus]:ring-primary max-h-[90vh] max-w-lg overflow-y-auto border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:border-[var(--glass-border-subtle)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input:focus]:ring-2 [&_textarea]:border-[var(--glass-border-subtle)] [&_textarea]:bg-white/10 [&_textarea]:dark:bg-white/5 [&_textarea:focus]:ring-2">
         <DialogHeader>
           <DialogTitle>Edit Member</DialogTitle>
-          <DialogDescription>
-            Update {member.first_name}&apos;s information.
-          </DialogDescription>
+          <DialogDescription>Update {member.first_name}&apos;s information.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -91,7 +96,7 @@ export function EditMemberDialog({
               <Label htmlFor="edit_first_name">First Name *</Label>
               <Input id="edit_first_name" {...register("first_name")} />
               {errors.first_name && (
-                <p className="text-xs text-destructive">{errors.first_name.message}</p>
+                <p className="text-destructive text-xs">{errors.first_name.message}</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -158,11 +163,7 @@ export function EditMemberDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="edit_death_place">Death Place</Label>
-              <Input
-                id="edit_death_place"
-                {...register("death_place")}
-                disabled={!isDeceased}
-              />
+              <Input id="edit_death_place" {...register("death_place")} disabled={!isDeceased} />
             </div>
           </div>
 

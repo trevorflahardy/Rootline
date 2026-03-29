@@ -3,6 +3,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { assertUUID } from "@/lib/validate";
+import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 
 export interface BirthdayReminder {
   memberId: string;
@@ -35,6 +37,7 @@ function daysUntilBirthday(dob: string): number {
  */
 export async function getBirthdayReminders(treeId: string): Promise<BirthdayReminder[]> {
   const userId = await getAuthUser();
+  rateLimit(userId, "getBirthdayReminders", ...RATE_LIMITS.getBirthdayReminders);
   assertUUID(treeId, "treeId");
 
   const supabase = createAdminClient();

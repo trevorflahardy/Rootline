@@ -9,16 +9,22 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:fix": "next lint --fix",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.6",
+    "@clerk/backend": "^3.2.3",
+    "@clerk/nextjs": "^7.0.7",
     "@dagrejs/dagre": "^3.0.0",
     "@hookform/resolvers": "^5.2.2",
-    "@supabase/supabase-js": "^2.99.3",
-    "@xyflow/react": "^12.10.1",
-    "agentdb": "^3.0.0-alpha.10",
+    "@supabase/supabase-js": "^2.100.1",
+    "@xyflow/react": "^12.10.2",
+    "agentdb": "^3.0.0-alpha.11",
     "agentic-flow": "^2.0.7",
+    "brace-expansion": "^5.0.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -27,6 +33,8 @@
     "lucide-react": "^0.577.0",
     "next": "16.2.1",
     "next-themes": "^0.4.6",
+    "path-to-regexp": "^8.4.0",
+    "picomatch": "^4.0.4",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -40,20 +48,26 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.58.2",
-    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/dagre": "^0.7.54",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
+    "@types/node": "^20.19.37",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "eslint": "^9.39.4",
     "eslint-config-next": "16.2.1",
+    "eslint-plugin-import": "^2.32.0",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.1",
-    "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.0",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.2",
     "vitest-axe": "^0.1.0"
   },
   "ignoreScripts": [
@@ -63,5 +77,18 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
+  },
+  "overrides": {
+    "brace-expansion": ">=2.0.1",
+    "picomatch": ">=2.3.2"
+  }
 }

@@ -5,7 +5,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { canEditMember } from "@/lib/actions/permissions";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { sanitizeText, sanitizeStoragePath } from "@/lib/sanitize";
+import { assertUUID } from "@/lib/validate";
 import {
   uploadDocumentSchema,
   updateDocumentSchema,
@@ -18,7 +20,7 @@ const BUCKET = "tree-documents";
 
 export async function uploadDocument(formData: FormData): Promise<Document> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'uploadDocument', 10, 60_000);
+  rateLimit(userId, "uploadDocument", ...RATE_LIMITS.uploadDocument);
   const supabase = createAdminClient();
 
   const treeId = formData.get("treeId") as string;
@@ -26,6 +28,8 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
   const file = formData.get("file") as File | null;
 
   if (!treeId || !memberId) throw new Error("Missing treeId or memberId");
+  assertUUID(treeId, "treeId");
+  assertUUID(memberId, "memberId");
   if (!file) throw new Error("No file provided");
 
   if (file.size > MAX_DOCUMENT_SIZE) {
@@ -33,9 +37,7 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
   }
 
   if (!ALLOWED_DOCUMENT_MIMES.includes(file.type)) {
-    throw new Error(
-      "Invalid file type. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX."
-    );
+    throw new Error("Invalid file type. Allowed: PDF, JPEG, PNG, WebP, DOC, DOCX.");
   }
 
   // Parse metadata
@@ -70,20 +72,15 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
   // Generate unique storage path
   const uuid = crypto.randomUUID();
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = sanitizeStoragePath(
-    `${treeId}/${memberId}/${uuid}_${sanitizedName}`
-  );
+  const storagePath = sanitizeStoragePath(`${treeId}/${memberId}/${uuid}_${sanitizedName}`);
 
   // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (uploadError) {
-    console.error("Document upload failed:", uploadError.message);
     throw new Error("Upload failed");
   }
 
@@ -106,7 +103,6 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
     .single();
 
   if (error) {
-    console.error("Failed to save document record:", error.message);
     throw new Error("Failed to save document");
   }
 
@@ -114,10 +110,7 @@ export async function uploadDocument(formData: FormData): Promise<Document> {
   return data as Document;
 }
 
-export async function getDocumentsByMember(
-  treeId: string,
-  memberId: string
-): Promise<Document[]> {
+export async function getDocumentsByMember(treeId: string, memberId: string): Promise<Document[]> {
   const userId = await getAuthUser();
   const supabase = createAdminClient();
 
@@ -176,10 +169,7 @@ export async function getDocumentsByTree(treeId: string): Promise<Document[]> {
   return (data ?? []) as Document[];
 }
 
-export async function deleteDocument(
-  documentId: string,
-  treeId: string
-): Promise<void> {
+export async function deleteDocument(documentId: string, treeId: string): Promise<void> {
   const userId = await getAuthUser();
   const supabase = createAdminClient();
 
@@ -212,10 +202,7 @@ export async function deleteDocument(
   await supabase.storage.from(BUCKET).remove([doc.storage_path]);
 
   // Delete record
-  const { error } = await supabase
-    .from("documents")
-    .delete()
-    .eq("id", documentId);
+  const { error } = await supabase.from("documents").delete().eq("id", documentId);
 
   if (error) throw new Error(`Failed to delete document: ${error.message}`);
   revalidatePath(`/tree/${treeId}`);
@@ -232,7 +219,9 @@ export async function updateDocument(
   const raw = updateDocumentSchema.parse(data);
   const validated = {
     ...raw,
-    ...(raw.description !== undefined ? { description: raw.description ? sanitizeText(raw.description) : null } : {}),
+    ...(raw.description !== undefined
+      ? { description: raw.description ? sanitizeText(raw.description) : null }
+      : {}),
   };
 
   // Check membership
@@ -272,10 +261,7 @@ export async function updateDocument(
   return updated as Document;
 }
 
-export async function getDocumentDownloadUrl(
-  documentId: string,
-  treeId: string
-): Promise<string> {
+export async function getDocumentDownloadUrl(documentId: string, treeId: string): Promise<string> {
   const userId = await getAuthUser();
   const supabase = createAdminClient();
 

@@ -38,13 +38,9 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => mockClient,
 }));
 
-import { createRelationship, deleteRelationship } from "../relationship";
+import { createRelationship } from "../relationship";
 import { createMember, updateMember, deleteMember } from "../member";
-import {
-  updateMemberRole,
-  revokeMembership,
-  bulkUpdateRoles,
-} from "../permissions";
+import { revokeMembership, bulkUpdateRoles } from "../permissions";
 
 /**
  * Helper to set up mockClient.from for a given role and optional linked_node_id.
@@ -167,9 +163,9 @@ describe("Permission Integration Tests", () => {
   it("viewer cannot create member", async () => {
     mockMembershipRole("viewer");
 
-    await expect(
-      createMember({ tree_id: validTreeId, first_name: "Jane" })
-    ).rejects.toThrow("Viewers cannot add members");
+    await expect(createMember({ tree_id: validTreeId, first_name: "Jane" })).rejects.toThrow(
+      "Viewers cannot add members"
+    );
   });
 
   it("viewer cannot create relationship", async () => {
@@ -243,9 +239,9 @@ describe("Permission Integration Tests", () => {
       }),
     }));
 
-    await expect(
-      createMember({ tree_id: validTreeId, first_name: "ShouldFail" })
-    ).rejects.toThrow("No access to this tree");
+    await expect(createMember({ tree_id: validTreeId, first_name: "ShouldFail" })).rejects.toThrow(
+      "No access to this tree"
+    );
   });
 
   it("bulk role update only affects specified memberships", async () => {
@@ -315,8 +311,8 @@ describe("Permission Integration Tests", () => {
       return {};
     });
 
-    await expect(
-      revokeMembership(validTreeId, "some-other-owner-membership")
-    ).rejects.toThrow("Cannot revoke owner membership");
+    await expect(revokeMembership(validTreeId, "some-other-owner-membership")).rejects.toThrow(
+      "Cannot revoke owner membership"
+    );
   });
 });

@@ -1,8 +1,7 @@
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
-export const test = base.extend<{
-  // Add custom fixtures here as needed
-}>({
+export const test = base.extend<Record<string, never>>({
   // Custom fixtures will go here
 });
 
@@ -14,6 +13,6 @@ export function testEmail(prefix: string): string {
 }
 
 /** Helper to wait for Next.js hydration */
-export async function waitForHydration(page: import('@playwright/test').Page) {
-  await page.waitForLoadState('networkidle');
+export async function waitForHydration(page: Page) {
+  await page.waitForLoadState("networkidle");
 }

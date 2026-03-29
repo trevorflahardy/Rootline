@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { createInviteSchema, type CreateInviteInput } from "@/lib/validators/invite";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { assertUUID } from "@/lib/validate";
 
 export interface Invitation {
@@ -28,9 +29,9 @@ function generateInviteCode(): string {
 
 export async function createInvite(input: CreateInviteInput): Promise<Invitation> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'createInvite', 5, 60_000);
+  rateLimit(userId, "createInvite", ...RATE_LIMITS.createInvite);
   const validated = createInviteSchema.parse(input);
-  assertUUID(validated.tree_id, 'treeId');
+  assertUUID(validated.tree_id, "treeId");
   const supabase = createAdminClient();
 
   // Only owners can create invites
@@ -89,7 +90,7 @@ export async function createInvite(input: CreateInviteInput): Promise<Invitation
 
 export async function getInvitesByTreeId(treeId: string): Promise<Invitation[]> {
   const userId = await getAuthUser();
-  assertUUID(treeId, 'treeId');
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -130,7 +131,7 @@ export async function getInviteByCode(code: string): Promise<Invitation | null> 
 
 export async function acceptInvite(inviteCode: string): Promise<{ treeId: string }> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'acceptInvite', 10, 60_000);
+  rateLimit(userId, "acceptInvite", ...RATE_LIMITS.acceptInvite);
   const supabase = createAdminClient();
 
   // Get the invite
@@ -167,14 +168,12 @@ export async function acceptInvite(inviteCode: string): Promise<{ treeId: string
   await supabase.rpc("set_request_user_id", { user_id: userId });
 
   // Create membership
-  const { error: membershipError } = await supabase
-    .from("tree_memberships")
-    .insert({
-      tree_id: invite.tree_id,
-      user_id: userId,
-      role: invite.role,
-      linked_node_id: invite.target_node_id || null,
-    });
+  const { error: membershipError } = await supabase.from("tree_memberships").insert({
+    tree_id: invite.tree_id,
+    user_id: userId,
+    role: invite.role,
+    linked_node_id: invite.target_node_id || null,
+  });
 
   if (membershipError) throw new Error(`Failed to join tree: ${membershipError.message}`);
 
@@ -190,8 +189,8 @@ export async function acceptInvite(inviteCode: string): Promise<{ treeId: string
 
 export async function revokeInvite(inviteId: string, treeId: string): Promise<void> {
   const userId = await getAuthUser();
-  assertUUID(inviteId, 'inviteId');
-  assertUUID(treeId, 'treeId');
+  assertUUID(inviteId, "inviteId");
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase

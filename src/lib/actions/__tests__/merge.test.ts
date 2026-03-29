@@ -14,9 +14,16 @@ vi.mock("@clerk/nextjs/server", () => ({
 vi.mock("@/lib/actions/profile", () => ({ ensureProfile: vi.fn() }));
 vi.mock("@/lib/validate", () => ({ assertUUID: vi.fn() }));
 vi.mock("@/lib/sanitize", () => ({ sanitizeText: (s: string) => s }));
+vi.mock("@/lib/rate-limit", () => ({ rateLimit: vi.fn() }));
+vi.mock("@/lib/rate-limit-config", () => ({
+  RATE_LIMITS: new Proxy({}, { get: () => [100, 60_000] }),
+}));
 
 const fromMock = vi.fn();
-const supabaseMock = { from: fromMock, rpc: vi.fn().mockResolvedValue({ data: null, error: null }) };
+const supabaseMock = {
+  from: fromMock,
+  rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+};
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => supabaseMock }));
 
 import { previewMerge, mergeTree, getOwnedTreesForMerge } from "../merge";
@@ -79,7 +86,14 @@ describe("previewMerge", () => {
         const data =
           treeMembersCalls === 1
             ? [{ id: "sm-1", first_name: "Alice", last_name: "Smith", date_of_birth: "1980-01-01" }]
-            : [{ id: "tm-1", first_name: "Alice", last_name: "Smith", date_of_birth: "1980-01-01" }];
+            : [
+                {
+                  id: "tm-1",
+                  first_name: "Alice",
+                  last_name: "Smith",
+                  date_of_birth: "1980-01-01",
+                },
+              ];
         return listChain(data);
       }
       return {};
@@ -87,7 +101,11 @@ describe("previewMerge", () => {
 
     const result = await previewMerge(sourceId, targetId);
     expect(result).toHaveLength(1);
-    expect(result[0]).toMatchObject({ sourceMemberId: "sm-1", targetMemberId: "tm-1", sourceDisplayName: "Alice Smith" });
+    expect(result[0]).toMatchObject({
+      sourceMemberId: "sm-1",
+      targetMemberId: "tm-1",
+      sourceDisplayName: "Alice Smith",
+    });
   });
 
   it("ignores match when date_of_birth is null", async () => {
@@ -126,7 +144,9 @@ describe("previewMerge", () => {
 
 describe("mergeTree", () => {
   it("throws when source and target are the same tree", async () => {
-    await expect(mergeTree(targetId, targetId, [])).rejects.toThrow("Cannot merge a tree into itself");
+    await expect(mergeTree(targetId, targetId, [])).rejects.toThrow(
+      "Cannot merge a tree into itself"
+    );
   });
 
   it("throws when caller does not own target tree", async () => {
@@ -147,18 +167,53 @@ describe("mergeTree", () => {
       if (table === "tree_memberships") return ownerChain();
       if (table === "tree_members") {
         treeMembersCalls++;
-        if (treeMembersCalls === 1) return listChain([{
-          id: "src-1", first_name: "Alice", last_name: "Smith",
-          maiden_name: null, gender: "female", date_of_birth: "1980-01-01",
-          date_of_death: null, birth_place: null, death_place: null,
-          bio: null, is_deceased: false,
-        }]);
+        if (treeMembersCalls === 1)
+          return listChain([
+            {
+              id: "src-1",
+              first_name: "Alice",
+              last_name: "Smith",
+              maiden_name: null,
+              gender: "female",
+              date_of_birth: "1980-01-01",
+              date_of_death: null,
+              birth_place: null,
+              death_place: null,
+              bio: null,
+              is_deceased: false,
+            },
+          ]);
         return { insert: insertMock };
       }
-      if (table === "relationships") return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }), upsert: vi.fn().mockResolvedValue({ data: null, error: null }) };
-      if (table === "media") return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) };
-      if (table === "audit_log") return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
-      if (table === "family_trees") return { delete: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+      if (table === "relationships")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      if (table === "media")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+            }),
+        };
+      if (table === "audit_log")
+        return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+      if (table === "family_trees")
+        return {
+          delete: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            }),
+        };
       return {};
     });
 
@@ -177,26 +232,107 @@ describe("mergeTree", () => {
       if (table === "tree_memberships") return ownerChain();
       if (table === "tree_members") {
         treeMembersCalls++;
-        if (treeMembersCalls === 1) return listChain([
-          { id: "src-a", first_name: "A", last_name: null, maiden_name: null, gender: "unknown", date_of_birth: null, date_of_death: null, birth_place: null, death_place: null, bio: null, is_deceased: false },
-          { id: "src-b", first_name: "B", last_name: null, maiden_name: null, gender: "unknown", date_of_birth: null, date_of_death: null, birth_place: null, death_place: null, bio: null, is_deceased: false },
-        ]);
-        return { insert: vi.fn().mockReturnValue({ select: vi.fn().mockResolvedValue({ data: [{ id: "new-a" }, { id: "new-b" }], error: null }) }) };
+        if (treeMembersCalls === 1)
+          return listChain([
+            {
+              id: "src-a",
+              first_name: "A",
+              last_name: null,
+              maiden_name: null,
+              gender: "unknown",
+              date_of_birth: null,
+              date_of_death: null,
+              birth_place: null,
+              death_place: null,
+              bio: null,
+              is_deceased: false,
+            },
+            {
+              id: "src-b",
+              first_name: "B",
+              last_name: null,
+              maiden_name: null,
+              gender: "unknown",
+              date_of_birth: null,
+              date_of_death: null,
+              birth_place: null,
+              death_place: null,
+              bio: null,
+              is_deceased: false,
+            },
+          ]);
+        return {
+          insert: vi
+            .fn()
+            .mockReturnValue({
+              select: vi
+                .fn()
+                .mockResolvedValue({ data: [{ id: "new-a" }, { id: "new-b" }], error: null }),
+            }),
+        };
       }
       if (table === "relationships") {
         relCalls++;
-        if (relCalls === 1) return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [{ id: "r1", tree_id: sourceId, from_member_id: "src-a", to_member_id: "src-b", relationship_type: "parent_child", start_date: null, end_date: null }], error: null }) }), upsert: upsertMock };
+        if (relCalls === 1)
+          return {
+            select: vi
+              .fn()
+              .mockReturnValue({
+                eq: vi
+                  .fn()
+                  .mockResolvedValue({
+                    data: [
+                      {
+                        id: "r1",
+                        tree_id: sourceId,
+                        from_member_id: "src-a",
+                        to_member_id: "src-b",
+                        relationship_type: "parent_child",
+                        start_date: null,
+                        end_date: null,
+                      },
+                    ],
+                    error: null,
+                  }),
+              }),
+            upsert: upsertMock,
+          };
         return { upsert: upsertMock };
       }
-      if (table === "media") return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) };
-      if (table === "audit_log") return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
-      if (table === "family_trees") return { delete: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+      if (table === "media")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+            }),
+        };
+      if (table === "audit_log")
+        return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+      if (table === "family_trees")
+        return {
+          delete: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            }),
+        };
       return {};
     });
 
     await mergeTree(sourceId, targetId, []);
     expect(upsertMock).toHaveBeenCalledWith(
-      expect.arrayContaining([expect.objectContaining({ from_member_id: "new-a", to_member_id: "new-b", tree_id: targetId })]),
+      expect.arrayContaining([
+        expect.objectContaining({
+          from_member_id: "new-a",
+          to_member_id: "new-b",
+          tree_id: targetId,
+        }),
+      ]),
       expect.any(Object)
     );
   });
@@ -209,13 +345,70 @@ describe("mergeTree", () => {
       if (table === "tree_memberships") return ownerChain();
       if (table === "tree_members") {
         treeMembersCalls++;
-        if (treeMembersCalls === 1) return listChain([{ id: "skip-me", first_name: "Skip", last_name: null, maiden_name: null, gender: "unknown", date_of_birth: null, date_of_death: null, birth_place: null, death_place: null, bio: null, is_deceased: false }]);
+        if (treeMembersCalls === 1)
+          return listChain([
+            {
+              id: "skip-me",
+              first_name: "Skip",
+              last_name: null,
+              maiden_name: null,
+              gender: "unknown",
+              date_of_birth: null,
+              date_of_death: null,
+              birth_place: null,
+              death_place: null,
+              bio: null,
+              is_deceased: false,
+            },
+          ]);
         return { insert: insertMock };
       }
-      if (table === "relationships") return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [{ id: "rx", tree_id: sourceId, from_member_id: "skip-me", to_member_id: "other", relationship_type: "parent_child", start_date: null, end_date: null }], error: null }) }), upsert: vi.fn().mockResolvedValue({ data: null, error: null }) };
-      if (table === "media") return { select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) };
-      if (table === "audit_log") return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
-      if (table === "family_trees") return { delete: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }) }) };
+      if (table === "relationships")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockResolvedValue({
+                  data: [
+                    {
+                      id: "rx",
+                      tree_id: sourceId,
+                      from_member_id: "skip-me",
+                      to_member_id: "other",
+                      relationship_type: "parent_child",
+                      start_date: null,
+                      end_date: null,
+                    },
+                  ],
+                  error: null,
+                }),
+            }),
+          upsert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        };
+      if (table === "media")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+            }),
+        };
+      if (table === "audit_log")
+        return { insert: vi.fn().mockResolvedValue({ data: null, error: null }) };
+      if (table === "family_trees")
+        return {
+          delete: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({ eq: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            }),
+        };
       return {};
     });
 
@@ -229,11 +422,51 @@ describe("mergeTree", () => {
 describe("getOwnedTreesForMerge", () => {
   it("returns owned trees excluding the target tree", async () => {
     fromMock.mockImplementation((table: string) => {
-      if (table === "tree_memberships") return {
-        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ neq: vi.fn().mockResolvedValue({ data: [{ tree_id: sourceId }], error: null }) }) }) }),
-      };
-      if (table === "family_trees") return { select: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ data: [{ id: sourceId, name: "Source Tree", description: null, is_public: false, updated_at: "2026-01-01" }], error: null }) }) };
-      if (table === "tree_members") return { select: vi.fn().mockReturnValue({ in: vi.fn().mockResolvedValue({ data: [], error: null }) }) };
+      if (table === "tree_memberships")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({
+                  eq: vi
+                    .fn()
+                    .mockReturnValue({
+                      neq: vi
+                        .fn()
+                        .mockResolvedValue({ data: [{ tree_id: sourceId }], error: null }),
+                    }),
+                }),
+            }),
+        };
+      if (table === "family_trees")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              in: vi
+                .fn()
+                .mockResolvedValue({
+                  data: [
+                    {
+                      id: sourceId,
+                      name: "Source Tree",
+                      description: null,
+                      is_public: false,
+                      updated_at: "2026-01-01",
+                    },
+                  ],
+                  error: null,
+                }),
+            }),
+        };
+      if (table === "tree_members")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({ in: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+        };
       return {};
     });
 
@@ -245,9 +478,20 @@ describe("getOwnedTreesForMerge", () => {
 
   it("returns empty array when user owns no other trees", async () => {
     fromMock.mockImplementation((table: string) => {
-      if (table === "tree_memberships") return {
-        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ neq: vi.fn().mockResolvedValue({ data: [], error: null }) }) }) }),
-      };
+      if (table === "tree_memberships")
+        return {
+          select: vi
+            .fn()
+            .mockReturnValue({
+              eq: vi
+                .fn()
+                .mockReturnValue({
+                  eq: vi
+                    .fn()
+                    .mockReturnValue({ neq: vi.fn().mockResolvedValue({ data: [], error: null }) }),
+                }),
+            }),
+        };
       return {};
     });
 

@@ -18,6 +18,12 @@ function makeMember(id: string, firstName: string, lastName?: string): TreeMembe
     bio: null,
     avatar_url: null,
     is_deceased: false,
+    birth_year: null,
+    birth_month: null,
+    birth_day: null,
+    death_year: null,
+    death_month: null,
+    death_day: null,
     position_x: null,
     position_y: null,
     created_at: "2026-01-01T00:00:00Z",
@@ -26,7 +32,12 @@ function makeMember(id: string, firstName: string, lastName?: string): TreeMembe
   };
 }
 
-function makeRel(id: string, from: string, to: string, type: Relationship["relationship_type"]): Relationship {
+function makeRel(
+  id: string,
+  from: string,
+  to: string,
+  type: Relationship["relationship_type"]
+): Relationship {
   return {
     id,
     tree_id: "tree-1",
@@ -166,9 +177,15 @@ describe("GEDCOM extended relationship round-trip", () => {
     const reimported = parseGedcom(exported);
 
     expect(reimported.errors).toHaveLength(0);
-    expect(reimported.relationships.filter((r) => r.relationship_type === "sibling")).toHaveLength(1);
-    expect(reimported.relationships.filter((r) => r.relationship_type === "guardian")).toHaveLength(1);
-    expect(reimported.relationships.filter((r) => r.relationship_type === "in_law")).toHaveLength(1);
+    expect(reimported.relationships.filter((r) => r.relationship_type === "sibling")).toHaveLength(
+      1
+    );
+    expect(reimported.relationships.filter((r) => r.relationship_type === "guardian")).toHaveLength(
+      1
+    );
+    expect(reimported.relationships.filter((r) => r.relationship_type === "in_law")).toHaveLength(
+      1
+    );
   });
 
   it("round-trips step_parent and step_child relationships", () => {

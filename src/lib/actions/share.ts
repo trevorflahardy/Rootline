@@ -1,3 +1,5 @@
+"use server";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertUUID } from "@/lib/validate";
 import type { FamilyTree, TreeMember } from "@/types";
@@ -32,10 +34,7 @@ export async function getPublicMembers(treeId: string): Promise<TreeMember[]> {
     .eq("is_public", true)
     .single();
   if (!tree) throw new Error("Tree not found or not public");
-  const { data } = await supabase
-    .from("tree_members")
-    .select("*")
-    .eq("tree_id", treeId);
+  const { data } = await supabase.from("tree_members").select("*").eq("tree_id", treeId);
   return (data ?? []) as TreeMember[];
 }
 

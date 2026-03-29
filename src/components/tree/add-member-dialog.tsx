@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod/v4";
+import type { z } from "zod/v4";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -19,10 +19,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils/cn";
 import { createMember } from "@/lib/actions/member";
 import { createRelationship } from "@/lib/actions/relationship";
@@ -51,7 +64,9 @@ export function AddMemberDialog({
   defaultRelationshipDirection,
 }: AddMemberDialogProps) {
   const [relatedMemberId, setRelatedMemberId] = useState<string>("");
-  const [relationshipDirection, setRelationshipDirection] = useState<"parent" | "child" | "spouse">("child");
+  const [relationshipDirection, setRelationshipDirection] = useState<"parent" | "child" | "spouse">(
+    "child"
+  );
   const [memberSearchOpen, setMemberSearchOpen] = useState(false);
 
   const {
@@ -69,6 +84,7 @@ export function AddMemberDialog({
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const isDeceased = watch("is_deceased");
 
   useEffect(() => {
@@ -85,7 +101,10 @@ export function AddMemberDialog({
 
       // Create relationship if a related member was selected
       if (relatedMemberId) {
-        const relType = relationshipDirection === "spouse" ? "spouse" as RelationshipType : "parent_child" as RelationshipType;
+        const relType =
+          relationshipDirection === "spouse"
+            ? ("spouse" as RelationshipType)
+            : ("parent_child" as RelationshipType);
         const fromId = relationshipDirection === "child" ? relatedMemberId : member.id;
         const toId = relationshipDirection === "child" ? member.id : relatedMemberId;
 
@@ -109,12 +128,10 @@ export function AddMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto glass-card glass-elevated glass-edge-top glass-edge-left border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input]:border-[var(--glass-border-subtle)] [&_textarea]:bg-white/10 [&_textarea]:dark:bg-white/5 [&_textarea]:border-[var(--glass-border-subtle)] [&_input:focus]:ring-2 [&_input:focus]:ring-primary [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-primary">
+      <DialogContent className="glass-card glass-elevated glass-edge-top glass-edge-left [&_input:focus]:ring-primary [&_textarea:focus]:ring-primary max-h-[90vh] max-w-lg overflow-y-auto border-[var(--glass-border)] bg-[var(--glass-bg-heavy)] backdrop-blur-[var(--glass-blur-heavy)] [&_input]:border-[var(--glass-border-subtle)] [&_input]:bg-white/10 [&_input]:dark:bg-white/5 [&_input:focus]:ring-2 [&_textarea]:border-[var(--glass-border-subtle)] [&_textarea]:bg-white/10 [&_textarea]:dark:bg-white/5 [&_textarea:focus]:ring-2">
         <DialogHeader>
           <DialogTitle>Add Family Member</DialogTitle>
-          <DialogDescription>
-            Add a new person to the family tree.
-          </DialogDescription>
+          <DialogDescription>Add a new person to the family tree.</DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -124,7 +141,9 @@ export function AddMemberDialog({
             <div className="space-y-1.5">
               <Label htmlFor="first_name">First Name *</Label>
               <Input id="first_name" {...register("first_name")} />
-              {errors.first_name && <p className="text-xs text-destructive">{errors.first_name.message}</p>}
+              {errors.first_name && (
+                <p className="text-destructive text-xs">{errors.first_name.message}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="last_name">Last Name</Label>
@@ -139,8 +158,12 @@ export function AddMemberDialog({
             </div>
             <div className="space-y-1.5">
               <Label>Gender</Label>
-              <Select onValueChange={(v) => setValue("gender", v as CreateMemberFormValues["gender"])}>
-                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+              <Select
+                onValueChange={(v) => setValue("gender", v as CreateMemberFormValues["gender"])}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select..." />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
@@ -158,7 +181,12 @@ export function AddMemberDialog({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="date_of_death">Date of Death</Label>
-              <Input id="date_of_death" type="date" {...register("date_of_death")} disabled={!isDeceased} />
+              <Input
+                id="date_of_death"
+                type="date"
+                {...register("date_of_death")}
+                disabled={!isDeceased}
+              />
             </div>
           </div>
 
@@ -168,7 +196,9 @@ export function AddMemberDialog({
               checked={isDeceased}
               onCheckedChange={(v) => setValue("is_deceased", v === true)}
             />
-            <Label htmlFor="is_deceased" className="text-sm font-normal">Deceased</Label>
+            <Label htmlFor="is_deceased" className="text-sm font-normal">
+              Deceased
+            </Label>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -191,10 +221,12 @@ export function AddMemberDialog({
           {existingMembers.length > 0 && (
             <>
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold">Connect to existing member (optional)</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
+                <Label className="text-sm font-semibold">
+                  Connect to existing member (optional)
+                </Label>
+                <div className="mt-2 grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Related to</Label>
+                    <Label className="text-muted-foreground text-xs">Related to</Label>
                     <Popover open={memberSearchOpen} onOpenChange={setMemberSearchOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -205,7 +237,10 @@ export function AddMemberDialog({
                         >
                           {relatedMemberId ? (
                             <span className="flex items-center gap-2 truncate">
-                              <MemberAvatar member={existingMembers.find((m) => m.id === relatedMemberId)!} size="sm" />
+                              <MemberAvatar
+                                member={existingMembers.find((m) => m.id === relatedMemberId)!}
+                                size="sm"
+                              />
                               {existingMembers.find((m) => m.id === relatedMemberId)?.first_name}{" "}
                               {existingMembers.find((m) => m.id === relatedMemberId)?.last_name}
                             </span>
@@ -230,11 +265,18 @@ export function AddMemberDialog({
                                     setMemberSearchOpen(false);
                                   }}
                                 >
-                                  <div className="flex items-center gap-2 w-full">
+                                  <div className="flex w-full items-center gap-2">
                                     <MemberAvatar member={m} size="sm" />
-                                    <span className="truncate">{m.first_name} {m.last_name}</span>
+                                    <span className="truncate">
+                                      {m.first_name} {m.last_name}
+                                    </span>
                                   </div>
-                                  <Check className={cn("ml-auto h-4 w-4", relatedMemberId === m.id ? "opacity-100" : "opacity-0")} />
+                                  <Check
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      relatedMemberId === m.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
                                 </CommandItem>
                               ))}
                             </CommandGroup>
@@ -244,12 +286,16 @@ export function AddMemberDialog({
                     </Popover>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Relationship</Label>
+                    <Label className="text-muted-foreground text-xs">Relationship</Label>
                     <Select
                       value={relationshipDirection}
-                      onValueChange={(v) => setRelationshipDirection(v as "parent" | "child" | "spouse")}
+                      onValueChange={(v) =>
+                        setRelationshipDirection(v as "parent" | "child" | "spouse")
+                      }
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="child">Is their child</SelectItem>
                         <SelectItem value="parent">Is their parent</SelectItem>
@@ -286,7 +332,7 @@ function MemberAvatar({ member, size = "sm" }: { member: TreeMember; size?: "sm"
       <Image
         src={member.avatar_url}
         alt={member.first_name}
-        className={`${px} rounded-full object-cover flex-shrink-0`}
+        className={`${px} flex-shrink-0 rounded-full object-cover`}
         width={dim}
         height={dim}
       />
@@ -294,7 +340,9 @@ function MemberAvatar({ member, size = "sm" }: { member: TreeMember; size?: "sm"
   }
 
   return (
-    <div className={`${px} rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0`}>
+    <div
+      className={`${px} bg-primary/10 flex flex-shrink-0 items-center justify-center rounded-full`}
+    >
       <User className={`${iconPx} text-primary`} />
     </div>
   );

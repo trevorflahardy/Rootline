@@ -2,7 +2,9 @@ import { describe, it, expect } from "vitest";
 import { exportGedcom } from "../gedcom-exporter";
 import type { TreeMember, Relationship } from "@/types";
 
-function makeMember(overrides: Partial<TreeMember> & { id: string; first_name: string }): TreeMember {
+function makeMember(
+  overrides: Partial<TreeMember> & { id: string; first_name: string }
+): TreeMember {
   return {
     tree_id: "tree-1",
     last_name: null,
@@ -17,6 +19,12 @@ function makeMember(overrides: Partial<TreeMember> & { id: string; first_name: s
     is_deceased: false,
     position_x: null,
     position_y: null,
+    birth_year: null,
+    birth_month: null,
+    birth_day: null,
+    death_year: null,
+    death_month: null,
+    death_day: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
     created_by: null,
@@ -24,7 +32,14 @@ function makeMember(overrides: Partial<TreeMember> & { id: string; first_name: s
   };
 }
 
-function makeRel(overrides: Partial<Relationship> & { id: string; from_member_id: string; to_member_id: string; relationship_type: Relationship["relationship_type"] }): Relationship {
+function makeRel(
+  overrides: Partial<Relationship> & {
+    id: string;
+    from_member_id: string;
+    to_member_id: string;
+    relationship_type: Relationship["relationship_type"];
+  }
+): Relationship {
   return {
     tree_id: "tree-1",
     start_date: null,
@@ -54,9 +69,7 @@ describe("exportGedcom", () => {
   });
 
   it("exports individual records with names", () => {
-    const members = [
-      makeMember({ id: "1", first_name: "John", last_name: "Smith" }),
-    ];
+    const members = [makeMember({ id: "1", first_name: "John", last_name: "Smith" })];
     const result = exportGedcom(members, []);
 
     expect(result).toContain("@I1@ INDI");
@@ -99,9 +112,7 @@ describe("exportGedcom", () => {
   });
 
   it("exports deceased without a date", () => {
-    const members = [
-      makeMember({ id: "1", first_name: "John", is_deceased: true }),
-    ];
+    const members = [makeMember({ id: "1", first_name: "John", is_deceased: true })];
     const result = exportGedcom(members, []);
     expect(result).toContain("1 DEAT");
   });
@@ -129,8 +140,18 @@ describe("exportGedcom", () => {
     ];
     const relationships = [
       makeRel({ id: "r1", from_member_id: "1", to_member_id: "2", relationship_type: "spouse" }),
-      makeRel({ id: "r2", from_member_id: "1", to_member_id: "3", relationship_type: "parent_child" }),
-      makeRel({ id: "r3", from_member_id: "2", to_member_id: "3", relationship_type: "parent_child" }),
+      makeRel({
+        id: "r2",
+        from_member_id: "1",
+        to_member_id: "3",
+        relationship_type: "parent_child",
+      }),
+      makeRel({
+        id: "r3",
+        from_member_id: "2",
+        to_member_id: "3",
+        relationship_type: "parent_child",
+      }),
     ];
     const result = exportGedcom(members, relationships);
 
@@ -145,7 +166,12 @@ describe("exportGedcom", () => {
       makeMember({ id: "2", first_name: "Child", gender: "male" }),
     ];
     const relationships = [
-      makeRel({ id: "r1", from_member_id: "1", to_member_id: "2", relationship_type: "parent_child" }),
+      makeRel({
+        id: "r1",
+        from_member_id: "1",
+        to_member_id: "2",
+        relationship_type: "parent_child",
+      }),
     ];
     const result = exportGedcom(members, relationships);
 
@@ -154,9 +180,7 @@ describe("exportGedcom", () => {
   });
 
   it("exports bio as NOTE with CONT for multi-line", () => {
-    const members = [
-      makeMember({ id: "1", first_name: "John", bio: "Line one\nLine two" }),
-    ];
+    const members = [makeMember({ id: "1", first_name: "John", bio: "Line one\nLine two" })];
     const result = exportGedcom(members, []);
 
     expect(result).toContain("1 NOTE Line one");
@@ -164,9 +188,7 @@ describe("exportGedcom", () => {
   });
 
   it("exports maiden name as _MARNM", () => {
-    const members = [
-      makeMember({ id: "1", first_name: "Jane", maiden_name: "Doe" }),
-    ];
+    const members = [makeMember({ id: "1", first_name: "Jane", maiden_name: "Doe" })];
     const result = exportGedcom(members, []);
 
     expect(result).toContain("2 _MARNM Doe");

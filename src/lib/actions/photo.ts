@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthUser } from "@/lib/actions/auth";
 import { rateLimit } from "@/lib/rate-limit";
+import { RATE_LIMITS } from "@/lib/rate-limit-config";
 import { sanitizeStoragePath, sanitizeText } from "@/lib/sanitize";
 import { assertUUID } from "@/lib/validate";
 
@@ -32,9 +33,9 @@ export async function uploadPhoto(
   isProfilePhoto = false
 ): Promise<Media> {
   const userId = await getAuthUser();
-  await rateLimit(userId, 'uploadPhoto', 10, 60_000);
-  assertUUID(treeId, 'treeId');
-  if (memberId) assertUUID(memberId, 'memberId');
+  rateLimit(userId, "uploadPhoto", ...RATE_LIMITS.uploadPhoto);
+  assertUUID(treeId, "treeId");
+  if (memberId) assertUUID(memberId, "memberId");
   const supabase = createAdminClient();
 
   // Check tree access
@@ -61,22 +62,17 @@ export async function uploadPhoto(
   }
 
   // Generate unique path
-  const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, '');
+  const ext = (file.name.split(".").pop() ?? "jpg").replace(/[^a-zA-Z0-9]/g, "");
   const timestamp = Date.now();
-  const storagePath = sanitizeStoragePath(
-    `${treeId}/${memberId ?? "general"}/${timestamp}.${ext}`
-  );
+  const storagePath = sanitizeStoragePath(`${treeId}/${memberId ?? "general"}/${timestamp}.${ext}`);
 
   // Upload to Supabase Storage
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, file, {
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (uploadError) {
-    console.error("Photo upload failed:", uploadError.message);
     throw new Error("Upload failed");
   }
 
@@ -107,15 +103,12 @@ export async function uploadPhoto(
     .single();
 
   if (error) {
-    console.error("Failed to save photo record:", error.message);
     throw new Error("Failed to save photo");
   }
 
   // If profile photo, update member's avatar_url
   if (isProfilePhoto && memberId) {
-    const { data: urlData } = supabase.storage
-      .from(BUCKET)
-      .getPublicUrl(storagePath);
+    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
 
     await supabase
       .from("tree_members")
@@ -129,7 +122,7 @@ export async function uploadPhoto(
 
 export async function getPhotosByTreeId(treeId: string): Promise<Media[]> {
   const userId = await getAuthUser();
-  assertUUID(treeId, 'treeId');
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   // Check access
@@ -154,8 +147,8 @@ export async function getPhotosByTreeId(treeId: string): Promise<Media[]> {
 
 export async function getPhotosByMemberId(memberId: string, treeId: string): Promise<Media[]> {
   const userId = await getAuthUser();
-  assertUUID(treeId, 'treeId');
-  assertUUID(memberId, 'memberId');
+  assertUUID(treeId, "treeId");
+  assertUUID(memberId, "memberId");
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -180,8 +173,8 @@ export async function getPhotosByMemberId(memberId: string, treeId: string): Pro
 
 export async function deletePhoto(photoId: string, treeId: string): Promise<void> {
   const userId = await getAuthUser();
-  assertUUID(photoId, 'photoId');
-  assertUUID(treeId, 'treeId');
+  assertUUID(photoId, "photoId");
+  assertUUID(treeId, "treeId");
   const supabase = createAdminClient();
 
   const { data: membership } = await supabase
@@ -210,17 +203,11 @@ export async function deletePhoto(photoId: string, treeId: string): Promise<void
 
   // If it was a profile photo, clear the member's avatar
   if (photo.is_profile_photo && photo.member_id) {
-    await supabase
-      .from("tree_members")
-      .update({ avatar_url: null })
-      .eq("id", photo.member_id);
+    await supabase.from("tree_members").update({ avatar_url: null }).eq("id", photo.member_id);
   }
 
   // Delete record
-  const { error } = await supabase
-    .from("media")
-    .delete()
-    .eq("id", photoId);
+  const { error } = await supabase.from("media").delete().eq("id", photoId);
 
   if (error) throw new Error(`Failed to delete photo: ${error.message}`);
   revalidatePath(`/tree/${treeId}`);

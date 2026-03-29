@@ -67,8 +67,7 @@ async function getClient(): Promise<ReturnType<typeof createClient> | null> {
 
   try {
     _client = createClient({ url: process.env.REDIS_URL });
-    _client.on("error", (err) => {
-      console.error("[rate-limit] Redis error:", err);
+    _client.on("error", () => {
       _redisAvailable = false;
     });
     await _client.connect();
@@ -88,9 +87,7 @@ async function getClient(): Promise<ReturnType<typeof createClient> | null> {
  * Standalone helper that converts a {@link RateLimitResult} into standard
  * `X-RateLimit-*` response headers.
  */
-export function rateLimitHeaders(
-  result: RateLimitResult,
-): Record<string, string> {
+export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
     "X-RateLimit-Limit": String(result.limit),
     "X-RateLimit-Remaining": String(Math.max(0, result.remaining)),
@@ -115,7 +112,7 @@ export function rateLimit(
   userId: string,
   action: string,
   limit: number,
-  windowMs: number,
+  windowMs: number
 ): RateLimitResult {
   const key = `rl:${userId}:${action}`;
   const now = Date.now();
@@ -152,7 +149,7 @@ export async function rateLimitAsync(
   userId: string,
   action: string,
   limit: number,
-  windowMs: number,
+  windowMs: number
 ): Promise<RateLimitResult> {
   const redis = await getClient();
   if (!redis) {
