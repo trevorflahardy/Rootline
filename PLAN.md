@@ -1530,7 +1530,7 @@ Prevent future slop with automated enforcement.
 - [x] `npx tsc --noEmit` produces 0 errors
 - [x] No unused imports or dead code
 - [x] All imports use `import type` where applicable
-- [ ] `npm run lint` produces 0 warnings/errors — pre-existing warnings remain
+- [x] `npm run lint` produces 0 errors and 0 warnings
 
 **Tooling:**
 
